@@ -1,0 +1,17 @@
+# Secrets and API Keys
+test_api_requests.py
+test_api.py
+.env
+*.key
+*.pem
+secrets.json
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
