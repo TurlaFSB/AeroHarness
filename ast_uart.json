@@ -1,0 +1,418 @@
+{
+  "constants": [
+    "ISR_REG",
+    "ISR_TXE",
+    "ISR_TC",
+    "TDR_REG",
+    "RXENABLE"
+  ],
+  "functions": {
+    "dev": {
+      "signature": "int *(int) dev",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "uart_init_pins": {
+      "signature": "void (int, int) uart_init_pins",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "rx_cb",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio_init",
+        "gpio_set",
+        "gpio_init_af",
+        "uart_init_cts_pin",
+        "uart_init_rts_pin"
+      ],
+      "mmio_accesses": []
+    },
+    "uart_enable_clock": {
+      "signature": "void (int) uart_enable_clock",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "pm_block",
+        "periph_clk_en"
+      ],
+      "mmio_accesses": []
+    },
+    "uart_disable_clock": {
+      "signature": "void (int) uart_disable_clock",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_clk_dis",
+        "pm_unblock"
+      ],
+      "mmio_accesses": []
+    },
+    "uart_init": {
+      "signature": "int (int, int, int, void *) uart_init",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "baudrate",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "rx_cb",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "arg",
+          "type": "void *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [
+        "assert",
+        "uart_init_pins",
+        "uart_enable_clock",
+        "dev",
+        "defined",
+        "uart_init_usart",
+        "uart_init_lpuart",
+        "NVIC_EnableIRQ"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 160,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR2",
+          "line": 161,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR3",
+          "line": 162,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR1",
+          "line": 184,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR1",
+          "line": 187,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR3",
+          "line": 192,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR3",
+          "line": 195,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "uart_init_usart": {
+      "signature": "void (int, int) uart_init_usart",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "baudrate",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_apb_clk",
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BRR",
+          "line": 262,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "send_byte": {
+      "signature": "void (int, int) send_byte",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "byte",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "ISR_REG",
+          "line": 302,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "TDR_REG",
+          "line": 303,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "wait_for_tx_complete": {
+      "signature": "void (int) wait_for_tx_complete",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "ISR_REG",
+          "line": 308,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "uart_write": {
+      "signature": "void (int, const int *, size_t) uart_write",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "data",
+          "type": "const int *",
+          "is_pointer": true
+        },
+        {
+          "name": "len",
+          "type": "size_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "dev",
+        "irq_is_in",
+        "dma_suspend",
+        "dma_stop",
+        "send_byte",
+        "wait_for_tx_complete",
+        "dma_resume",
+        "dma_acquire",
+        "dma_transfer",
+        "dma_release"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 316,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR3",
+          "line": 327,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR3",
+          "line": 333,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR3",
+          "line": 340,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR3",
+          "line": 346,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "TDR_REG",
+          "line": 348,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR3",
+          "line": 353,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "uart_poweron": {
+      "signature": "void (int) uart_poweron",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "uart_enable_clock",
+        "dev",
+        "uart_init_rts_pin"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 373,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "uart_poweroff": {
+      "signature": "void (int) uart_poweroff",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "gpio_init",
+        "gpio_set",
+        "dev",
+        "uart_disable_clock"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 395,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "irq_handler": {
+      "signature": "void (int) irq_handler",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "dev",
+        "rx_cb",
+        "cortexm_isr_end"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "ISR",
+          "line": 406,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "RDR",
+          "line": 410,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ICR",
+          "line": 413,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SR",
+          "line": 418,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "DR",
+          "line": 422,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "DR",
+          "line": 426,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    }
+  },
+  "extraction_warnings": [
+    "'cpu.h' file not found"
+  ]
+}

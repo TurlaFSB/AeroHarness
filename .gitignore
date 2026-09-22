@@ -15,3 +15,37 @@ secrets.json
 __pycache__/
 *.pyc
 *.pyo
+
+# LibFuzzer artifacts
+timeout-*
+crash-*
+leak-*
+oom-*
+
+# Compiled binaries
+*.o
+*.a
+*.exe
+*.elf
+target_*
+!legacy_v1/target_*
+
+# Fuzzing corpora
+corpus_*
+corpus/
+deep_targets/corpus*
+deep_targets/target_*
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+
+fuzz_*
+!fuzz_*.c
+!fuzz_*.cpp
+
+# Model Checkpoints
+cb_*/
+cb_res/
+

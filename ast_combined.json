@@ -1,0 +1,1062 @@
+{
+  "constants": [
+    "ISR_REG",
+    "ISR_TXE",
+    "ISR_TC",
+    "TDR_REG",
+    "RXENABLE",
+    "ENABLE_DEBUG",
+    "MODE_MASK",
+    "ODR_POS",
+    "PLL_SRC",
+    "PLL_MUL",
+    "PLL_PREDIV",
+    "RCC_CR_HSITRIM_4",
+    "RCC_CFGR_PLLMUL",
+    "FLASH_WAITSTATES",
+    "FLASH_ACR_CONFIG",
+    "ENABLE_DEBUG"
+  ],
+  "functions": {
+    "dev": {
+      "signature": "int *(int) dev",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "uart_init_pins": {
+      "signature": "void (int, int) uart_init_pins",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "rx_cb",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio_init",
+        "gpio_set",
+        "gpio_init_af",
+        "uart_init_cts_pin",
+        "uart_init_rts_pin"
+      ],
+      "mmio_accesses": []
+    },
+    "uart_enable_clock": {
+      "signature": "void (int) uart_enable_clock",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "pm_block",
+        "periph_clk_en"
+      ],
+      "mmio_accesses": []
+    },
+    "uart_disable_clock": {
+      "signature": "void (int) uart_disable_clock",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_clk_dis",
+        "pm_unblock"
+      ],
+      "mmio_accesses": []
+    },
+    "uart_init": {
+      "signature": "int (int, int, int, void *) uart_init",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "baudrate",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "rx_cb",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "arg",
+          "type": "void *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [
+        "assert",
+        "uart_init_pins",
+        "uart_enable_clock",
+        "dev",
+        "defined",
+        "uart_init_usart",
+        "uart_init_lpuart",
+        "NVIC_EnableIRQ"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 160,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR2",
+          "line": 161,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR3",
+          "line": 162,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR1",
+          "line": 184,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR1",
+          "line": 187,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR3",
+          "line": 192,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR3",
+          "line": 195,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "uart_init_usart": {
+      "signature": "void (int, int) uart_init_usart",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "baudrate",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_apb_clk",
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BRR",
+          "line": 262,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "send_byte": {
+      "signature": "void (int, int) send_byte",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "byte",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "ISR_REG",
+          "line": 302,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "TDR_REG",
+          "line": 303,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "wait_for_tx_complete": {
+      "signature": "void (int) wait_for_tx_complete",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "ISR_REG",
+          "line": 308,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "uart_write": {
+      "signature": "void (int, const int *, size_t) uart_write",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "data",
+          "type": "const int *",
+          "is_pointer": true
+        },
+        {
+          "name": "len",
+          "type": "size_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "dev",
+        "irq_is_in",
+        "dma_suspend",
+        "dma_stop",
+        "send_byte",
+        "wait_for_tx_complete",
+        "dma_resume",
+        "dma_acquire",
+        "dma_transfer",
+        "dma_release"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 316,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR3",
+          "line": 327,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR3",
+          "line": 333,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR3",
+          "line": 340,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR3",
+          "line": 346,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "TDR_REG",
+          "line": 348,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR3",
+          "line": 353,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "uart_poweron": {
+      "signature": "void (int) uart_poweron",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "uart_enable_clock",
+        "dev",
+        "uart_init_rts_pin"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 373,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "uart_poweroff": {
+      "signature": "void (int) uart_poweroff",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "gpio_init",
+        "gpio_set",
+        "dev",
+        "uart_disable_clock"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR1",
+          "line": 395,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "irq_handler": {
+      "signature": "void (int) irq_handler",
+      "params": [
+        {
+          "name": "uart",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "dev",
+        "rx_cb",
+        "cortexm_isr_end"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "ISR",
+          "line": 406,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "RDR",
+          "line": 410,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ICR",
+          "line": 413,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SR",
+          "line": 418,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "DR",
+          "line": 422,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "DR",
+          "line": 426,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "_port": {
+      "signature": "int *(int) _port",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "_port_num": {
+      "signature": "int (int) _port_num",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "_pin_num": {
+      "signature": "int (int) _pin_num",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "gpio_init": {
+      "signature": "int (int, int) gpio_init",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mode",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num",
+        "periph_clk_en",
+        "_port_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "APB2ENR",
+          "line": 96,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "MAPR",
+          "line": 97,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 102,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR",
+          "line": 103,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ODR",
+          "line": 107,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "ODR",
+          "line": 109,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "gpio_init_af": {
+      "signature": "void (int, int) gpio_init_af",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "af",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_pin_num",
+        "_port",
+        "periph_clk_en",
+        "_port_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 122,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR",
+          "line": 123,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "gpio_init_analog": {
+      "signature": "void (int) gpio_init_analog",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_clk_en",
+        "_port_num",
+        "_pin_num",
+        "_port"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "gpio_read": {
+      "signature": "int (int) gpio_read",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 141,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ODR",
+          "line": 143,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "IDR",
+          "line": 147,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "gpio_set": {
+      "signature": "void (int) gpio_set",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BSRR",
+          "line": 153,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "gpio_clear": {
+      "signature": "void (int) gpio_clear",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BRR",
+          "line": 158,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "gpio_toggle": {
+      "signature": "void (int) gpio_toggle",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio_read",
+        "gpio_clear",
+        "gpio_set"
+      ],
+      "mmio_accesses": []
+    },
+    "gpio_write": {
+      "signature": "void (int, int) gpio_write",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "value",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BSRR",
+          "line": 174,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "BRR",
+          "line": 177,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "stmclk_init_sysclk": {
+      "signature": "void (void) stmclk_init_sysclk",
+      "params": [],
+      "calls": [
+        "irq_disable",
+        "stmclk_enable_hsi",
+        "defined",
+        "stmclk_disable_hsi",
+        "irq_restore"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CIR",
+          "line": 175,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 182,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 184,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ACR",
+          "line": 187,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 190,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 196,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 202,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 207,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 208,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "DCKCFGR2",
+          "line": 212,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "PLLCFGR",
+          "line": 217,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 221,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 223,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 225,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR2",
+          "line": 227,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 230,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 231,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CFGR",
+          "line": 234,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 235,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "PLLI2SCFGR",
+          "line": 240,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 241,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 242,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "PLLSAICFGR",
+          "line": 246,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 247,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 248,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "periph_apb_clk": {
+      "signature": "int (int) periph_apb_clk",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined"
+      ],
+      "mmio_accesses": []
+    },
+    "periph_timer_clk": {
+      "signature": "int (int) periph_timer_clk",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_apb_clk"
+      ],
+      "mmio_accesses": []
+    },
+    "periph_clk_en": {
+      "signature": "void (int, int) periph_clk_en",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mask",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "DEBUG",
+        "__DSB"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "APB1ENR1",
+          "line": 74,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR",
+          "line": 76,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB2ENR",
+          "line": 80,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR2",
+          "line": 84,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 89,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "IOPENR",
+          "line": 92,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 97,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB1ENR",
+          "line": 102,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB2ENR",
+          "line": 107,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB3ENR",
+          "line": 110,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "periph_clk_dis": {
+      "signature": "void (int, int) periph_clk_dis",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mask",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "DEBUG"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "APB1ENR1",
+          "line": 127,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR",
+          "line": 129,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB2ENR",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR2",
+          "line": 137,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 142,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "IOPENR",
+          "line": 145,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 150,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB1ENR",
+          "line": 155,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB2ENR",
+          "line": 160,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB3ENR",
+          "line": 163,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    }
+  },
+  "extraction_warnings": []
+}

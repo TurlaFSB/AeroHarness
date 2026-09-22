@@ -1,0 +1,179 @@
+{
+  "constants": [
+    "PLL_SRC",
+    "PLL_MUL",
+    "PLL_PREDIV",
+    "RCC_CR_HSITRIM_4",
+    "RCC_CFGR_PLLMUL",
+    "FLASH_WAITSTATES",
+    "FLASH_ACR_CONFIG"
+  ],
+  "functions": {
+    "stmclk_init_sysclk": {
+      "signature": "void (void) stmclk_init_sysclk",
+      "params": [],
+      "calls": [
+        "irq_disable",
+        "stmclk_enable_hsi",
+        "defined",
+        "stmclk_disable_hsi",
+        "irq_restore"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CIR",
+          "line": 175,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 182,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 184,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ACR",
+          "line": 187,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 190,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 196,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 202,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 207,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 208,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "DCKCFGR2",
+          "line": 212,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "PLLCFGR",
+          "line": 217,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFGR",
+          "line": 221,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 223,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 225,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR2",
+          "line": 227,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 230,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 231,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CFGR",
+          "line": 234,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFGR",
+          "line": 235,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "PLLI2SCFGR",
+          "line": 240,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 241,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 242,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "PLLSAICFGR",
+          "line": 246,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 247,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 248,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    }
+  },
+  "extraction_warnings": [
+    "'cpu.h' file not found"
+  ]
+}

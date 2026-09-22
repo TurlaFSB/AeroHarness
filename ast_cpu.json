@@ -1,0 +1,201 @@
+{
+  "constants": [
+    "ENABLE_DEBUG"
+  ],
+  "functions": {
+    "periph_apb_clk": {
+      "signature": "int (int) periph_apb_clk",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined"
+      ],
+      "mmio_accesses": []
+    },
+    "periph_timer_clk": {
+      "signature": "int (int) periph_timer_clk",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_apb_clk"
+      ],
+      "mmio_accesses": []
+    },
+    "periph_clk_en": {
+      "signature": "void (int, int) periph_clk_en",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mask",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "DEBUG",
+        "__DSB"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "APB1ENR1",
+          "line": 74,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR",
+          "line": 76,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB2ENR",
+          "line": 80,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR2",
+          "line": 84,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 89,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "IOPENR",
+          "line": 92,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 97,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB1ENR",
+          "line": 102,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB2ENR",
+          "line": 107,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB3ENR",
+          "line": 110,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "periph_clk_dis": {
+      "signature": "void (int, int) periph_clk_dis",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mask",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "DEBUG"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "APB1ENR1",
+          "line": 127,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR",
+          "line": 129,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB2ENR",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "APB1ENR2",
+          "line": 137,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 142,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "IOPENR",
+          "line": 145,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHBENR",
+          "line": 150,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB1ENR",
+          "line": 155,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB2ENR",
+          "line": 160,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "AHB3ENR",
+          "line": 163,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    }
+  },
+  "extraction_warnings": [
+    "'periph_conf.h' file not found"
+  ]
+}

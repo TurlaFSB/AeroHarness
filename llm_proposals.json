@@ -1,0 +1,479 @@
+{
+  "pl011_enable::cr::121": {
+    "function": "pl011_enable",
+    "register": "cr",
+    "line": 121,
+    "model": "passthrough",
+    "reasoning": "The pl011_enable function performs a read-modify-write operation on the cr register using the bitwise OR assignment operator (`|= PL011_CR_UARTEN`). As cr is a control/configuration register where values are written and read back to update settings, the passthrough model is most appropriate so that data written to the register is returned on subsequent reads.",
+    "context": "#endif\n\nstatic void pl011_enable(const struct device *dev)\n{\n\tget_uart(dev)->cr |=  PL011_CR_UARTEN;\n}\n\nstatic void pl011_disable(const struct device *dev)\n{\n",
+    "backend": "gemini"
+  },
+  "pl011_disable::cr::126": {
+    "function": "pl011_disable",
+    "register": "cr",
+    "line": 126,
+    "model": "passthrough",
+    "reasoning": "The pl011_disable function performs a read-modify-write operation (`&= ~PL011_CR_UARTEN`) on the control register `cr`. Since `cr` serves as a configuration register holding control bits, the driver expects the register to retain its written state across reads. The Passthrough model ensures that value modifications written to the register persist and are accurately returned on subsequent reads.",
+    "context": "}\n\nstatic void pl011_disable(const struct device *dev)\n{\n\tget_uart(dev)->cr &= ~PL011_CR_UARTEN;\n}\n\nstatic void pl011_enable_fifo(const struct device *dev)\n{\n",
+    "backend": "gemini"
+  },
+  "pl011_enable_fifo::lcr_h::131": {
+    "function": "pl011_enable_fifo",
+    "register": "lcr_h",
+    "line": 131,
+    "model": "passthrough",
+    "reasoning": "The register lcr_h (Line Control Register) is a configuration register updated in pl011_enable_fifo using a read-modify-write operation (|= PL011_LCRH_FEN). The passthrough model is appropriate because configuration registers retain the value written to them and return that same value on subsequent reads.",
+    "context": "}\n\nstatic void pl011_enable_fifo(const struct device *dev)\n{\n\tget_uart(dev)->lcr_h |= PL011_LCRH_FEN;\n}\n\nstatic void pl011_disable_fifo(const struct device *dev)\n{\n",
+    "backend": "gemini"
+  },
+  "pl011_disable_fifo::lcr_h::136": {
+    "function": "pl011_disable_fifo",
+    "register": "lcr_h",
+    "line": 136,
+    "model": "passthrough",
+    "reasoning": "The function `pl011_disable_fifo` performs a read-modify-write operation (`&= ~PL011_LCRH_FEN`) on the `lcr_h` register to clear the FIFO enable bit. As a line control configuration register, `lcr_h` holds configuration state. The Passthrough model is most appropriate because it ensures that values written to the register are retained and returned on subsequent reads, allowing read-modify-write updates to preserve other configuration bits.",
+    "context": "}\n\nstatic void pl011_disable_fifo(const struct device *dev)\n{\n\tget_uart(dev)->lcr_h &= ~PL011_LCRH_FEN;\n}\n\nstatic void pl011_set_flow_control(const struct device *dev, bool rts, bool cts)\n{\n",
+    "backend": "gemini"
+  },
+  "pl011_set_flow_control::cr::142": {
+    "function": "pl011_set_flow_control",
+    "register": "cr",
+    "line": 142,
+    "model": "passthrough",
+    "reasoning": "The function pl011_set_flow_control reads the current value from the PL011 Control Register (cr) into a local variable, modifies specific bits (such as PL011_CR_RTSEn) to update hardware configuration settings, and writes it back. As a control/configuration register whose state is set by software and expected to retain written values across reads, the Passthrough model is the most appropriate.",
+    "context": "\nstatic void pl011_set_flow_control(const struct device *dev, bool rts, bool cts)\n{\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tuint32_t cr = uart->cr;\n\n\tif (rts) {\n\t\tcr |= PL011_CR_RTSEn;\n\t} else {\n",
+    "backend": "gemini"
+  },
+  "pl011_set_flow_control::cr::156": {
+    "function": "pl011_set_flow_control",
+    "register": "cr",
+    "line": 156,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t} else {\n\t\tcr &= ~PL011_CR_CTSEn;\n\t}\n\n\tuart->cr = cr;\n}\n\nstatic int pl011_set_baudrate(const struct device *dev,\n\t\t\t      uint32_t clk, uint32_t baudrate)\n",
+    "backend": "none"
+  },
+  "pl011_set_baudrate::ibrd::176": {
+    "function": "pl011_set_baudrate",
+    "register": "ibrd",
+    "line": 176,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t\t|| (bauddiv > (65535u << PL011_FBRD_WIDTH))) {\n\t\treturn -EINVAL;\n\t}\n\n\tuart->ibrd = bauddiv >> PL011_FBRD_WIDTH;\n\tuart->fbrd = bauddiv & ((1u << PL011_FBRD_WIDTH) - 1u);\n\n\tbarrier_dmem_fence_full();\n\n",
+    "backend": "none"
+  },
+  "pl011_set_baudrate::fbrd::177": {
+    "function": "pl011_set_baudrate",
+    "register": "fbrd",
+    "line": 177,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t\treturn -EINVAL;\n\t}\n\n\tuart->ibrd = bauddiv >> PL011_FBRD_WIDTH;\n\tuart->fbrd = bauddiv & ((1u << PL011_FBRD_WIDTH) - 1u);\n\n\tbarrier_dmem_fence_full();\n\n\t/* In order to internally update the contents of ibrd or fbrd, a\n",
+    "backend": "none"
+  },
+  "pl011_set_baudrate::lcr_h::185": {
+    "function": "pl011_set_baudrate",
+    "register": "lcr_h",
+    "line": 185,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t/* In order to internally update the contents of ibrd or fbrd, a\n\t * lcr_h write must always be performed at the end\n\t * ARM DDI 0183F, Pg 3-13\n\t */\n\tuart->lcr_h = uart->lcr_h;\n\n\treturn 0;\n}\n\n",
+    "backend": "none"
+  },
+  "pl011_is_readable::cr::194": {
+    "function": "pl011_is_readable",
+    "register": "cr",
+    "line": 194,
+    "model": "bitextract",
+    "reasoning": "The function pl011_is_readable reads the control register `cr` (`uart->cr`) and performs bitwise AND operations (`cr & PL011_CR_UARTEN` and `cr & PL011_CR_RXE`) to check specific status/enablement flags. Since only specific bits are tested to determine if the UART is enabled and readable, the `bitextract` model is the most appropriate choice.",
+    "context": "static bool pl011_is_readable(const struct device *dev)\n{\n\tstruct pl011_data *data = dev->data;\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tuint32_t cr = uart->cr;\n\n\tif (!data->sbsa &&\n\t    (!(cr & PL011_CR_UARTEN) || !(cr & PL011_CR_RXE))) {\n\t\treturn false;\n",
+    "backend": "gemini"
+  },
+  "pl011_is_readable::fr::201": {
+    "function": "pl011_is_readable",
+    "register": "fr",
+    "line": 201,
+    "model": "bitextract",
+    "reasoning": "The driver reads from the Flag Register (fr) and performs a bitwise AND operation with PL011_FR_RXFE to check if the Receive FIFO Empty bit is cleared. Since only specific bits of a status/flag register (RX FIFO empty status) are being evaluated to determine if the UART is readable, the Bitextract model is the most appropriate.",
+    "context": "\t    (!(cr & PL011_CR_UARTEN) || !(cr & PL011_CR_RXE))) {\n\t\treturn false;\n\t}\n\n\treturn (uart->fr & PL011_FR_RXFE) == 0U;\n}\n\nstatic int pl011_poll_in(const struct device *dev, unsigned char *c)\n{\n",
+    "backend": "gemini"
+  },
+  "pl011_poll_in::dr::213": {
+    "function": "pl011_poll_in",
+    "register": "dr",
+    "line": 213,
+    "model": "bitextract",
+    "reasoning": "In `pl011_poll_in`, the driver reads from the Data Register `uart->dr` to retrieve an incoming character (`*c = (unsigned char)uart->dr;`). The `bitextract` model is appropriate for register reads that consume input data, allowing the fuzzer to supply dynamic byte/bit values for the received character.",
+    "context": "\t\treturn -1;\n\t}\n\n\t/* got a character */\n\t*c = (unsigned char)uart->dr;\n\n\treturn 0;\n}\n\n",
+    "backend": "gemini"
+  },
+  "pl011_poll_out::fr::224": {
+    "function": "pl011_poll_out",
+    "register": "fr",
+    "line": 224,
+    "model": "bitextract",
+    "reasoning": "The driver continuously reads the Flag Register (fr) in a while loop to check a specific bit (PL011_FR_TXFF) indicating whether the transmit FIFO is full. Since the control flow only depends on this specific bit value to proceed, the bitextract model is the most appropriate choice to allow the fuzzer to bypass the polling loop.",
+    "context": "{\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\t/* Wait for space in FIFO */\n\twhile (uart->fr & PL011_FR_TXFF) {\n\t\t; /* Wait */\n\t}\n\n\t/* Send a character */\n",
+    "backend": "gemini"
+  },
+  "pl011_poll_out::dr::229": {
+    "function": "pl011_poll_out",
+    "register": "dr",
+    "line": 229,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t\t; /* Wait */\n\t}\n\n\t/* Send a character */\n\tuart->dr = (uint32_t)c;\n}\n\nstatic int pl011_err_check(const struct device *dev)\n{\n",
+    "backend": "none"
+  },
+  "pl011_err_check::rsr::244": {
+    "function": "pl011_err_check",
+    "register": "rsr",
+    "line": 244,
+    "model": "bitextract",
+    "reasoning": "The driver reads the 'rsr' (Receive Status Register) register to check for error flags by performing a bitwise AND operation with specific bitmasks such as PL011_RSR_ECR_OE. Because only specific status bits are extracted and evaluated to determine error conditions, the bitextract model is the most appropriate choice.",
+    "context": "\t * all error flags.  We clear first so that after this call\n\t * returns, RSR is clean and ready to latch errors from the\n\t * next DR read.\n\t */\n\trsr = get_uart(dev)->rsr;\n\tget_uart(dev)->rsr = 0;\n\n\tif (rsr & PL011_RSR_ECR_OE) {\n\t\terrors |= UART_ERROR_OVERRUN;\n",
+    "backend": "gemini"
+  },
+  "pl011_err_check::rsr::245": {
+    "function": "pl011_err_check",
+    "register": "rsr",
+    "line": 245,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t * returns, RSR is clean and ready to latch errors from the\n\t * next DR read.\n\t */\n\trsr = get_uart(dev)->rsr;\n\tget_uart(dev)->rsr = 0;\n\n\tif (rsr & PL011_RSR_ECR_OE) {\n\t\terrors |= UART_ERROR_OVERRUN;\n\t}\n",
+    "backend": "none"
+  },
+  "pl011_runtime_configure_internal::lcr_h::285": {
+    "function": "pl011_runtime_configure_internal",
+    "register": "lcr_h",
+    "line": 285,
+    "model": "passthrough",
+    "reasoning": "The driver performs a read-modify-write operation on the `lcr_h` register (`lcrh = uart->lcr_h & ~...`) to update specific line configuration fields (such as parity) while attempting to preserve existing bit settings. The Passthrough model is the most appropriate choice for configuration registers undergoing read-modify-write cycles, as it returns previously written values on subsequent reads.",
+    "context": "\t\tpl011_disable(dev);\n\t\tpl011_disable_fifo(dev);\n\t}\n\n\tlcrh = uart->lcr_h & ~(PL011_LCRH_FORMAT_MASK | PL011_LCRH_STP2);\n\n\tswitch (cfg->parity) {\n\tcase UART_CFG_PARITY_NONE:\n\t\tlcrh &= ~(BIT(1) | BIT(2));\n",
+    "backend": "gemini"
+  },
+  "pl011_runtime_configure_internal::lcr_h::347": {
+    "function": "pl011_runtime_configure_internal",
+    "register": "lcr_h",
+    "line": 347,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t\tgoto enable;\n\t}\n\n\t/* Update settings */\n\tuart->lcr_h = lcrh;\n\n\tmemcpy(&data->uart_cfg, cfg, sizeof(data->uart_cfg));\n\nenable:\n",
+    "backend": "none"
+  },
+  "pl011_fifo_fill::fr::389": {
+    "function": "pl011_fifo_fill",
+    "register": "fr",
+    "line": 389,
+    "model": "passthrough",
+    "reasoning": "The register 'fr' is being read to check the 'TXFF' bit (transmit FIFO full). The code is writing to the 'dr' (data register) to fill the transmit FIFO. Since the 'fr' register is read to check a specific bit (TXFF) and then the 'dr' register is written to update the FIFO, this is a passthrough model where the data written to 'dr' can be returned exactly as written on the next read of 'fr'. This allows the fuzzer to control the data written to 'dr' and observe the corresponding changes in 'fr'.",
+    "context": "{\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tint num_tx = 0U;\n\n\twhile (!(uart->fr & PL011_FR_TXFF) && (len - num_tx > 0)) {\n\t\tuart->dr = tx_data[num_tx++];\n\t}\n\treturn num_tx;\n}\n",
+    "backend": "ollama"
+  },
+  "pl011_fifo_fill::dr::390": {
+    "function": "pl011_fifo_fill",
+    "register": "dr",
+    "line": 390,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tint num_tx = 0U;\n\n\twhile (!(uart->fr & PL011_FR_TXFF) && (len - num_tx > 0)) {\n\t\tuart->dr = tx_data[num_tx++];\n\t}\n\treturn num_tx;\n}\n\n",
+    "backend": "none"
+  },
+  "pl011_fifo_read::fr::401": {
+    "function": "pl011_fifo_read",
+    "register": "fr",
+    "line": 401,
+    "model": "passthrough",
+    "reasoning": "The function pl011_fifo_read is reading from the MMIO register fr. It is checking a specific bit (PL011_FR_RXFE) to determine if the receive FIFO is empty. Since it is only reading the value of fr and checking a specific bit without writing to it, the Passthrough model is most appropriate. In this model, the data written to the register is returned exactly as written on the next read, which matches the behavior of this function.",
+    "context": "{\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tint num_rx = 0U;\n\n\twhile ((len - num_rx > 0) && !(uart->fr & PL011_FR_RXFE)) {\n\t\trx_data[num_rx++] = uart->dr;\n\t}\n\n\treturn num_rx;\n",
+    "backend": "ollama"
+  },
+  "pl011_fifo_read::dr::402": {
+    "function": "pl011_fifo_read",
+    "register": "dr",
+    "line": 402,
+    "model": "passthrough",
+    "reasoning": "The register 'dr' is being read in the 'pl011_fifo_read' function. The value returned from 'uart->dr' is used to populate the 'rx_data' array. Since the value read from 'dr' is used directly in the function without being modified or used to set a specific bit pattern, it fits the description of a 'Passthrough' model. This model indicates that data written to the register is returned exactly as written on the next read.",
+    "context": "\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tint num_rx = 0U;\n\n\twhile ((len - num_rx > 0) && !(uart->fr & PL011_FR_RXFE)) {\n\t\trx_data[num_rx++] = uart->dr;\n\t}\n\n\treturn num_rx;\n}\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_enable::imsc::413": {
+    "function": "pl011_irq_tx_enable",
+    "register": "imsc",
+    "line": 413,
+    "model": "set",
+    "reasoning": "The code snippet demonstrates that the driver is writing to the 'imsc' register by using the bitwise OR operator '|=' to set the PL011_IMSC_TXIM bit. This operation is used to trigger an action within the UART peripheral, specifically enabling the transmit interrupt. The driver is not reading from or checking a specific bit, nor is it setting a configuration in a way that would require the Passthrough or Bitextract models. The Set model is appropriate because it accurately describes the behavior of writing a bit pattern (in this case, enabling a specific interrupt) to the register to trigger an action.",
+    "context": "{\n\tstruct pl011_data *data = dev->data;\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\tuart->imsc |= PL011_IMSC_TXIM;\n\tif (!data->sw_call_txdrdy) {\n\t\treturn;\n\t}\n\tdata->sw_call_txdrdy = false;\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_enable::imsc::444": {
+    "function": "pl011_irq_tx_enable",
+    "register": "imsc",
+    "line": 444,
+    "model": "passthrough",
+    "reasoning": "The code is checking if a specific bit (TXIM) in the 'imsc' register is set. If it is, the driver enters a loop and performs certain actions based on other register states. The value read from 'imsc' is then used to control the flow of the program, making it suitable for a passthrough model. The fuzzer should supply a symbolic value that is then returned exactly as written on the next read to correctly simulate this behavior.",
+    "context": "\t *\n\t * Exit loop if CTS flow control is enabled and CTS is blocking\n\t * transmission. CTS bit low means remote is not ready.\n\t */\n\twhile (uart->imsc & PL011_IMSC_TXIM) {\n\t\t/* If CTS flow control is enabled and CTS is blocking, exit loop */\n\t\tif ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {\n\t\t\t/* clear software flag to allow TX enable to be called again */\n\t\t\tdata->sw_call_txdrdy = true;\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_enable::cr::446": {
+    "function": "pl011_irq_tx_enable",
+    "register": "cr",
+    "line": 446,
+    "model": "passthrough",
+    "reasoning": "The register 'cr' is being written to in the function 'pl011_irq_tx_enable'. Specifically, the function is checking if a certain bit (CTSEn) in the 'cr' register is set and then enabling another interrupt (CTSMIM) based on that check. The value written to the 'cr' register determines the configuration of the CTS flow control, and the next read of this register should return the exact value that was written, allowing the fuzzer to explore different configurations.",
+    "context": "\t * transmission. CTS bit low means remote is not ready.\n\t */\n\twhile (uart->imsc & PL011_IMSC_TXIM) {\n\t\t/* If CTS flow control is enabled and CTS is blocking, exit loop */\n\t\tif ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {\n\t\t\t/* clear software flag to allow TX enable to be called again */\n\t\t\tdata->sw_call_txdrdy = true;\n\t\t\t/* Enable CTS interrupt to resume when CTS clears */\n\t\t\tuart->imsc |= PL011_IMSC_CTSMIM;\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_enable::fr::446": {
+    "function": "pl011_irq_tx_enable",
+    "register": "fr",
+    "line": 446,
+    "model": "passthrough",
+    "reasoning": "The register 'fr' is being read in the condition `(uart->fr & PL011_FR_CTS)`. The `passthrough` model is appropriate here because it allows the fuzzer to supply a symbolic value for `fr`, and the fuzzer can then assert different bit patterns to test various conditions, such as `PL011_FR_CTS` being set or not set.",
+    "context": "\t * transmission. CTS bit low means remote is not ready.\n\t */\n\twhile (uart->imsc & PL011_IMSC_TXIM) {\n\t\t/* If CTS flow control is enabled and CTS is blocking, exit loop */\n\t\tif ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {\n\t\t\t/* clear software flag to allow TX enable to be called again */\n\t\t\tdata->sw_call_txdrdy = true;\n\t\t\t/* Enable CTS interrupt to resume when CTS clears */\n\t\t\tuart->imsc |= PL011_IMSC_CTSMIM;\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_enable::imsc::450": {
+    "function": "pl011_irq_tx_enable",
+    "register": "imsc",
+    "line": 450,
+    "model": "passthrough",
+    "reasoning": "The register imsc is being written to in the code snippet. The line `uart->imsc |= PL011_IMSC_CTSMIM;` indicates that a specific bit pattern (PL011_IMSC_CTSMIM) is being set in the imsc register. This pattern is used to enable a CTS interrupt to resume when CTS clears. Therefore, the imsc register acts as a configuration register, where data written to it is returned exactly as written on the next read, making the 'passthrough' model the most appropriate choice.",
+    "context": "\t\tif ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {\n\t\t\t/* clear software flag to allow TX enable to be called again */\n\t\t\tdata->sw_call_txdrdy = true;\n\t\t\t/* Enable CTS interrupt to resume when CTS clears */\n\t\t\tuart->imsc |= PL011_IMSC_CTSMIM;\n\t\t\tbreak;\n\t\t}\n\t\tK_SPINLOCK(&data->irq_cb_lock) {\n\t\t\tdata->irq_cb(dev, data->irq_cb_data);\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_disable::imsc::466": {
+    "function": "pl011_irq_tx_disable",
+    "register": "imsc",
+    "line": 466,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided shows that the driver is writing to the imsc register using the bitwise AND operation to clear specific bits (PL011_IMSC_TXIM and PL011_IMSC_CTSMIM). This indicates that the driver is configuring the interrupt mask settings of the UART peripheral. Since the register is being written to and it is expected that the same data will be returned when read, the most appropriate model is 'passthrough'. This model allows the fuzzer to supply symbolic values for the register, and the fuzzer will receive the same symbolic values back, which is consistent with the behavior of a passthrough register.",
+    "context": "\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\tdata->sw_call_txdrdy = true;\n\t/* Clear TX and CTS interrupts */\n\tuart->imsc &= ~(PL011_IMSC_TXIM | PL011_IMSC_CTSMIM);\n}\n\nstatic int pl011_irq_tx_complete(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_complete::fr::472": {
+    "function": "pl011_irq_tx_complete",
+    "register": "fr",
+    "line": 472,
+    "model": "bitextract",
+    "reasoning": "The driver is reading from the 'fr' register and checking the 'PL011_FR_BUSY' bit to determine if the UART is not busy transmitting data. Since it's examining a specific bit (not just returning a constant or identity value), the 'bitextract' model is the most appropriate choice.",
+    "context": "\nstatic int pl011_irq_tx_complete(const struct device *dev)\n{\n\t/* Check for UART is busy transmitting data. */\n\treturn ((get_uart(dev)->fr & PL011_FR_BUSY) == 0);\n}\n\nstatic int pl011_irq_tx_ready(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_ready::cr::480": {
+    "function": "pl011_irq_tx_ready",
+    "register": "cr",
+    "line": 480,
+    "model": "bitextract",
+    "reasoning": "The driver is checking a specific bit in the cr register, specifically the TXE bit. The function pl011_irq_tx_ready is designed to return false if the TXE bit is not set, indicating that the transmit FIFO is not empty. This suggests that the driver is performing a bit extraction operation on the cr register to determine the status of the transmit FIFO.",
+    "context": "{\n\tstruct pl011_data *data = dev->data;\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\tif (!data->sbsa && !(uart->cr & PL011_CR_TXE)) {\n\t\treturn false;\n\t}\n\n\treturn ((uart->imsc & PL011_IMSC_TXIM) &&\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_ready::imsc::484": {
+    "function": "pl011_irq_tx_ready",
+    "register": "imsc",
+    "line": 484,
+    "model": "passthrough",
+    "reasoning": "The provided code context shows that the driver is reading from the imsc register (PL011_IMSC_TXIM) to check if the TX interrupt is enabled. The driver also reads the ris (PL011_RIS_TXRIS) and fr (PL011_FR_TXFE) registers to verify if the TX interrupt status is set or if the TX FIFO is empty. Since the driver is not writing to the imsc register and is simply checking its value, the Passthrough model is most appropriate. This model allows the fuzzer to supply a symbolic value that represents the state of the imsc register, and the driver will behave as if it is reading the actual value from hardware.",
+    "context": "\tif (!data->sbsa && !(uart->cr & PL011_CR_TXE)) {\n\t\treturn false;\n\t}\n\n\treturn ((uart->imsc & PL011_IMSC_TXIM) &&\n\t\t/* Check for TX interrupt status is set or TX FIFO is empty. */\n\t\t(uart->ris & PL011_RIS_TXRIS || uart->fr & PL011_FR_TXFE));\n}\n\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_ready::ris::486": {
+    "function": "pl011_irq_tx_ready",
+    "register": "ris",
+    "line": 486,
+    "model": "passthrough",
+    "reasoning": "The function pl011_irq_tx_ready reads from the ris (Receive Interrupt Status) register to check if the TX interrupt is ready. It does not modify the register itself, nor does it extract specific bits. Instead, it reads the current state of the register and uses it to determine the next action. Therefore, the 'Passthrough' model is most appropriate because it accurately reflects the register's behavior of returning the data that was written to it previously.",
+    "context": "\t}\n\n\treturn ((uart->imsc & PL011_IMSC_TXIM) &&\n\t\t/* Check for TX interrupt status is set or TX FIFO is empty. */\n\t\t(uart->ris & PL011_RIS_TXRIS || uart->fr & PL011_FR_TXFE));\n}\n\nstatic void pl011_irq_rx_enable(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_tx_ready::fr::486": {
+    "function": "pl011_irq_tx_ready",
+    "register": "fr",
+    "line": 486,
+    "model": "passthrough",
+    "reasoning": "The register 'fr' is being read in the function pl011_irq_tx_ready. The driver is checking the value of the PL011_FR_TXFE bit to determine if the transmit FIFO is empty. Since the value of 'fr' is directly used in the condition to check the TXFE bit, it implies that the driver is using the actual value of the register to make decisions. Therefore, the 'passthrough' model is appropriate as it allows the fuzzer to supply a symbolic value while ensuring that the specific bit (TXFE) is used in the subsequent checks.",
+    "context": "\t}\n\n\treturn ((uart->imsc & PL011_IMSC_TXIM) &&\n\t\t/* Check for TX interrupt status is set or TX FIFO is empty. */\n\t\t(uart->ris & PL011_RIS_TXRIS || uart->fr & PL011_FR_TXFE));\n}\n\nstatic void pl011_irq_rx_enable(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_rx_enable::imsc::491": {
+    "function": "pl011_irq_rx_enable",
+    "register": "imsc",
+    "line": 491,
+    "model": "set",
+    "reasoning": "The `pl011_irq_rx_enable` function is setting bits in the `imsc` register by using the bitwise OR operator (`|=`). Specifically, it is setting the bits corresponding to `PL011_IMSC_RXIM` and `PL011_IMSC_RTIM`. This indicates that a specific bit pattern is being written to trigger an action, which matches the behavior of the 'Set' model. The 'Set' model is appropriate here because it allows for the simulation of writing a predefined pattern to a register, which can trigger specific behaviors or actions within the device being fuzzed.",
+    "context": "}\n\nstatic void pl011_irq_rx_enable(const struct device *dev)\n{\n\tget_uart(dev)->imsc |= PL011_IMSC_RXIM | PL011_IMSC_RTIM;\n}\n\nstatic void pl011_irq_rx_disable(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_rx_disable::imsc::496": {
+    "function": "pl011_irq_rx_disable",
+    "register": "imsc",
+    "line": 496,
+    "model": "set",
+    "reasoning": "The function pl011_irq_rx_disable is writing to the imsc register to disable the RXIM (Receive Interrupt Mask) and RTIM (Receive Time-Out Interrupt Mask) bits. This is a clear example of a configuration register where specific bit patterns are written to trigger actions or state machine changes. Therefore, the most appropriate model is 'set'.",
+    "context": "}\n\nstatic void pl011_irq_rx_disable(const struct device *dev)\n{\n\tget_uart(dev)->imsc &= ~(PL011_IMSC_RXIM | PL011_IMSC_RTIM);\n}\n\nstatic int pl011_irq_rx_ready(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_rx_ready::cr::504": {
+    "function": "pl011_irq_rx_ready",
+    "register": "cr",
+    "line": 504,
+    "model": "bitextract",
+    "reasoning": "The register `cr` is being read in the function `pl011_irq_rx_ready` to check if the RXE (Receive Enable) bit is set. The value of the `cr` register is being used to determine the state of the receive enable functionality. Since the fuzzer should supply a symbolic value and only specific bits (in this case, the RXE bit) are used to make decisions, the 'Bitextract' model is the most appropriate. This model ensures that the fuzzer can test different values of the RXE bit without affecting other bits in the `cr` register.",
+    "context": "{\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\tstruct pl011_data *data = dev->data;\n\n\tif (!data->sbsa && !(uart->cr & PL011_CR_RXE)) {\n\t\treturn false;\n\t}\n\n\treturn ((uart->imsc & PL011_IMSC_RXIM) &&\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_rx_ready::imsc::508": {
+    "function": "pl011_irq_rx_ready",
+    "register": "imsc",
+    "line": 508,
+    "model": "bitextract",
+    "reasoning": "The imsc register is being checked to see if the RXIM bit is set. The function pl011_irq_rx_ready reads the value of imsc and checks if the RXIM bit is set. No other bits are involved in this check, making Bitextract the most appropriate model.",
+    "context": "\tif (!data->sbsa && !(uart->cr & PL011_CR_RXE)) {\n\t\treturn false;\n\t}\n\n\treturn ((uart->imsc & PL011_IMSC_RXIM) &&\n\t\t(!(uart->fr & PL011_FR_RXFE)));\n}\n\nstatic void pl011_irq_err_enable(const struct device *dev)\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_rx_ready::fr::509": {
+    "function": "pl011_irq_rx_ready",
+    "register": "fr",
+    "line": 509,
+    "model": "bitextract",
+    "reasoning": "The code reads the value of the 'fr' register and checks if a specific bit (PL011_FR_RXFE) is clear while another bit (PL011_IMSC_RXIM) is set. This indicates that the driver is checking the status of a hardware feature (receive ready), which is typical for status/flag registers. The Fuzzware 'bitextract' model is appropriate as it allows the fuzzer to supply a symbolic value while only specific bits are used for decision-making.",
+    "context": "\t\treturn false;\n\t}\n\n\treturn ((uart->imsc & PL011_IMSC_RXIM) &&\n\t\t(!(uart->fr & PL011_FR_RXFE)));\n}\n\nstatic void pl011_irq_err_enable(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_err_enable::imsc::515": {
+    "function": "pl011_irq_err_enable",
+    "register": "imsc",
+    "line": 515,
+    "model": "set",
+    "reasoning": "The function pl011_irq_err_enable is writing a specific bit pattern (PL011_IMSC_ERROR_MASK) to the imsc register. This pattern is designed to enable certain error-related interrupts in the UART peripheral. The function does not read from the register nor does it check specific bits; instead, it sets the bits to a predefined state to enable the error handling functionality.",
+    "context": "\nstatic void pl011_irq_err_enable(const struct device *dev)\n{\n\t/* enable framing, parity, break, and overrun */\n\tget_uart(dev)->imsc |= PL011_IMSC_ERROR_MASK;\n}\n\nstatic void pl011_irq_err_disable(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_err_disable::imsc::520": {
+    "function": "pl011_irq_err_disable",
+    "register": "imsc",
+    "line": 520,
+    "model": "set",
+    "reasoning": "The function pl011_irq_err_disable is writing to the imsc register by applying a bitwise AND operation with the inverse of PL011_IMSC_ERROR_MASK. This operation sets specific bits in the register to disable error interrupts. Therefore, the model 'set' is the most appropriate as it represents a specific bit pattern being written to trigger an action.",
+    "context": "}\n\nstatic void pl011_irq_err_disable(const struct device *dev)\n{\n\tget_uart(dev)->imsc &= ~PL011_IMSC_ERROR_MASK;\n}\n\nstatic int pl011_irq_is_pending(const struct device *dev)\n{\n",
+    "backend": "ollama"
+  },
+  "pl011_irq_is_pending::mis::528": {
+    "function": "pl011_irq_is_pending",
+    "register": "mis",
+    "line": 528,
+    "model": "passthrough",
+    "reasoning": "The function pl011_irq_is_pending reads the value of the 'mis' register and checks if it contains specific bits (specifically, the bits masked by PL011_IMSC_ERROR_MASK). Since the function is simply reading the register and checking specific bits without altering them, the most appropriate model is 'passthrough'. This model allows the fuzzer to supply any value to the register, and the function will behave as expected by returning the result of the bitwise AND operation with the mask.",
+    "context": "{\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\treturn pl011_irq_rx_ready(dev) || pl011_irq_tx_ready(dev) ||\n\t       (uart->mis & PL011_IMSC_ERROR_MASK);\n}\n\nstatic void pl011_irq_callback_set(const struct device *dev,\n\t\t\t\t\t    uart_irq_callback_user_data_t cb,\n",
+    "backend": "ollama"
+  },
+  "pl011_init::ifls::637": {
+    "function": "pl011_init",
+    "register": "ifls",
+    "line": 637,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\n\t\tpl011_runtime_configure_internal(dev, &data->uart_cfg, false);\n\n\t\t/* Setting transmit and receive interrupt FIFO level */\n\t\tuart->ifls = FIELD_PREP(PL011_IFLS_TXIFLSEL_M, TXIFLSEL_1_8_FULL)\n\t\t\t| FIELD_PREP(PL011_IFLS_RXIFLSEL_M, RXIFLSEL_1_2_FULL);\n\n\t\t/* Enabling the FIFOs */\n\t\tif (!config->fifo_disable) {\n",
+    "backend": "none"
+  },
+  "pl011_init::imsc::646": {
+    "function": "pl011_init",
+    "register": "imsc",
+    "line": 646,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t\t\tpl011_enable_fifo(dev);\n\t\t}\n\t}\n\t/* initialize all IRQs as masked */\n\tuart->imsc = 0U;\n\tuart->icr = PL011_IMSC_MASK_ALL;\n\n\tif (!data->sbsa) {\n\t\tuart->dmacr = 0U;\n",
+    "backend": "none"
+  },
+  "pl011_init::icr::647": {
+    "function": "pl011_init",
+    "register": "icr",
+    "line": 647,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t\t}\n\t}\n\t/* initialize all IRQs as masked */\n\tuart->imsc = 0U;\n\tuart->icr = PL011_IMSC_MASK_ALL;\n\n\tif (!data->sbsa) {\n\t\tuart->dmacr = 0U;\n\t\tbarrier_isync_fence_full();\n",
+    "backend": "none"
+  },
+  "pl011_init::dmacr::650": {
+    "function": "pl011_init",
+    "register": "dmacr",
+    "line": 650,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\tuart->imsc = 0U;\n\tuart->icr = PL011_IMSC_MASK_ALL;\n\n\tif (!data->sbsa) {\n\t\tuart->dmacr = 0U;\n\t\tbarrier_isync_fence_full();\n\t\tuart->cr &= ~PL011_CR_SIREN;\n\t\tuart->cr |= PL011_CR_RXE | PL011_CR_TXE;\n\t\tbarrier_isync_fence_full();\n",
+    "backend": "none"
+  },
+  "pl011_init::cr::652": {
+    "function": "pl011_init",
+    "register": "cr",
+    "line": 652,
+    "model": "passthrough",
+    "reasoning": "The provided code snippet primarily involves writing values to the MMIO register 'cr' in a specific configuration. The register 'cr' is being manipulated to set or clear certain bits to enable or disable UART functions such as SIREN (Interrupt on Receive Error), RXE (Receiver Enable), and TXE (Transmitter Enable). Since the code is not just reading from the register, checking a specific bit, or setting a configuration in a way that requires a symbolic value, the 'passthrough' model is most appropriate. This model allows the fuzzer to supply the actual values to be written to the 'cr' register, which will then be returned as expected upon subsequent reads.",
+    "context": "\n\tif (!data->sbsa) {\n\t\tuart->dmacr = 0U;\n\t\tbarrier_isync_fence_full();\n\t\tuart->cr &= ~PL011_CR_SIREN;\n\t\tuart->cr |= PL011_CR_RXE | PL011_CR_TXE;\n\t\tbarrier_isync_fence_full();\n\t}\n\n",
+    "backend": "ollama"
+  },
+  "pl011_init::cr::653": {
+    "function": "pl011_init",
+    "register": "cr",
+    "line": 653,
+    "model": "set",
+    "reasoning": "The code snippet demonstrates that the 'cr' register is being modified. It sets specific bits (PL011_CR_RXE, PL011_CR_TXE) and clears a bit (PL011_CR_SIREN). This indicates that the 'cr' register is used to configure the state of the UART device, triggering actions based on the set bit patterns. Therefore, the 'Set' model is the most appropriate choice as it accurately reflects the behavior of setting specific bit patterns to achieve certain actions or state changes.",
+    "context": "\tif (!data->sbsa) {\n\t\tuart->dmacr = 0U;\n\t\tbarrier_isync_fence_full();\n\t\tuart->cr &= ~PL011_CR_SIREN;\n\t\tuart->cr |= PL011_CR_RXE | PL011_CR_TXE;\n\t\tbarrier_isync_fence_full();\n\t}\n\n#if PL011_USE_IRQ\n",
+    "backend": "ollama"
+  },
+  "pl011_isr::mis::723": {
+    "function": "pl011_isr",
+    "register": "mis",
+    "line": 723,
+    "model": "bitextract",
+    "reasoning": "The driver is reading from the mis (Modem Status Interrupt) register and checking if a specific bit (PL011_IMSC_CTSMIM) is set. The driver then writes to the icr (Interrupt Clear Register) and the imsc (Interrupt Mask Set/Clear Register) to clear and disable the interrupt. This indicates that the driver is interested in extracting and interpreting specific bits from the mis register.",
+    "context": "\tstruct pl011_data *data = dev->data;\n\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\t/* Clear CTS modem status interrupt and disable it */\n\tif (uart->mis & PL011_IMSC_CTSMIM) {\n\t\tuart->icr = PL011_IMSC_CTSMIM;\n\t\tuart->imsc &= ~PL011_IMSC_CTSMIM;\n\t}\n\n",
+    "backend": "ollama"
+  },
+  "pl011_isr::icr::724": {
+    "function": "pl011_isr",
+    "register": "icr",
+    "line": 724,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\tvolatile struct pl011_regs *uart = get_uart(dev);\n\n\t/* Clear CTS modem status interrupt and disable it */\n\tif (uart->mis & PL011_IMSC_CTSMIM) {\n\t\tuart->icr = PL011_IMSC_CTSMIM;\n\t\tuart->imsc &= ~PL011_IMSC_CTSMIM;\n\t}\n\n\t/* Clear error interrupts (OE, BE, PE, FE) so they don't\n",
+    "backend": "none"
+  },
+  "pl011_isr::imsc::725": {
+    "function": "pl011_isr",
+    "register": "imsc",
+    "line": 725,
+    "model": "passthrough",
+    "reasoning": "The register imsc is being written to when the CTS modem status interrupt is active. The driver is using the write operation to clear the interrupt by writing the value of the interrupt mask register (imsc) to the interrupt clear register (icr). The value of imsc is then bitwise ANDed with the negation of the interrupt mask for the CTS modem status interrupt to disable it. This indicates that the register is being used in a passthrough manner, where the value written to it is returned exactly as written on the next read.",
+    "context": "\n\t/* Clear CTS modem status interrupt and disable it */\n\tif (uart->mis & PL011_IMSC_CTSMIM) {\n\t\tuart->icr = PL011_IMSC_CTSMIM;\n\t\tuart->imsc &= ~PL011_IMSC_CTSMIM;\n\t}\n\n\t/* Clear error interrupts (OE, BE, PE, FE) so they don't\n\t * re-fire endlessly.  The error status is still available\n",
+    "backend": "ollama"
+  },
+  "pl011_isr::mis::732": {
+    "function": "pl011_isr",
+    "register": "mis",
+    "line": 732,
+    "model": "passthrough",
+    "reasoning": "The register 'mis' is being read and then written back to the 'icr' register with a value derived from its own current state. This indicates that the driver is essentially passing through the value of 'mis' to the 'icr' register, making it a passthrough model. The driver is not setting a specific bit, checking a specific bit, or configuring the register in any other way based on the provided code snippet.",
+    "context": "\t/* Clear error interrupts (OE, BE, PE, FE) so they don't\n\t * re-fire endlessly.  The error status is still available\n\t * via uart_err_check() which reads RSR.\n\t */\n\tif (uart->mis & PL011_IMSC_ERROR_MASK) {\n\t\tuart->icr = uart->mis & PL011_IMSC_ERROR_MASK;\n\t}\n\n\t/* Verify if the callback has been registered */\n",
+    "backend": "ollama"
+  },
+  "pl011_isr::icr::733": {
+    "function": "pl011_isr",
+    "register": "icr",
+    "line": 733,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation, so a fuzzer-facing read model is not applicable.",
+    "context": "\t * re-fire endlessly.  The error status is still available\n\t * via uart_err_check() which reads RSR.\n\t */\n\tif (uart->mis & PL011_IMSC_ERROR_MASK) {\n\t\tuart->icr = uart->mis & PL011_IMSC_ERROR_MASK;\n\t}\n\n\t/* Verify if the callback has been registered */\n\tif (data->irq_cb) {\n",
+    "backend": "none"
+  },
+  "pl011_isr::mis::733": {
+    "function": "pl011_isr",
+    "register": "mis",
+    "line": 733,
+    "model": "passthrough",
+    "reasoning": "The code snippet shows that the 'mis' register is being read and then its value is being used to write to the 'icr' register. Since the 'mis' register's value is being used directly in the 'icr' write operation, the most appropriate model is 'passthrough'. This model represents that data written to the 'mis' register is returned exactly as written on the next read, which aligns with the observed behavior where the value of 'mis' is being used directly in the 'icr' write operation.",
+    "context": "\t * re-fire endlessly.  The error status is still available\n\t * via uart_err_check() which reads RSR.\n\t */\n\tif (uart->mis & PL011_IMSC_ERROR_MASK) {\n\t\tuart->icr = uart->mis & PL011_IMSC_ERROR_MASK;\n\t}\n\n\t/* Verify if the callback has been registered */\n\tif (data->irq_cb) {\n",
+    "backend": "ollama"
+  }
+}
