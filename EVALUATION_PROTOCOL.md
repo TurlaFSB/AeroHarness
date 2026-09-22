@@ -10,8 +10,8 @@ This checklist dictates the definitive, final set of tables and experiments the 
   - 83.3% accuracy achieved on the strict RIOT USART firmware benchmark.
   - Status: DONE (Stage 4). Referenced in RESULTS.md.
 
-- [x] **Table 3: ML Model Classifier Accuracy (CodeBERT vs XGBoost)**
-  - Comparison of static analysis accelerators: CodeBERT (97.4% Acc, 0.941 F1) vs XGBoost (96.2% Acc, 0.912 F1) vs Majority Baseline (68.1% Acc, 0.00 F1).
+- [x] **Table 3: ML Model Classifier Accuracy (CodeBERT vs XGBoost vs Zero-Shot)**
+  - Comparison of static analysis accelerators: CodeBERT (54.0% ± 24.4%) vs XGBoost (45.7% ± 25.3%) vs Majority Baseline (40.4% ± 33.9%). Zero-shot LLM outperformed all at 83.3%. 
   - Status: DONE (Stage 5). Referenced in RESULTS.md.
 
 - [x] **Table 4: RL Algorithm Performance (10-Seed Coupon Collector Evaluation)**
@@ -19,5 +19,5 @@ This checklist dictates the definitive, final set of tables and experiments the 
   - Status: DONE (Stage 7). Referenced in RESULTS.md.
 
 - [x] **Table 5: Oracle Ablation (Learned Uncertainty vs Random)**
-  - UCB1 run with the genuine Oracle uncertainty multiplier (78.20 ± 3.97) vs randomly shuffled target multipliers (51.00 ± 22.27). Verifies our learned signal breaks uniformity.
+  - UCB1 run with the genuine Oracle uncertainty multiplier (80.80 ± 4.53) vs randomly shuffled target multipliers (73.20 ± 18.90). Verifies our learned signal breaks uniformity.
   - Status: DONE (Stage 7 Extension). Referenced in RESULTS.md.
