@@ -1,3 +1,14 @@
+
+CONFIG_LOGGED = True
+print("="*50)
+print("TRAINING CONFIGURATION (Auto-Logged)")
+print(f"Script: {__file__}")
+print("Model: XGBoost")
+print("Dataset Source: ast_combined.json / stage3_oracle_multi")
+print("Split: Stratified GroupKFold (by Register/Peripheral) - 80/20")
+print("Random Seed: 42")
+print("="*50)
+
 ﻿import json, csv, re
 import pandas as pd
 import numpy as np

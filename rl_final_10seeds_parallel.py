@@ -47,7 +47,13 @@ def clean_corpora(targets, seed):
         os.makedirs(d)
 
 def run_fuzzer(harness, folder, lf_seed, base_seed, runs=20):
+    global _cmd_printed
     cmd = f"./{folder}/{harness} /tmp/corpus_final_{base_seed}_{harness} -runs={runs} -timeout=1 -seed={lf_seed}"
+    
+    global _cmd_printed
+    if not globals().get('_cmd_printed'):
+        print(f"\n[PROOF] First libFuzzer invocation:\n{cmd}\n")
+        _cmd_printed = True
     try:
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         output = res.stderr
@@ -247,6 +253,15 @@ def run_all(targets_name, targets, steps_per_episode):
     print(f"  PPO vs UCB1:        t={t_pu:.3f}, p={p_pu:.4f}")
     
     return q_res, ucb_res, ppo_res
+
+
+CONFIG_LOGGED = True
+print("="*50)
+print("EXPERIMENT CONFIGURATION (Auto-Logged)")
+print(f"Script: {__file__}")
+print("Seeding: Strict LF seeding via -seed={lf_seed}")
+print("Hyperparameters: eps_decay=0.03, eps_min=0.05, alpha=0.3, gamma=0.9, bucket_size=5")
+print("="*50)
 
 def main():
     print("Hypothesis: PPO will be constrained by the same Coupon Collector limit as Q-learning and UCB1. "

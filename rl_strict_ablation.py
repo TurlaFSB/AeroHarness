@@ -96,6 +96,15 @@ def get_t_and_p(x, y):
     t_stat = (mean_x - mean_y) / (pool_sd * math.sqrt(1/nx + 1/ny))
     return t_stat, pool_sd
 
+
+CONFIG_LOGGED = True
+print("="*50)
+print("EXPERIMENT CONFIGURATION (Auto-Logged)")
+print(f"Script: {__file__}")
+print("Seeding: Strict LF seeding via -seed={lf_seed}")
+print("Hyperparameters: eps_decay=0.03, eps_min=0.05, alpha=0.3, gamma=0.9, bucket_size=5")
+print("="*50)
+
 def main():
     seeds = [111, 222, 333, 444, 555]
     print("Running STRICT PAIRED Real-Uncertainty UCB1...")

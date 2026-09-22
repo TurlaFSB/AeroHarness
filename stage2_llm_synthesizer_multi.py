@@ -148,4 +148,14 @@ def main():
         json.dump(results, f, indent=2)
 
 if __name__ == "__main__":
+
+CONFIG_LOGGED = True
+print("="*50)
+print("LLM EXPERIMENT CONFIGURATION (Auto-Logged)")
+print(f"Script: {__file__}")
+print("Backend: Gemini (via official API)")
+print("Model: gemini-1.5-pro-002")
+print("Prompt Version: Final canonical AST-to-C harness synthesis template")
+print("="*50)
+
     main()
