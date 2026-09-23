@@ -1,3 +1,8 @@
+# REJECTED SCRIPT
+# Reason: Loose scoring logic that allows C&SR registers to count 'passthrough' as correct.
+# This artificially hides real LLM failures on busy-wait status-polling registers.
+# Please use evaluate_accuracy_FINAL.py instead.
+
 import json
 import csv
 import re
@@ -67,3 +72,4 @@ for key, p in proposals.items():
         correct_accesses += 1
 
 print(f"Final Access-Level Accuracy: {correct_accesses}/{evaluated_accesses} ({(correct_accesses/max(1, evaluated_accesses))*100:.1f}%)")
+

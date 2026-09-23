@@ -147,7 +147,6 @@ def main():
     with open("llm_proposals_riot.json", "w") as f:
         json.dump(results, f, indent=2)
 
-if __name__ == "__main__":
 
 CONFIG_LOGGED = True
 print("="*50)
@@ -158,4 +157,5 @@ print("Model: gemini-1.5-pro-002")
 print("Prompt Version: Final canonical AST-to-C harness synthesis template")
 print("="*50)
 
+if __name__ == "__main__":
     main()

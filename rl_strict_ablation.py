@@ -17,13 +17,13 @@ RANDOM_ASSIGNMENTS = [
 
 def clean_corpora():
     for h in TARGETS:
-        d = f"corpus_deep_{h}"
+        d = f"/tmp/corpus_deep_{h}"
         if os.path.exists(d):
             shutil.rmtree(d)
-        os.makedirs(d)
+        os.makedirs(d, exist_ok=True)
 
 def run_fuzzer(harness, lf_seed, runs=20):
-    cmd = f"./deep_targets/{harness} corpus_deep_{harness} -runs={runs} -timeout=1 -seed={lf_seed}"
+    cmd = f"./deep_targets/{harness} /tmp/corpus_deep_{harness} -runs={runs} -timeout=1 -seed={lf_seed}"
     try:
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         output = res.stderr
@@ -104,6 +104,8 @@ print(f"Script: {__file__}")
 print("Seeding: Strict LF seeding via -seed={lf_seed}")
 print("Hyperparameters: eps_decay=0.03, eps_min=0.05, alpha=0.3, gamma=0.9, bucket_size=5")
 print("="*50)
+
+
 
 def main():
     seeds = [111, 222, 333, 444, 555]

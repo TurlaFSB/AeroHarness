@@ -1,3 +1,8 @@
+# REJECTED SCRIPT
+# Reason: Loose scoring logic that allows C&SR registers to count 'passthrough' as correct.
+# This artificially hides real LLM failures on busy-wait status-polling registers.
+# Please use evaluate_accuracy_FINAL.py instead.
+
 import json
 import csv
 import re
@@ -85,3 +90,4 @@ for name, data in ground_truth.items():
         print(f"{name}: NO READ/RMW PROPOSAL")
 
 print(f"\nFinal Accuracy: {correct_categories}/{evaluated_categories} ({correct_categories/max(1, evaluated_categories)*100:.1f}%) evaluated registers.")
+

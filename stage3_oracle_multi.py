@@ -56,7 +56,7 @@ def main():
     clang.cindex.Config.set_library_file('/usr/lib/llvm-18/lib/libclang.so')
     index = clang.cindex.Index.create()
     
-    with open("llm_proposals_riot.json") as f:
+    with open("llm_proposals.json") as f:
         proposals = json.load(f)
         
     confirmed = 0
@@ -92,7 +92,6 @@ def main():
     print(f"  Unconfident (fallback/unsupported AST pattern): {len(unconfident)}")
     print(f"  Disagreements: {len(disagreements)}")
 
-if __name__ == "__main__":
 
 CONFIG_LOGGED = True
 print("="*50)
@@ -103,4 +102,5 @@ print("Model: gemini-1.5-pro-002")
 print("Prompt Version: Final canonical AST-to-C harness synthesis template")
 print("="*50)
 
+if __name__ == "__main__":
     main()

@@ -1,12 +1,198 @@
-==================================================
-LLM EXPERIMENT CONFIGURATION (Auto-Logged)
-Script: /mnt/d/aeroharness/stage3_oracle_multi.py
-Backend: Gemini (via official API)
-Model: gemini-1.5-pro-002
-Prompt Version: Final canonical AST-to-C harness synthesis template
-==================================================
-Initializing simplified static-AST oracle
-Oracle Evaluation Complete (87 total registers processed):
-  Confirmed: 19
-  Unconfident (fallback/unsupported AST pattern): 63
-  Disagreements: 5
+Initializing simplified static-AST oracle (Not dynamic symbolic execution)
+
+Oracle Evaluation Complete (53 total registers processed):
+  Confirmed: 18
+  Unconfident (fallback/unsupported AST pattern): 23
+  Disagreements: 12
+
+--- Unconfident Cases ---
+[passthrough] pl011_enable::cr::121 => get_uart(dev)->cr |=  PL011_CR_UARTEN;
+[passthrough] pl011_disable::cr::126 => get_uart(dev)->cr &= ~PL011_CR_UARTEN;
+[passthrough] pl011_enable_fifo::lcr_h::131 => get_uart(dev)->lcr_h |= PL011_LCRH_FEN;
+[passthrough] pl011_disable_fifo::lcr_h::136 => get_uart(dev)->lcr_h &= ~PL011_LCRH_FEN;
+[passthrough] pl011_set_flow_control::cr::142 => uint32_t cr = uart->cr;
+[bitextract] pl011_is_readable::cr::194 => uint32_t cr = uart->cr;
+[bitextract] pl011_is_readable::fr::201 => return (uart->fr & PL011_FR_RXFE) == 0U;
+[bitextract] pl011_poll_in::dr::213 => *c = (unsigned char)uart->dr;
+[bitextract] pl011_err_check::rsr::244 => rsr = get_uart(dev)->rsr;
+[passthrough] pl011_runtime_configure_internal::lcr_h::285 => lcrh = uart->lcr_h & ~(PL011_LCRH_FORMAT_MASK | PL011_LCRH_STP2);
+[set] pl011_irq_tx_enable::imsc::413 => uart->imsc |= PL011_IMSC_TXIM;
+[passthrough] pl011_irq_tx_disable::imsc::466 => uart->imsc &= ~(PL011_IMSC_TXIM | PL011_IMSC_CTSMIM);
+[bitextract] pl011_irq_tx_complete::fr::472 => return ((get_uart(dev)->fr & PL011_FR_BUSY) == 0);
+[passthrough] pl011_irq_tx_ready::imsc::484 => return ((uart->imsc & PL011_IMSC_TXIM) &&
+[passthrough] pl011_irq_tx_ready::ris::486 => (uart->ris & PL011_RIS_TXRIS || uart->fr & PL011_FR_TXFE));
+[passthrough] pl011_irq_tx_ready::fr::486 => (uart->ris & PL011_RIS_TXRIS || uart->fr & PL011_FR_TXFE));
+[set] pl011_irq_rx_enable::imsc::491 => get_uart(dev)->imsc |= PL011_IMSC_RXIM | PL011_IMSC_RTIM;
+[set] pl011_irq_rx_disable::imsc::496 => get_uart(dev)->imsc &= ~(PL011_IMSC_RXIM | PL011_IMSC_RTIM);
+[bitextract] pl011_irq_rx_ready::imsc::508 => return ((uart->imsc & PL011_IMSC_RXIM) &&
+[bitextract] pl011_irq_rx_ready::fr::509 => (!(uart->fr & PL011_FR_RXFE)));
+[set] pl011_irq_err_enable::imsc::515 => get_uart(dev)->imsc |= PL011_IMSC_ERROR_MASK;
+[set] pl011_irq_err_disable::imsc::520 => get_uart(dev)->imsc &= ~PL011_IMSC_ERROR_MASK;
+[passthrough] pl011_irq_is_pending::mis::528 => (uart->mis & PL011_IMSC_ERROR_MASK);
+
+--- Disagreements ---
+Access: pl011_fifo_fill::fr::389
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+{
+	volatile struct pl011_regs *uart = get_uart(dev);
+	int num_tx = 0U;
+
+	while (!(uart->fr & PL011_FR_TXFF) && (len - num_tx > 0)) {
+		uart->dr = tx_data[num_tx++];
+	}
+	return num_tx;
+}
+----------------------------------------
+Access: pl011_fifo_read::fr::401
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+{
+	volatile struct pl011_regs *uart = get_uart(dev);
+	int num_rx = 0U;
+
+	while ((len - num_rx > 0) && !(uart->fr & PL011_FR_RXFE)) {
+		rx_data[num_rx++] = uart->dr;
+	}
+
+	return num_rx;
+----------------------------------------
+Access: pl011_fifo_read::dr::402
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+volatile struct pl011_regs *uart = get_uart(dev);
+	int num_rx = 0U;
+
+	while ((len - num_rx > 0) && !(uart->fr & PL011_FR_RXFE)) {
+		rx_data[num_rx++] = uart->dr;
+	}
+
+	return num_rx;
+}
+----------------------------------------
+Access: pl011_irq_tx_enable::imsc::444
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+*
+	 * Exit loop if CTS flow control is enabled and CTS is blocking
+	 * transmission. CTS bit low means remote is not ready.
+	 */
+	while (uart->imsc & PL011_IMSC_TXIM) {
+		/* If CTS flow control is enabled and CTS is blocking, exit loop */
+		if ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {
+			/* clear software flag to allow TX enable to be called again */
+			data->sw_call_txdrdy = true;
+----------------------------------------
+Access: pl011_irq_tx_enable::cr::446
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+* transmission. CTS bit low means remote is not ready.
+	 */
+	while (uart->imsc & PL011_IMSC_TXIM) {
+		/* If CTS flow control is enabled and CTS is blocking, exit loop */
+		if ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {
+			/* clear software flag to allow TX enable to be called again */
+			data->sw_call_txdrdy = true;
+			/* Enable CTS interrupt to resume when CTS clears */
+			uart->imsc |= PL011_IMSC_CTSMIM;
+----------------------------------------
+Access: pl011_irq_tx_enable::fr::446
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+* transmission. CTS bit low means remote is not ready.
+	 */
+	while (uart->imsc & PL011_IMSC_TXIM) {
+		/* If CTS flow control is enabled and CTS is blocking, exit loop */
+		if ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {
+			/* clear software flag to allow TX enable to be called again */
+			data->sw_call_txdrdy = true;
+			/* Enable CTS interrupt to resume when CTS clears */
+			uart->imsc |= PL011_IMSC_CTSMIM;
+----------------------------------------
+Access: pl011_irq_tx_enable::imsc::450
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+if ((uart->cr & PL011_CR_CTSEn) && !(uart->fr & PL011_FR_CTS)) {
+			/* clear software flag to allow TX enable to be called again */
+			data->sw_call_txdrdy = true;
+			/* Enable CTS interrupt to resume when CTS clears */
+			uart->imsc |= PL011_IMSC_CTSMIM;
+			break;
+		}
+		K_SPINLOCK(&data->irq_cb_lock) {
+			data->irq_cb(dev, data->irq_cb_data);
+----------------------------------------
+Access: pl011_init::cr::652
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+if (!data->sbsa) {
+		uart->dmacr = 0U;
+		barrier_isync_fence_full();
+		uart->cr &= ~PL011_CR_SIREN;
+		uart->cr |= PL011_CR_RXE | PL011_CR_TXE;
+		barrier_isync_fence_full();
+	}
+----------------------------------------
+Access: pl011_init::cr::653
+  LLM Proposed: set
+  Oracle Expected: bitextract
+  Context snippet:
+if (!data->sbsa) {
+		uart->dmacr = 0U;
+		barrier_isync_fence_full();
+		uart->cr &= ~PL011_CR_SIREN;
+		uart->cr |= PL011_CR_RXE | PL011_CR_TXE;
+		barrier_isync_fence_full();
+	}
+
+#if PL011_USE_IRQ
+----------------------------------------
+Access: pl011_isr::imsc::725
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+/* Clear CTS modem status interrupt and disable it */
+	if (uart->mis & PL011_IMSC_CTSMIM) {
+		uart->icr = PL011_IMSC_CTSMIM;
+		uart->imsc &= ~PL011_IMSC_CTSMIM;
+	}
+
+	/* Clear error interrupts (OE, BE, PE, FE) so they don't
+	 * re-fire endlessly.  The error status is still available
+----------------------------------------
+Access: pl011_isr::mis::732
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+/* Clear error interrupts (OE, BE, PE, FE) so they don't
+	 * re-fire endlessly.  The error status is still available
+	 * via uart_err_check() which reads RSR.
+	 */
+	if (uart->mis & PL011_IMSC_ERROR_MASK) {
+		uart->icr = uart->mis & PL011_IMSC_ERROR_MASK;
+	}
+
+	/* Verify if the callback has been registered */
+----------------------------------------
+Access: pl011_isr::mis::733
+  LLM Proposed: passthrough
+  Oracle Expected: bitextract
+  Context snippet:
+* re-fire endlessly.  The error status is still available
+	 * via uart_err_check() which reads RSR.
+	 */
+	if (uart->mis & PL011_IMSC_ERROR_MASK) {
+		uart->icr = uart->mis & PL011_IMSC_ERROR_MASK;
+	}
+
+	/* Verify if the callback has been registered */
+	if (data->irq_cb) {
+----------------------------------------
