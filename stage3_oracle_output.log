@@ -1,0 +1,12 @@
+==================================================
+LLM EXPERIMENT CONFIGURATION (Auto-Logged)
+Script: /mnt/d/aeroharness/stage3_oracle_multi.py
+Backend: Gemini (via official API)
+Model: gemini-1.5-pro-002
+Prompt Version: Final canonical AST-to-C harness synthesis template
+==================================================
+Initializing simplified static-AST oracle
+Oracle Evaluation Complete (87 total registers processed):
+  Confirmed: 19
+  Unconfident (fallback/unsupported AST pattern): 63
+  Disagreements: 5

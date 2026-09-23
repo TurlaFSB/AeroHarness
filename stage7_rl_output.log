@@ -1,0 +1,91 @@
+==================================================
+EXPERIMENT CONFIGURATION (Auto-Logged)
+Script: /mnt/d/aeroharness/rl_final_10seeds_parallel.py
+Seeding: Strict LF seeding via -seed={lf_seed}
+Hyperparameters: eps_decay=0.03, eps_min=0.05, alpha=0.3, gamma=0.9, bucket_size=5
+==================================================
+Hypothesis: PPO will be constrained by the same Coupon Collector limit as Q-learning and UCB1. Target saturation speed, not algorithm sophistication, bounds performance.
+
+--- Running N=12 Shallow Set (10 seeds) ---
+
+[PROOF] First libFuzzer invocation:
+./targets/target_poll_in_sbsa /tmp/corpus_final_111_target_poll_in_sbsa -runs=20 -timeout=1 -seed=111
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_poll_in_sbsa /tmp/corpus_final_999_target_poll_in_sbsa -runs=20 -timeout=1 -seed=999
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_poll_in_sbsa /tmp/corpus_final_222_target_poll_in_sbsa -runs=20 -timeout=1 -seed=222
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_poll_in_cr_rxe /tmp/corpus_final_555_target_poll_in_cr_rxe -runs=20 -timeout=1 -seed=555
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_poll_in_sbsa /tmp/corpus_final_1010_target_poll_in_sbsa -runs=20 -timeout=1 -seed=1010
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_isr_w1c_clobber /tmp/corpus_final_888_target_isr_w1c_clobber -runs=20 -timeout=1 -seed=888
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_poll_in_sbsa /tmp/corpus_final_333_target_poll_in_sbsa -runs=20 -timeout=1 -seed=333
+
+
+[PROOF] First libFuzzer invocation:
+./targets/target_isr_ctsmim /tmp/corpus_final_777_target_isr_ctsmim -runs=20 -timeout=1 -seed=777
+
+Finished N=12 Shallow Set in 295.2s
+
+Results for N=12 Shallow Set (Episode 15 Final Reward):
+  Q-Learning: 80.90 +/- 22.20
+  UCB1:       107.70 +/- 13.75
+  PPO:        118.10 +/- 15.69
+
+Paired t-tests (Holm-Bonferroni omitted for simplicity, showing raw p-values):
+  UCB1 vs Q-Learning: t=3.998, p=0.0031
+  PPO vs UCB1:        t=2.292, p=0.0476
+
+--- Running N=5 Deep Set (10 seeds) ---
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_poll_in /tmp/corpus_final_222_target_poll_in -runs=20 -timeout=1 -seed=222
+
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_set_baudrate /tmp/corpus_final_777_target_set_baudrate -runs=20 -timeout=1 -seed=777
+
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_fifo_fill /tmp/corpus_final_888_target_fifo_fill -runs=20 -timeout=1 -seed=888
+
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_set_baudrate /tmp/corpus_final_666_target_set_baudrate -runs=20 -timeout=1 -seed=666
+
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_poll_in /tmp/corpus_final_999_target_poll_in -runs=20 -timeout=1 -seed=999
+
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_poll_in /tmp/corpus_final_111_target_poll_in -runs=20 -timeout=1 -seed=111
+
+
+[PROOF] First libFuzzer invocation:
+./deep_targets/target_poll_out /tmp/corpus_final_555_target_poll_out -runs=20 -timeout=1 -seed=555
+
+Finished N=5 Deep Set in 274.4s
+
+Results for N=5 Deep Set (Episode 15 Final Reward):
+  Q-Learning: 78.50 +/- 2.94
+  UCB1:       78.90 +/- 4.61
+  PPO:        71.40 +/- 8.57
+
+Paired t-tests (Holm-Bonferroni omitted for simplicity, showing raw p-values):
+  UCB1 vs Q-Learning: t=0.232, p=0.8214
+  PPO vs UCB1:        t=-2.340, p=0.0440
