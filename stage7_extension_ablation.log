@@ -1,0 +1,16 @@
+==================================================
+EXPERIMENT CONFIGURATION (Auto-Logged)
+Script: /mnt/d/aeroharness/rl_strict_ablation.py
+Seeding: Strict LF seeding via -seed={lf_seed}
+Hyperparameters: eps_decay=0.03, eps_min=0.05, alpha=0.3, gamma=0.9, bucket_size=5
+==================================================
+Running STRICT PAIRED Real-Uncertainty UCB1...
+Running STRICT PAIRED Random-Multiplier UCB1 across 3 assignments...
+
+STRICT RESULTS (Episode 15):
+  Real-Uncertainty: 78.80 +/- 4.53
+  Random-Multiplier: 71.13 +/- 18.66
+  t-statistic: 0.8947
+  Cohen's d: 0.46
+  Real raw: [79.0, 70.0, 81.0, 82.0, 82.0]
+  Rand raw: [83.0, 70.0, 25.0, 82.0, 82.0, 80.0, 70.0, 69.0, 82.0, 81.0, 83.0, 70.0, 26.0, 82.0, 82.0]
