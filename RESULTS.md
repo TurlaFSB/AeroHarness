@@ -27,7 +27,7 @@ This document serves as the single source of truth for all canonical, finalized 
 * **Date Finalized**: 2026-09-09
 
 ## Stage 4: Execution Efficacy (P2IM Benchmark)
-* **Result**: Achieved **83.3%** accuracy covering states natively, proving AST-directed mocks provide high-fidelity state exploration.
+* **Result**: Achieved **83.3% [95% CI: 69.4%–91.7%]** accuracy (35/42) covering states natively, proving AST-directed mocks provide high-fidelity state exploration.
 * **Script**: `evaluate_accuracy_canonical.py`
 * **Raw Output**: `stage4_p2im_output.log`
 * **Verification Status**: VERIFIED. (Note: The canonical 83.3% result uses strict individual-access scoring where C&SR registers reject "passthrough". A rejected loose-scoring variant exists in the repo as `evaluate_accuracy_REJECTED_loose_scoring.py` and must NOT be used).
