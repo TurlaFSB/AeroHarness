@@ -21,7 +21,7 @@ This test proves that mapping real LLM uncertainty to target rewards produces st
   ```bash
   python3 rl_strict_ablation.py
   ```
-* **Expected Result:** The script outputs a paired t-test array showcasing UCB1 with the Real Uncertainty Multiplier achieving roughly `78.20 ± 3.97`, whilst the Random Multiplier falls to `51.00 ± 22.27`. 
+* **Expected Result:** The script outputs a paired t-test array showcasing UCB1 with the Real Uncertainty Multiplier achieving roughly `78.20 Â± 3.97`, whilst the Random Multiplier falls to `51.00 Â± 22.27`. 
 
 ---
 
@@ -31,7 +31,7 @@ This test verifies the AST-guided LLM harnesses natively achieve state traversal
 * **Expected Runtime:** <10 seconds.
 * **Exact Command:**
   ```bash
-  python3 evaluate_accuracy_access_level.py
+  python3 evaluate_accuracy_canonical.py
   ```
 * **Expected Result:** The console will output `Total Accuracy: 83.33%`. This validates that our harnesses accurately triggered the correct peripheral state transitions in the RIOT USART firmware benchmark. 
 

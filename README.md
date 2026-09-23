@@ -15,12 +15,12 @@ While tools like **Fuzzware** and **QuartetFuzz** have pushed the boundaries of 
 This repository contains the complete implementation of the AeroHarness pipeline across 7 distinct research stages:
 
 1. **Stage 1 (AST Mining & Context Extraction):** Scripts (`stage1_ast_parser.py`) to parse C ASTs, type definitions, and call-graphs to identify target APIs.
-2. **Stage 2 (Agentic Synthesis):** Initial harness generation using LLMs (`stage2_llm_synthesizer.py`), creating libFuzzer entrypoints with stubbed MMIO and RTOS dependencies.
-3. **Stage 3 (Deterministic Self-Repair & Oracle):** A compiler-in-the-loop repair oracle (`stage3_oracle.py`) that captures Clang diagnostics to iteratively fix syntax and initialization errors autonomously, labeling targets with confidence/uncertainty.
+2. **Stage 2 (Agentic Synthesis):** Initial harness generation using LLMs (`stage2_llm_synthesizer_multi.py`, `stage2_kinetis_gemini.py`), creating libFuzzer entrypoints with stubbed MMIO and RTOS dependencies.
+3. **Stage 3 (Deterministic Self-Repair & Oracle):** A compiler-in-the-loop repair oracle (`stage3_oracle_multi.py`) that captures Clang diagnostics to iteratively fix syntax and initialization errors autonomously, labeling targets with confidence/uncertainty.
 4. **Stage 4 (AST-Guided Pruning):** Heuristic filtering (`filter_ast.py`, `prune.py`) to reduce the search space by eliminating trivial getters/setters.
 5. **Stage 5 (Machine Learning Triage):** CodeBERT and XGBoost models (`train_codebert.py`, `train_xgboost.py`) trained on the AST features to predict API fuzzability.
 6. **Stage 6 (Fuzzing Campaign Execution):** Deep target decomposition (`generate_deep_targets.py`) and parallel libFuzzer execution scripts.
-7. **Stage 7 (Reinforcement Learning Scheduler):** The final Multi-Armed Bandit (UCB1) scheduler (`rl_strict_ablation.py`, `rl_real_ucb_5.py`) that leverages Stage 3 uncertainty signals to optimally allocate step budgets across shallow vs. deep embedded targets.
+7. **Stage 7 (Reinforcement Learning Scheduler):** The final RL scheduler (`rl_final_10seeds_parallel.py`, `rl_strict_ablation.py`) that leverages Stage 3 uncertainty signals to optimally allocate step budgets across shallow vs. deep embedded targets.
 
 ## Current Project Status
 
