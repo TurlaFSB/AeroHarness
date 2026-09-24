@@ -32,6 +32,8 @@ This document serves as the single source of truth for all canonical, finalized 
 * **Raw Output**: `stage4_p2im_output.log`
 * **Verification Status**: VERIFIED. (Note: The canonical 83.3% result uses strict individual-access scoring where C&SR registers reject "passthrough". A rejected loose-scoring variant exists in the repo as `evaluate_accuracy_REJECTED_loose_scoring.py` and must NOT be used).
 * **Date Finalized**: 2026-09-11
+* **Methodology Flag (Cross-Architecture Consistency)**: A critical inconsistency was discovered in the Stage 2 scripts used to generate the LLM proposals. The Zephyr/UART script (`stage2_llm_synthesizer.py`) included explicit definitions for the 5 Fuzzware taxonomy categories (e.g., defining 'bitextract' and 'set') and provided chain-of-thought nudges. In contrast, the Kinetis script (`stage2_kinetis_gemini.py`) completely omitted these definitions, forcing the LLM to guess class semantics purely from their names. The write-filtering logic was consistent across both, but this severe prompt disparity severely confounds any cross-architecture/cross-peripheral performance comparisons drawn from this data.
+
 
 ## Stage 5: Static Analysis Acceleration (CodeBERT vs XGBoost vs Zero-Shot)
 * **Result**: 
