@@ -35,10 +35,14 @@ This document serves as the single source of truth for all canonical, finalized 
 
 ## Stage 5: Static Analysis Acceleration (CodeBERT vs XGBoost vs Zero-Shot)
 * **Result**: 
-  * **CodeBERT**: 54.0%  24.4%
-  * **XGBoost**: 45.7%  25.3%
-  * **Majority-Class Baseline**: 40.4%  33.9%
+  * **CodeBERT**: 54.0% ± 24.4%
+  * **XGBoost**: 45.7% ± 25.3%
+  * **Majority-Class Baseline**: 40.4% ± 33.9%
   * **Zero-Shot LLM (Gemini)**: 83.3%
+  * **Significance Tests (Paired t-test)**:
+    * CodeBERT vs XGBoost: p=0.1069 (Cohen's d=0.298) — Statistically indistinguishable
+    * CodeBERT vs Majority: p=0.1792 (Cohen's d=0.412) — Statistically indistinguishable
+    * XGBoost vs Majority: p=0.3844 (Cohen's d=0.158) — Statistically indistinguishable
   * Finding: Both trained models barely beat naive guessing due to severe small-N sample sizes. Zero-shot LLM vastly outperformed both.
 * **Script**: `evaluate_backend.py`, `train_codebert.py`, `train_xgboost.py`, `compute_majority_baseline.py`
 * **Raw Output**: `stage5_results_summary.md` (Transcribed from interactive sessions. Raw logs missing, but weights preserved in `cb_res/`)
