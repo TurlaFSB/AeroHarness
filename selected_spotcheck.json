@@ -1,0 +1,22 @@
+[
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_blpe::C2::310",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_tx_addr::S::262",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::adc_sample::CFG1::224",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::rtt_set_counter::SR::112",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_write_bytes::C1::433",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_write_bytes::C1::433",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes::S::389",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_start::C1::312",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_start::S::292",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_safe_mode::S::456",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::isr_rtc::SR::169",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fei::S::202",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_tx_addr::C1::282",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fbe::S::280",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/ics.c::SystemCoreClockUpdate::C2::199",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_stop::C1::240",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::gpio_read::PDDR::252",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_tx_addr::C1::282",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes::C1::389",
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes::C1::394"
+]

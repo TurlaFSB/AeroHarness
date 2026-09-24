@@ -1,0 +1,146 @@
+{
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::adc_sample::CFG1::224": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "adc_sample",
+    "register": "CFG1",
+    "model": "passthrough",
+    "reasoning": "The driver performs a read-modify-write operation on the CFG1 register to configure the ADC mode/resolution (clearing ADC_CFG1_MODE_MASK and setting res). As a configuration register that is read from and written to during bit manipulation, the passthrough model is most appropriate because it retains and returns the previously written configuration value on subsequent reads.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::gpio_read::PDDR::252": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c",
+    "function": "gpio_read",
+    "register": "PDDR",
+    "model": "bitextract",
+    "reasoning": "The gpio_read function reads the PDDR (Port Data Direction Register) and performs a bitwise AND operation with (1 << pin_num(pin)) to check if a specific pin's direction bit is set. Because the driver only extracts and tests a specific bit to determine control flow, the bitextract model is the most appropriate.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_stop::C1::240": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_stop",
+    "register": "C1",
+    "model": "passthrough",
+    "reasoning": "The register C1 is used as a control register where its value is read and modified using `bit_clear8(&i2c->C1, I2C_C1_MST_SHIFT)`. A read-modify-write operation requires a passthrough model so that values written to the register are retained and returned accurately on subsequent reads.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_tx_addr::S::262": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_tx_addr",
+    "register": "S",
+    "model": "bitextract",
+    "reasoning": "The register 'S' (I2C Status Register) is read in a loop while waiting for a specific interrupt flag bit (I2C_S_IICIF_MASK) to be set. Since the driver code specifically extracts and checks a single bit to proceed past the loop, the bitextract model is the most appropriate choice.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_tx_addr::C1::282": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_tx_addr",
+    "register": "C1",
+    "model": "passthrough",
+    "reasoning": "The code accesses the control register 'C1' using 'bit_clear8', which performs a read-modify-write operation to clear the master mode bit ('I2C_C1_MST_SHIFT'). As 'C1' acts as a configuration register where control bits are preserved and modified, the 'passthrough' model is the most appropriate to retain written state across reads.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_start::S::292": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_start",
+    "register": "S",
+    "model": "failed_api_error",
+    "reasoning": "Max retries exceeded (503/429)",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_start::C1::312": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_start",
+    "register": "C1",
+    "model": "passthrough",
+    "reasoning": "The register C1 is used as a control/configuration register where bits such as I2C_C1_IICEN_MASK, I2C_C1_MST_MASK, and I2C_C1_TX_MASK are modified via read-modify-write (|=) operations and subsequently read back for logging. The 'passthrough' model is the most appropriate since it retains written configuration values for subsequent reads.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes::C1::389": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_read_bytes",
+    "register": "C1",
+    "model": "passthrough",
+    "reasoning": "The C1 register is an I2C control/configuration register (as indicated by clearing bits such as I2C_C1_MST_SHIFT via bit_clear8). Control registers that store configuration state updated by the driver should preserve and return the written values on subsequent reads, making 'passthrough' the most appropriate model.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes::S::389": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_read_bytes",
+    "register": "S",
+    "model": "constant",
+    "reasoning": "The register S is only accessed as a read operand within a TRACE logging statement ('TRACE(\"i2c: read C1=%02x S=%02x\\n\", ...)') and its value is not used in any conditional checks or state transitions in the provided context. Returning a constant value prevents the fuzzer from wasting entropy on a register read used solely for debugging/tracing.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes::C1::394": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_read_bytes",
+    "register": "C1",
+    "model": "passthrough",
+    "reasoning": "The C1 register is an I2C control register modified by the driver using bit manipulation (`bit_clear8(&i2c->C1, I2C_C1_MST_SHIFT)`). Since it functions as a configuration register where state set by writes is expected to be retained for subsequent reads, the passthrough model is most appropriate.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_write_bytes::C1::433": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c",
+    "function": "i2c_write_bytes",
+    "register": "C1",
+    "model": "passthrough",
+    "reasoning": "The register C1 is used as an I2C control register where specific bits (such as I2C_C1_TX_SHIFT and I2C_C1_IICIE_SHIFT) are set using bitwise operations via bit_set8. Since bit_set8 performs a read-modify-write sequence to update and maintain configuration flags, the register needs to return the value that was previously written to it. Therefore, the passthrough model is the most appropriate fit.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/ics.c::SystemCoreClockUpdate::C2::199": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/ics.c",
+    "function": "SystemCoreClockUpdate",
+    "register": "C2",
+    "model": "failed_api_error",
+    "reasoning": "Max retries exceeded (503/429)",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fei::S::202": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c",
+    "function": "kinetis_mcg_set_fei",
+    "register": "S",
+    "model": "failed_api_error",
+    "reasoning": "Max retries exceeded (503/429)",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fbe::S::280": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c",
+    "function": "kinetis_mcg_set_fbe",
+    "register": "S",
+    "model": "failed_api_error",
+    "reasoning": "Max retries exceeded (503/429)",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_blpe::C2::310": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c",
+    "function": "kinetis_mcg_set_blpe",
+    "register": "C2",
+    "model": "failed_api_error",
+    "reasoning": "Max retries exceeded (503/429)",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_safe_mode::S::456": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c",
+    "function": "kinetis_mcg_set_safe_mode",
+    "register": "S",
+    "model": "bitextract",
+    "reasoning": "The driver repeatedly reads the status register MCG->S in polling loops to check specific bit flags (MCG_S_IREFST_MASK and MCG_S_CLKST_MASK) before proceeding. The bitextract model is best suited for status/flag registers where specific bits control execution flow.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::rtt_set_counter::SR::112": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c",
+    "function": "rtt_set_counter",
+    "register": "SR",
+    "model": "passthrough",
+    "reasoning": "The function rtt_set_counter performs bitwise operations on the RTC->SR register using bit_clear32 and bit_set32 to disable and enable the time counter (RTC_SR_TCE_SHIFT). These operations perform read-modify-write accesses on the register to update its configuration. The passthrough model is most appropriate because it retains written values across reads, allowing bit modification functions to operate correctly on configuration and control registers.",
+    "backend": "gemini"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::isr_rtc::SR::169": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c",
+    "function": "isr_rtc",
+    "register": "SR",
+    "model": "bitextract",
+    "reasoning": "The RTC status register (SR) is read within the interrupt service routine (isr_rtc) to check the timer alarm flag using a bitwise AND mask (RTC_SR_TAF_MASK). Because the driver only extracts specific status bit fields to evaluate conditional branch conditions, the bitextract model is the most appropriate.",
+    "backend": "gemini"
+  }
+}
