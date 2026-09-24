@@ -27,12 +27,13 @@ This document serves as the single source of truth for all canonical, finalized 
 * **Date Finalized**: 2026-09-09
 
 ## Stage 4: Execution Efficacy (P2IM Benchmark)
-* **Result**: Achieved **83.3% [95% CI: 69.4%–91.7%]** accuracy (35/42) covering states natively, proving AST-directed mocks provide high-fidelity state exploration.
-* **Script**: `evaluate_accuracy_canonical.py`
-* **Raw Output**: `stage4_p2im_output.log`
-* **Verification Status**: VERIFIED. (Note: The canonical 83.3% result uses strict individual-access scoring where C&SR registers reject "passthrough". A rejected loose-scoring variant exists in the repo as `evaluate_accuracy_REJECTED_loose_scoring.py` and must NOT be used).
-* **Date Finalized**: 2026-09-11
-* **Methodology Flag (Cross-Architecture Consistency)**: A critical inconsistency was discovered in the Stage 2 scripts used to generate the LLM proposals. The Zephyr/UART script (`stage2_llm_synthesizer.py`) included explicit definitions for the 5 Fuzzware taxonomy categories (e.g., defining 'bitextract' and 'set') and provided chain-of-thought nudges. In contrast, the Kinetis script (`stage2_kinetis_gemini.py`) completely omitted these definitions, forcing the LLM to guess class semantics purely from their names. The write-filtering logic was consistent across both, but this severe prompt disparity severely confounds any cross-architecture/cross-peripheral performance comparisons drawn from this data.
+* **Result (Zephyr/STM32)**: Achieved **83.3% [95% CI: 69.4%–91.7%]** accuracy (35/42) covering states natively, proving AST-directed mocks provide high-fidelity state exploration.
+* **Result (Kinetis/K64F)**: Achieved **52.8%** accuracy (227/430) using the correctly-prompted Ollama backend. This explicitly supersedes the original flawed-prompt Kinetis classification which scored 56.0% (241/430).
+* **Script**: `evaluate_accuracy_canonical.py` (Zephyr) / `evaluate_kinetis.py` (Kinetis)
+* **Raw Output**: `stage4_p2im_output.log` / `llm_proposals_kinetis_v2.json`
+* **Verification Status**: VERIFIED. 
+* **Date Finalized**: 2026-09-24
+* **Methodology Flag (Cross-Architecture Consistency & Refuted Claim)**: We discovered the original Kinetis classification completely omitted taxonomy definitions and chain-of-thought nudges present in the Zephyr prompt. After fixing the Kinetis prompt to exactly match the Zephyr methodology and re-running via Ollama (`qwen2.5-coder:7b`) due to Gemini rate limits, the new accuracy is 52.8%. This matches the original flawed-prompt baseline (56.0%) but definitively **REFUTES** any paper narrative claiming a "stable 83.3% performance ceiling across architectures". Kinetis performance is drastically lower than Zephyr/STM32, likely due to a larger and more complex peripheral register set (430 evaluated accesses vs 42). Any claims of cross-architecture performance parity must be revised.
 
 
 ## Stage 5: Static Analysis Acceleration (CodeBERT vs XGBoost vs Zero-Shot)
