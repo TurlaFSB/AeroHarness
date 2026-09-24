@@ -27,7 +27,7 @@ All 7 stages implemented and empirically evaluated with real execution evidence.
 * Zero-shot LLM reasoning outperforms trained deep learning, formally confirmed via significance testing.
 * Real compiler-driven self-repair loop demonstrated on 3 functions.
 * RL-guided scheduling characterized across 3 algorithms and 10 seeds: no mean-performance advantage at unit-test scale, but a significant robustness benefit.
-* Ongoing verification: a prompt-methodology inconsistency was found between our Zephyr and Kinetis Stage 2 scripts and corrected; full re-verification of cross-architecture Gemini performance is in progress (see `RESULTS.md`).
+* Ongoing verification: a prompt-methodology inconsistency was found between our Zephyr and Kinetis Stage 2 scripts and corrected; a Gemini spot-check on the corrected prompt (n=13, see `RESULTS.md`) tentatively supports consistent performance across architectures, though the sample's limited register diversity means this remains a preliminary finding.
 
 ## Datasets & Provenance
 
