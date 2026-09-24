@@ -62,5 +62,5 @@ python3 rl_strict_ablation.py
 ## Related Work
 
 * **Fuzzware** (Scharnowski et al., USENIX Security 2022) — our Stage 2/3 taxonomy is adopted from this paper.
-* **QuartetFuzz** — our Stage 6 self-repair loop design is informed by this paper's bounded-retry approach.
+* **QuartetFuzz** (Sheng et al., 2026) — our Stage 6 self-repair loop design is informed by this paper's bounded-retry approach.
 * **P2IM** (Feng et al., USENIX Security 2020) — the benchmark dataset used in Stage 4.
