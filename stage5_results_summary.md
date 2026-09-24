@@ -16,3 +16,5 @@ These metrics were recorded during the original interactive training session and
 
 
 **Finding:** Both trained models (CodeBERT and XGBoost) barely outperformed naive guessing (the majority-class baseline) and their overlapping variance indicates no statistical difference between them. In contrast, Zero-Shot semantic inference drastically outperformed all traditional statistical/structural modeling approaches.
+
+**Caveat on Significance Testing Data:** XGBoost per-fold values were reconstructed via fresh retraining (seed=42) rather than loaded from saved model weights, since none were preserved from the original run; the reconstructed summary statistics matched the original to one decimal place, giving high confidence but not absolute certainty in exact per-fold reproduction.

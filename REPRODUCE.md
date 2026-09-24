@@ -7,7 +7,7 @@ This guide provides the minimum steps required for an external evaluator (e.g. l
 2. **Compilers**: Clang and Clang++ (Version 14+). 
    * Install via: `sudo apt-get install clang llvm lld`
 3. **Python**: Python 3.10+
-   * Dependencies: `pip install stable-baselines3 gymnasium scipy numpy pandas scikit-learn transformers torch xgboost`
+   * Dependencies: `pip install stable-baselines3 gymnasium scipy numpy pandas scikit-learn transformers torch xgboost==3.4.1`
    * Note on PyTorch: A CPU-only installation is entirely sufficient for reproducibility, but it must be natively installed inside WSL (to run Linux ELF libFuzzer executables alongside Python). 
 4. **API Keys**: To re-run LLM harness generation, export `GEMINI_API_KEY`. (Alternatively, if using Ollama, ensure the Ollama daemon is running locally and swap the backend in script configurations).
 
