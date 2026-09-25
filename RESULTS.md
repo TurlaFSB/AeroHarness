@@ -70,8 +70,8 @@ This document serves as the single source of truth for all canonical, finalized 
   * **N=12 Target Set (Shallow):** PPO (118.10), UCB1 (107.70), Q-Learning (80.90). (Coupon Collector Empirical vs Theoretical: Actual 37.40 steps vs Theoretical 37.24 steps)
   * **N=5 Target Set (Deep):** UCB1 (78.90), Q-Learning (78.50), PPO (71.40). (Coupon Collector Empirical vs Theoretical: Actual 14.20 steps vs Theoretical 11.42 steps)
 * **Script**: `rl_final_10seeds_parallel.py`
-* **Raw Output**: `stage5_results_summary.md` (Transcribed from interactive sessions. Raw logs missing, but weights preserved in `cb_res/`)
-* **Verification Status**: VERIFIED via summary file.
+* **Raw Output**: `stage7_rl_output.log`
+* **Verification Status**: VERIFIED via saved log file.
 * **Date Finalized**: 2026-09-22
 * **Supersession Notice**: The previous 5-seed Q-Learning baseline (70.20) was executed before the strict libFuzzer `-seed` fix was introduced, resulting in artificially high variance. Because this 10-seed experiment evaluated all three algorithms together in a strictly unified, deterministically-seeded environment, **these new 10-seed results supersede all prior Stage 7 metrics and serve as the canonical figures for the project.**
 
