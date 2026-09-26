@@ -38,15 +38,15 @@ flowchart TD
         C1 -- Minor mismatch --> C3[Disagreements]:::output
         C1 -- Complex pattern --> C4[Unconfident / Uncertainty Signal]:::output
         
-        C2 -. 83.3% Accuracy .-> C5[(P2IM Ground Truth\n Benchmark)]:::input
+        C2 -.->|"83.3% Accuracy"| C5[(P2IM Ground Truth\n Benchmark)]:::input
     end
 
     %% Stage 5
     subgraph S5 [Stage 5: Deep Learning Acceleration]
-        C2 -. Dataset .-> D1(Fine-tune CodeBERT):::process
-        C2 -. Dataset .-> D2(Train XGBoost):::process
-        D1 -. "Underperformed\n Zero-Shot LLM" .-> D3[Result: LLM > DL]:::output
-        D2 -. "Underperformed\n Zero-Shot LLM" .-> D3
+        C2 -.->|"Dataset"| D1(Fine-tune CodeBERT):::process
+        C2 -.->|"Dataset"| D2(Train XGBoost):::process
+        D1 -.->|"Underperformed\n Zero-Shot LLM"| D3[Result: LLM > DL]:::output
+        D2 -.->|"Underperformed\n Zero-Shot LLM"| D3
     end
 
     %% Stage 6
@@ -75,9 +75,9 @@ flowchart TD
         FW3(Expanded Hardware Models\n DMA, Interrupts):::future
     end
     
-    C4 -. "Runtime verification" .-> FW1
-    F1 -. "Scale up" .-> FW2
-    E4 -. "Complex State" .-> FW3
+    C4 -.->|"Runtime verification"| FW1
+    F1 -.->|"Scale up"| FW2
+    E4 -.->|"Complex State"| FW3
 ```
 
 ---
