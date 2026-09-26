@@ -70,6 +70,15 @@ However, it completely glosses over `K_SPINLOCK(&data->irq_cb_lock) { ... }`. Be
 
 **Finding:** Static complexity tools like `lizard` can dangerously underreport the difficulty of RTOS firmware functions by ignoring macro-expanded concurrency abstractions, making empirical metrics (repair iterations, coverage features) essential for a true difficulty classification.
 
+### Clarification on Coverage vs. Setup Complexity
+It is critical to distinguish between **branch-level complexity** and **setup/mocking complexity**—conflating these two different axes of difficulty is misleading. 
+
+As confirmed by our `llvm-cov` source-based coverage report, `pl011_isr` achieved 100% line and branch coverage in just 60 seconds. This is because it has **LOW branch-level complexity**: it consists of exactly 3 independent binary conditions (2^3 = 8 permutations) which the fuzzer trivially exhausts. 
+
+However, it possesses **HIGH setup/mocking complexity**: compiling the harness and mocking the state for `K_SPINLOCK` macro expansion and external callback registration required significant LLM reasoning and 4 compiler repair iterations. 
+
+*Caveat: The 100% branch/line coverage observed here reflects the small, fully-enumerable branch space specific to this function's logic, and is not a general claim that our pipeline achieves 100% coverage on arbitrary code.*
+
 ---
 
 ## Tool Verification
