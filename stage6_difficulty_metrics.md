@@ -1,40 +1,79 @@
 # Stage 6 Functions: Objective Difficulty Indicators
 
-To empirically classify the difficulty of the three synthesized libFuzzer harnesses (`pl011_poll_in`, `pl011_poll_out`, `pl011_isr`), we computed objective indicators across four metrics:
+To empirically classify the difficulty of the three synthesized libFuzzer harnesses (`pl011_poll_in`, `pl011_poll_out`, `pl011_isr`), we computed objective indicators across both static metrics and empirical fuzzing results. 
 
-1. **Cyclomatic Complexity**: Computed using the industry-standard `lizard` static analysis tool on the source code.
-2. **MMIO Register Count**: The number of distinct hardware register fields the function (and its sub-functions) depends on, mapped from Stage 1/3 extraction data.
-3. **Call-Graph Depth**: How many function calls deep the execution path extends from the entry point (excluding standard RTOS inline macros like `K_SPINLOCK` or pointer getters).
-4. **Init Prerequisites**: Dependencies on prior state (e.g., whether the function requires a specific initialization function to have been called or specific enable bits to be set to reach its core payload).
+To ensure a balanced and reachable difficulty scale, we apply a consistent **Additive Point Score** based on these metrics.
+
+## Additive Point System (Static Metrics)
+Each static metric contributes to a difficulty score:
+* **Cyclomatic Complexity (CCN)**: <=2 (0 pts) | 3-4 (1 pt) | 5+ (2 pts)
+* **MMIO Register Dependencies**: <=2 (0 pts) | 3-4 (1 pt) | 5+ (2 pts)
+* **Call-Graph Depth**: 0 (0 pts) | 1 (1 pt) | 2+ (2 pts)
+* **Init Prerequisites**: 0 (0 pts) | 1 (1 pt) | 2+ (2 pts)
+
+**Classification Thresholds:**
+* **Easy:** 0-1 points
+* **Moderate:** 2-3 points
+* **Hard:** 4+ points
 
 ## Objective Metrics Table
 
-| Function | Cyclomatic Complexity | MMIO Register Count | Call-Graph Depth | Init Prerequisites | Classification |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `pl011_poll_out` | 2 | 2 (`fr`, `dr`) | 0 | 0 | **Easy** |
-| `pl011_poll_in` | 2 | 3 (`cr`, `fr`, `dr`) | 1 (`pl011_is_readable`) | 1 (Requires UARTEN/RXE bits) | **Moderate** |
-| `pl011_isr` | 4 | 3 (`mis`, `icr`, `imsc`) | 0 | 1 (Requires `irq_cb` setup) | **Moderate** |
+| Function | Cyclomatic Complexity | MMIO Register Count | Call-Graph Depth | Init Prerequisites | Static Score & Class | Repair Iterations | Fuzzing Features | Empirical Class |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `pl011_poll_out` | 2 (0 pts) | 2 (`fr`, `dr`) (0 pts) | 0 (0 pts) | 0 (0 pts) | **0 pts (Easy)** | 1 | 6 | **Easy** |
+| `pl011_poll_in` | 2 (0 pts) | 3 (`cr`, `fr`, `dr`) (1 pt) | 1 (`is_readable`) (1 pt) | 1 (`UARTEN`/`RXE`) (1 pt) | **3 pts (Moderate)** | 2 | 2 | **Moderate** |
+| `pl011_isr` | 4 (1 pt) | 3 (`mis`, `icr`, `imsc`) (1 pt) | 0 (0 pts) | 1 (`irq_cb` setup) (1 pt)| **3 pts (Moderate)** | 4 | 17 | **HARD (Mismatch)** |
 
-## Classification Reasoning & Thresholds
+---
 
-The classification labels (Easy / Moderate / Hard) are strictly assigned based on the following objective thresholds:
+## ⚠️ The Static vs. Empirical Complexity Mismatch (pl011_isr)
 
-* **Easy**: `Cyclomatic Complexity <= 2` AND `MMIO Register Count <= 2` AND `Call-Graph Depth == 0` AND `Init Prerequisites == 0`.
-  * **Reasoning**: Requires minimal fuzzer effort. The fuzzer hits the target payload immediately by guessing a single return status on a single control register, without passing through other modeled states or sub-functions.
-  * **Example (`pl011_poll_out`)**: Meets all Easy thresholds. It simply spins on the `fr` (Flag Register) until there is space in the FIFO, then writes to `dr` (Data Register).
+While the additive static scale cleanly ranks `poll_out` (Easy) and `poll_in` (Moderate), there is a **severe mismatch** between the static classification of `pl011_isr` (Moderate) and its actual, empirically observed fuzzing difficulty (Hard). 
 
-* **Moderate**: `Cyclomatic Complexity 3-4` OR `MMIO Register Count 3-4` OR `Call-Graph Depth >= 1` OR `Init Prerequisites >= 1`.
-  * **Reasoning**: Requires specific sequences of state bits, conditional branching through error/status registers, or calling into sub-functions to reach terminal payload states. The fuzzer must intelligently navigate multiple mocked hardware registers.
-  * **Example (`pl011_poll_in`)**: Meets Moderate thresholds due to Depth (1) and MMIO count (3). It calls `pl011_is_readable`, which requires the fuzzer to accurately mock the `cr` (Control Register) to have both `UARTEN` and `RXE` bits set, plus the `fr` register to indicate data is present, before it can read `dr`.
-  * **Example (`pl011_isr`)**: Meets Moderate thresholds due to Cyclomatic Complexity (4) and MMIO count (3). It evaluates multiple conditional branches against `mis` (Masked Interrupt Status), dynamically writes to `icr` and `imsc`, and ultimately requires the `irq_cb` to have been initialized to execute the callback path.
+Despite a relatively low static Cyclomatic Complexity (CCN = 4), `pl011_isr` required **4 repair iterations** to successfully compile/mock, and the fuzzer ultimately discovered **17 distinct coverage features** within it—vastly outstripping the other functions. 
 
-* **Hard**: `Cyclomatic Complexity >= 5` AND `MMIO Register Count >= 4` AND `Call-Graph Depth >= 2`.
-  * **Reasoning**: Requires deep execution chains, navigating complex error handling, and coordinating many mocked hardware registers to proceed without crashing or returning early. (None of the three selected Stage 6 functions fall into this category, as they are localized unit-test targets).
+### Why did Lizard miss this?
+`lizard` performs static lexical analysis without expanding C preprocessor macros. Here is the raw source code of `pl011_isr` exactly as `lizard` saw it:
+
+```c
+void pl011_isr(const struct device *dev)
+{
+	struct pl011_data *data = dev->data;
+	volatile struct pl011_regs *uart = get_uart(dev);
+
+	/* Clear CTS modem status interrupt and disable it */
+	if (uart->mis & PL011_IMSC_CTSMIM) {
+		uart->icr = PL011_IMSC_CTSMIM;
+		uart->imsc &= ~PL011_IMSC_CTSMIM;
+	}
+
+	/* Clear error interrupts (OE, BE, PE, FE) so they don't
+	 * re-fire endlessly.  The error status is still available
+	 * via uart_err_check() which reads RSR.
+	 */
+	if (uart->mis & PL011_IMSC_ERROR_MASK) {
+		uart->icr = uart->mis & PL011_IMSC_ERROR_MASK;
+	}
+
+	/* Verify if the callback has been registered */
+	if (data->irq_cb) {
+		K_SPINLOCK(&data->irq_cb_lock) {
+			data->irq_cb(dev, data->irq_cb_data);
+		}
+	}
+}
+```
+
+Lizard calculates a CCN of 4 by simply counting the function entry (+1) and the three `if` statements (+3). 
+
+However, it completely glosses over `K_SPINLOCK(&data->irq_cb_lock) { ... }`. Because Lizard does not run a preprocessor, it treats `K_SPINLOCK` as a simple block or function call. In reality, in a Zephyr RTOS build, `K_SPINLOCK` expands into complex concurrency and locking loops. The fuzzer must explore all of these expanded branches dynamically (hence 17 coverage features), and the LLM must successfully mock the RTOS spinlock state (hence 4 repair iterations). 
+
+**Finding:** Static complexity tools like `lizard` can dangerously underreport the difficulty of RTOS firmware functions by ignoring macro-expanded concurrency abstractions, making empirical metrics (repair iterations, coverage features) essential for a true difficulty classification.
 
 ---
 
 ## Tool Verification
-Cyclomatic complexity was computed using `lizard` v1.24.0 (`pip install lizard`).
+Cyclomatic complexity was computed using `lizard` v1.24.0.
 Command executed: `lizard uart_pl011.c > stage6_complexity.log`
 
 Extract of the relevant tool output for these three functions:
