@@ -1,0 +1,132 @@
+    1|       |#include <stdint.h>
+    2|       |#include <stddef.h>
+    3|       |#include <stdbool.h>
+    4|       |#include <assert.h>
+    5|       |#include <string.h>
+    6|       |
+    7|       |// === ZEPHYR STUBS ===
+    8|       |#define DEVICE_MMIO_RAM
+    9|   614M|#define BIT(n) (1UL << (n))
+   10|       |
+   11|       |struct device;
+   12|       |typedef void (*uart_irq_callback_user_data_t)(const struct device *dev, void *user_data);
+   13|       |
+   14|       |struct k_spinlock { int lock; };
+   15|  25.2M|#define K_SPINLOCK(x) for(int _i=0; _i<1; _i++)
+   16|       |
+   17|       |struct uart_config {
+   18|       |    int baudrate;
+   19|       |    int parity;
+   20|       |    int stop_bits;
+   21|       |    int data_bits;
+   22|       |    int flow_ctrl;
+   23|       |};
+   24|       |
+   25|       |struct device {
+   26|       |    void *data;
+   27|       |    const void *config;
+   28|       |};
+   29|       |
+   30|       |extern volatile void *mock_regs_ptr;
+   31|  36.7M|#define DEVICE_MMIO_GET(dev) (mock_regs_ptr)
+   32|       |
+   33|       |// === INCLUDE REGISTERS ===
+   34|       |#include "../zephyr-src/drivers/serial/uart_pl011_registers.h"
+   35|       |
+   36|       |// === PL011 STRUCTS ===
+   37|       |struct pl011_data {
+   38|       |    DEVICE_MMIO_RAM;
+   39|       |    struct uart_config uart_cfg;
+   40|       |    bool sbsa;
+   41|       |    uint32_t clk_freq;
+   42|       |    
+   43|       |    // Extra fields for IRQ
+   44|       |    uart_irq_callback_user_data_t irq_cb;
+   45|       |    struct k_spinlock irq_cb_lock;
+   46|       |    void *irq_cb_data;
+   47|       |};
+   48|       |
+   49|       |// === TARGET FUNCTIONS ===
+   50|       |static void pl011_isr(const struct device *dev)
+   51|  36.7M|{
+   52|  36.7M|    struct pl011_data *data = (struct pl011_data *)dev->data;
+   53|  36.7M|    volatile struct pl011_regs *uart = get_uart(dev);
+   54|       |
+   55|       |    /* Clear CTS modem status interrupt and disable it */
+   56|  36.7M|    if (uart->mis & PL011_IMSC_CTSMIM) {
+   57|  24.8M|        uart->icr = PL011_IMSC_CTSMIM;
+   58|  24.8M|        uart->imsc &= ~PL011_IMSC_CTSMIM;
+   59|  24.8M|    }
+   60|       |
+   61|       |    /* Clear error interrupts (OE, BE, PE, FE) so they don't
+   62|       |     * re-fire endlessly.  The error status is still available
+   63|       |     * via uart_err_check() which reads RSR.
+   64|       |     */
+   65|  36.7M|    if (uart->mis & PL011_IMSC_ERROR_MASK) {
+   66|  15.3M|        uart->icr = uart->mis & PL011_IMSC_ERROR_MASK;
+   67|  15.3M|    }
+   68|       |
+   69|       |    /* Verify if the callback has been registered */
+   70|  36.7M|    if (data->irq_cb) {
+   71|  12.6M|        K_SPINLOCK(&data->irq_cb_lock) {
+   72|  12.6M|            data->irq_cb(dev, data->irq_cb_data);
+   73|  12.6M|        }
+   74|  12.6M|    }
+   75|  36.7M|}
+   76|       |
+   77|       |// === LIBFUZZER HARNESS ===
+   78|       |volatile void *mock_regs_ptr;
+   79|       |
+   80|       |// Global to verify callback execution
+   81|       |static bool cb_called = false;
+   82|  12.6M|static void dummy_irq_cb(const struct device *dev, void *user_data) {
+   83|  12.6M|    cb_called = true;
+   84|  12.6M|}
+   85|       |
+   86|  44.5M|extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+   87|  44.5M|    if (size < 3) {
+   88|  7.83M|        return 0;
+   89|  7.83M|    }
+   90|       |
+   91|  36.7M|    struct pl011_data pl_data;
+   92|  36.7M|    memset(&pl_data, 0, sizeof(pl_data));
+   93|       |    
+   94|  36.7M|    if (data[0] & 1) {
+   95|  12.6M|        pl_data.irq_cb = dummy_irq_cb;
+   96|  24.1M|    } else {
+   97|  24.1M|        pl_data.irq_cb = NULL;
+   98|  24.1M|    }
+   99|       |    
+  100|  36.7M|    struct pl011_regs regs;
+  101|  36.7M|    memset(&regs, 0, sizeof(regs));
+  102|  36.7M|    regs.mis = data[1] & (PL011_IMSC_CTSMIM | PL011_IMSC_ERROR_MASK);
+  103|  36.7M|    regs.imsc = data[2];
+  104|       |    
+  105|  36.7M|    mock_regs_ptr = &regs;
+  106|       |
+  107|  36.7M|    struct device dev;
+  108|  36.7M|    dev.data = &pl_data;
+  109|       |
+  110|  36.7M|    cb_called = false;
+  111|       |
+  112|  36.7M|    pl011_isr(&dev);
+  113|       |
+  114|  36.7M|    if (pl_data.irq_cb != NULL) {
+  115|  12.6M|        assert(cb_called == true);
+  116|  24.1M|    } else {
+  117|  24.1M|        assert(cb_called == false);
+  118|  24.1M|    }
+  119|       |
+  120|  36.7M|    if (regs.mis & PL011_IMSC_CTSMIM) {
+  121|       |        // Due to two separate direct assignments to uart->icr in the driver,
+  122|       |        // the second one clobbers the first in our static struct mock.
+  123|       |        // On real hardware (W1C), two writes work perfectly, but here we only see the last write.
+  124|  24.8M|        if (!(regs.mis & PL011_IMSC_ERROR_MASK)) {
+  125|  14.6M|            assert(regs.icr & PL011_IMSC_CTSMIM);
+  126|  14.6M|        }
+  127|  24.8M|        assert((regs.imsc & PL011_IMSC_CTSMIM) == 0);
+  128|  24.8M|    }
+  129|       |
+  130|  36.7M|    return 0;
+  131|  36.7M|}
+
