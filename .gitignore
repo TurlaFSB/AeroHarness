@@ -6,6 +6,10 @@ test_api.py
 *.pem
 secrets.json
 
+# Transient agent-task prompts (handed to the user directly, not part of the paper's evidence trail)
+*_RERUN_TASK.md
+*_AGENT_TASK.md
+
 # IDEs and OS
 .vscode/
 .idea/
