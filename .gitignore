@@ -10,6 +10,9 @@ secrets.json
 *_RERUN_TASK.md
 *_AGENT_TASK.md
 
+# Draft planning docs pending a decision on whether they become tracked project documents
+AEROHARNESS_WORK_PLAN.md
+
 # IDEs and OS
 .vscode/
 .idea/
