@@ -202,12 +202,17 @@ Include all necessary standard headers."""
 _parser = argparse.ArgumentParser()
 _parser.add_argument("--model", default="qwen2.5-coder:14b", help="Exact ollama model tag, e.g. qwen2.5-coder:7b")
 _parser.add_argument("--trials", type=int, default=2, help="Trials per target (default 2, matching the original pilot)")
+_parser.add_argument("--target", default=None, choices=list(TARGETS.keys()), help="Run only this one target instead of all 5 (for smoke-testing a scaffolding change cheaply)")
 _args, _ = _parser.parse_known_args()
 
 OLLAMA_MODEL = _args.model
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 N_TRIALS = _args.trials
+if _args.target:
+    TARGETS = {_args.target: TARGETS[_args.target]}
 _MODEL_SLUG = OLLAMA_MODEL.replace(":", "_").replace("/", "_")
+if _args.target:
+    _MODEL_SLUG += f"_smoketest_{_args.target}"
 RESULTS_FILE = f"ablation_b_v2_results_{_MODEL_SLUG}.json"
 
 CLANG = shutil.which("clang++")
