@@ -9,7 +9,7 @@ The "Original" baseline uses the **oracle-verified baseline (independent AST-che
 
 *Limitation Note:* This baseline comes directly from our Stage 3 static-AST oracle's verdict. The oracle is an independent second opinion used to grade the LLM, not an absolute, externally verified ground truth, and it possesses its own known blind spots (e.g., treating some status-polling reads as configuration state).
 
-The "Ablated" run stripped the AST context and used `gemini-3.6-flash` on just the raw source code.
+The "Ablated" run stripped the AST context and used `gemini-1.5-pro` (the project's actual configured primary model — see `src/synthesizer/agent.py`/`config/settings.py`; **correction, Oct 1 2026**: an earlier version of this document cited a non-existent model, `gemini-3.6-flash`, which does not match any real Gemini release or this project's own configuration) on just the raw source code.
 
 ## Results (n=8)
 

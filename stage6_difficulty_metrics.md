@@ -23,6 +23,7 @@ Each static metric contributes to a difficulty score:
 | `pl011_poll_out` | 2 (0 pts) | 2 (`fr`, `dr`) (0 pts) | 0 (0 pts) | 0 (0 pts) | **0 pts (Easy)** | 1 | 6 | **Easy** |
 | `pl011_poll_in` | 2 (0 pts) | 3 (`cr`, `fr`, `dr`) (1 pt) | 1 (`is_readable`) (1 pt) | 1 (`UARTEN`/`RXE`) (1 pt) | **3 pts (Moderate)** | 2 | 2 | **Moderate** |
 | `pl011_isr` | 4 (1 pt) | 3 (`mis`, `icr`, `imsc`) (1 pt) | 0 (0 pts) | 1 (`irq_cb` setup) (1 pt)| **3 pts (Moderate)** | 4 | 17 | **HARD (Mismatch)** |
+| `kinetis_adc_calibrate` (RIOT/Kinetis, Oct 1 2026) | 4 (1 pt) | 16 (`SC1`,`SC3`,`CLP0-4`,`CLPS`,`CLM0-4`,`CLMS`,`PG`,`MG`) (2 pts) | 0 (0 pts) | 0 (0 pts) | **3 pts (Moderate)** | 4 | 15 | **HARD (Mismatch)** |
 
 ---
 
@@ -70,6 +71,16 @@ However, it completely glosses over `K_SPINLOCK(&data->irq_cb_lock) { ... }`. Be
 
 **Finding:** Static complexity tools like `lizard` can dangerously underreport the difficulty of RTOS firmware functions by ignoring macro-expanded concurrency abstractions, making empirical metrics (repair iterations, coverage features) essential for a true difficulty classification.
 
+## ⚠️ A Second, Independent Static-vs-Empirical Mismatch (`kinetis_adc_calibrate`, Oct 1 2026)
+
+The same Static-Score-vs-Empirical-Class mismatch found above for `pl011_isr` recurs in `kinetis_adc_calibrate` — a different function, from a different RTOS (RIOT, not Zephyr), on a different peripheral type (ADC, not UART) — but for a **different underlying reason**, which makes this a stronger validation of the general finding than a second instance of the same cause would be.
+
+`kinetis_adc_calibrate` scores identically to `pl011_isr` on the static scale (CCN 4, 3 total points, "Moderate"), but required the same 4 self-repair iterations and was empirically **harder to fuzz at all**: a 10-seed campaign found 7/10 seeds hang immediately (`cov:2/ft:2`, i.e. before any real exploration) and only 3/10 reach deeper coverage (`ft:15`) before also eventually hanging — see `RESULTS.md`'s "Second-RTOS/Target Pipeline Run" section for the full campaign data.
+
+**Why this one escaped the static score, and why it's a different mechanism than `pl011_isr`'s macro-hiding problem:** `lizard` correctly counts this function's two `while` loops and one `if` as CCN 4 — there's no hidden macro expansion here, unlike `K_SPINLOCK`. What the static score has no way to capture is that one of this function's busy-waits (`while (dev->SC3 & ADC_SC3_CAL_MASK) {}`) polls a bit the function **sets itself one line earlier**, which is unconditionally unfuzzable under this project's established static-struct-mock approach — no amount of fuzzer-controlled input can ever influence it. That required inventing a genuinely asynchronous mocking mechanism (ultimately a periodic POSIX timer + signal handler, after three different thread-based attempts each failed under real fuzzing load) rather than just the better static value assignment that fixes a *fuzzer-controlled*-bit busy-wait like `pl011_poll_out`'s.
+
+**Finding:** Two functions from two unrelated RTOS codebases both land in the static scale's "Moderate" bucket while being among the hardest functions this project has actually fuzzed — for two different reasons (macro-hidden concurrency vs. a self-referential register hazard). This strengthens, rather than merely repeats, the original finding: no single static metric category is likely to catch every way a function can be harder than it looks, and a difficulty taxonomy that wants to generalize needs multiple independent empirical signals (repair iterations, hang rate, coverage-features-at-plateau), not just a sharper static scorer.
+
 ### Clarification on Coverage vs. Setup Complexity
 It is critical to distinguish between **branch-level complexity** and **setup/mocking complexity**—conflating these two different axes of difficulty is misleading. 
 
@@ -94,3 +105,12 @@ Extract of the relevant tool output for these three functions:
       17      4    100      1      26 pl011_isr@717-742@uart_pl011.c
 ```
 The full raw output is preserved in `stage6_complexity.log`.
+
+For `kinetis_adc_calibrate` (Oct 1 2026), the same tool was re-run directly against the real driver source and reproduces exactly:
+```text
+$ lizard p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c
+  NLOC    CCN   token  PARAM  length  location
+------------------------------------------------
+      19      4    152      1      39 kinetis_adc_calibrate@114-152@p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c
+```
+(Re-verified live during this audit pass by reinstalling `lizard` and re-running it, not copied from a prior log.)
