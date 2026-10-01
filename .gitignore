@@ -6,11 +6,6 @@ test_api.py
 *.pem
 secrets.json
 
-# Transient agent-task prompts (handed to the user directly, not part of the paper's evidence trail)
-*_RERUN_TASK.md
-*_AGENT_TASK.md
-*_FOLLOWUP.md
-
 # Draft planning docs pending a decision on whether they become tracked project documents
 AEROHARNESS_WORK_PLAN.md
 
