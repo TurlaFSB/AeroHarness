@@ -1,0 +1,30 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1
+INFO: Loaded 1 modules   (24 inline 8-bit counters): 24 [0x5584dca06e88, 0x5584dca06ea0), 
+INFO: Loaded 1 PC tables (24 PCs): 24 [0x5584dca06ea0,0x5584dca07020), 
+INFO:        0 files found in blind_corpus/isr/seed1
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 31Mb
+	NEW_FUNC[1/2]: 0x5584dc9bfd30 in pl011_isr(device const*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:56
+	NEW_FUNC[2/2]: 0x5584dc9c01a0 in get_uart(device const*) /home/claude/aeroharness/harnesses/../zephyr-src/drivers/serial/uart_pl011_registers.h:41
+#7765	NEW    cov: 9 ft: 10 corp: 2/81b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 3 InsertRepeatedBytes-ShuffleBytes-InsertRepeatedBytes-
+#7845	REDUCE cov: 9 ft: 10 corp: 2/78b lim: 80 exec/s: 0 rss: 34Mb L: 77/77 MS: 5 ShuffleBytes-ChangeBinInt-CopyPart-ChangeByte-EraseBytes-
+	NEW_FUNC[1/1]: 0x5584dc9bfd00 in dummy_irq_cb(device const*, void*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:87
+#7887	NEW    cov: 13 ft: 14 corp: 3/158b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 2 InsertRepeatedBytes-CopyPart-
+#7902	REDUCE cov: 15 ft: 16 corp: 4/238b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 5 CopyPart-CopyPart-ShuffleBytes-CMP-ChangeBinInt- DE: "\377\377"-
+#7910	REDUCE cov: 15 ft: 16 corp: 4/235b lim: 80 exec/s: 0 rss: 34Mb L: 77/80 MS: 3 CrossOver-ChangeBinInt-EraseBytes-
+#8282	NEW    cov: 16 ft: 17 corp: 5/314b lim: 80 exec/s: 0 rss: 34Mb L: 79/80 MS: 2 ShuffleBytes-InsertRepeatedBytes-
+#8384	REDUCE cov: 16 ft: 17 corp: 5/312b lim: 80 exec/s: 0 rss: 34Mb L: 77/80 MS: 2 EraseBytes-CrossOver-
+#8972	REDUCE cov: 16 ft: 17 corp: 5/311b lim: 80 exec/s: 0 rss: 34Mb L: 79/79 MS: 3 ChangeByte-EraseBytes-InsertRepeatedBytes-
+#19041	REDUCE cov: 16 ft: 17 corp: 5/310b lim: 177 exec/s: 0 rss: 36Mb L: 78/78 MS: 4 CMP-InsertRepeatedBytes-CrossOver-EraseBytes- DE: "\377\377\377\377\377\377\377C"-
+#20430	REDUCE cov: 16 ft: 17 corp: 5/309b lim: 184 exec/s: 0 rss: 36Mb L: 77/77 MS: 4 InsertByte-ChangeBinInt-ShuffleBytes-EraseBytes-
+#2097152	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 1048576 rss: 380Mb
+#4194304	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 462Mb
+#8388608	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 762600 rss: 462Mb
+#12438795	DONE   cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 777424 rss: 462Mb
+###### Recommended dictionary. ######
+"\377\377" # Uses: 580107
+"\377\377\377\377\377\377\377C" # Uses: 570068
+###### End of recommended dictionary. ######
+Done 12438795 runs in 16 second(s)

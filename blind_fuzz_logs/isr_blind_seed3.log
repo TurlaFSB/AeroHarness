@@ -1,0 +1,30 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3
+INFO: Loaded 1 modules   (24 inline 8-bit counters): 24 [0x56144bbc2e88, 0x56144bbc2ea0), 
+INFO: Loaded 1 PC tables (24 PCs): 24 [0x56144bbc2ea0,0x56144bbc3020), 
+INFO:        0 files found in blind_corpus/isr/seed3
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 32Mb
+	NEW_FUNC[1/2]: 0x56144bb7bd30 in pl011_isr(device const*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:56
+	NEW_FUNC[2/2]: 0x56144bb7c1a0 in get_uart(device const*) /home/claude/aeroharness/harnesses/../zephyr-src/drivers/serial/uart_pl011_registers.h:41
+#7745	NEW    cov: 9 ft: 10 corp: 2/81b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 3 ChangeBinInt-InsertByte-InsertRepeatedBytes-
+#7747	NEW    cov: 10 ft: 11 corp: 3/161b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 2 ShuffleBytes-CMP- DE: "$\000\000\000\000\000\000\000"-
+#7777	REDUCE cov: 10 ft: 11 corp: 3/160b lim: 80 exec/s: 0 rss: 34Mb L: 79/80 MS: 5 EraseBytes-CMP-ChangeByte-CrossOver-InsertRepeatedBytes- DE: "\000\000"-
+#7782	REDUCE cov: 10 ft: 11 corp: 3/158b lim: 80 exec/s: 0 rss: 34Mb L: 78/79 MS: 5 ChangeBit-CrossOver-ChangeByte-ChangeBit-EraseBytes-
+#7842	REDUCE cov: 12 ft: 13 corp: 4/235b lim: 80 exec/s: 0 rss: 34Mb L: 77/79 MS: 5 ChangeBit-EraseBytes-EraseBytes-InsertRepeatedBytes-InsertRepeatedBytes-
+#8142	REDUCE cov: 12 ft: 13 corp: 4/234b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 5 CrossOver-CopyPart-ShuffleBytes-EraseBytes-InsertRepeatedBytes-
+#8442	REDUCE cov: 12 ft: 13 corp: 4/233b lim: 80 exec/s: 0 rss: 34Mb L: 77/78 MS: 5 CopyPart-ChangeByte-InsertByte-ChangeBit-EraseBytes-
+	NEW_FUNC[1/1]: 0x56144bb7bd00 in dummy_irq_cb(device const*, void*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:87
+#8601	NEW    cov: 16 ft: 17 corp: 5/311b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 4 ShuffleBytes-CrossOver-InsertByte-ChangeByte-
+#8720	REDUCE cov: 16 ft: 17 corp: 5/310b lim: 80 exec/s: 0 rss: 34Mb L: 77/78 MS: 4 CopyPart-ChangeByte-CrossOver-CrossOver-
+#9141	REDUCE cov: 16 ft: 17 corp: 5/309b lim: 80 exec/s: 0 rss: 34Mb L: 77/77 MS: 1 EraseBytes-
+#2097152	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 1048576 rss: 381Mb
+#4194304	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#8388608	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#13111666	DONE   cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 819479 rss: 463Mb
+###### Recommended dictionary. ######
+"$\000\000\000\000\000\000\000" # Uses: 602309
+"\000\000" # Uses: 611991
+###### End of recommended dictionary. ######
+Done 13111666 runs in 16 second(s)

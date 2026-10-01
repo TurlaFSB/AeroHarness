@@ -1,0 +1,23 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4
+INFO: Loaded 1 modules   (24 inline 8-bit counters): 24 [0x555f1bb46e88, 0x555f1bb46ea0), 
+INFO: Loaded 1 PC tables (24 PCs): 24 [0x555f1bb46ea0,0x555f1bb47020), 
+INFO:        0 files found in blind_corpus/isr/seed4
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 31Mb
+	NEW_FUNC[1/2]: 0x555f1baffd30 in pl011_isr(device const*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:56
+	NEW_FUNC[2/2]: 0x555f1bb001a0 in get_uart(device const*) /home/claude/aeroharness/harnesses/../zephyr-src/drivers/serial/uart_pl011_registers.h:41
+#7715	NEW    cov: 9 ft: 10 corp: 2/79b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 3 ChangeBit-ChangeBit-InsertRepeatedBytes-
+#7753	NEW    cov: 10 ft: 11 corp: 3/158b lim: 80 exec/s: 0 rss: 34Mb L: 79/79 MS: 3 ChangeBit-InsertRepeatedBytes-InsertRepeatedBytes-
+#7771	NEW    cov: 12 ft: 13 corp: 4/235b lim: 80 exec/s: 0 rss: 34Mb L: 77/79 MS: 3 CopyPart-CopyPart-EraseBytes-
+	NEW_FUNC[1/1]: 0x555f1baffd00 in dummy_irq_cb(device const*, void*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:87
+#7940	NEW    cov: 16 ft: 17 corp: 5/313b lim: 80 exec/s: 0 rss: 34Mb L: 78/79 MS: 4 ShuffleBytes-ChangeBit-InsertRepeatedBytes-CopyPart-
+#8044	REDUCE cov: 16 ft: 17 corp: 5/312b lim: 80 exec/s: 0 rss: 34Mb L: 77/79 MS: 4 CrossOver-ChangeBit-CopyPart-CrossOver-
+#8934	REDUCE cov: 16 ft: 17 corp: 5/310b lim: 86 exec/s: 0 rss: 34Mb L: 77/78 MS: 5 InsertRepeatedBytes-InsertByte-ShuffleBytes-EraseBytes-InsertRepeatedBytes-
+#9545	REDUCE cov: 16 ft: 17 corp: 5/309b lim: 92 exec/s: 0 rss: 34Mb L: 77/77 MS: 1 EraseBytes-
+#2097152	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 1048576 rss: 382Mb
+#4194304	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 462Mb
+#8388608	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#13166155	DONE   cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 822884 rss: 463Mb
+Done 13166155 runs in 16 second(s)

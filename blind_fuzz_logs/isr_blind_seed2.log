@@ -1,0 +1,22 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 2
+INFO: Loaded 1 modules   (24 inline 8-bit counters): 24 [0x5604c12ebe88, 0x5604c12ebea0), 
+INFO: Loaded 1 PC tables (24 PCs): 24 [0x5604c12ebea0,0x5604c12ec020), 
+INFO:        0 files found in blind_corpus/isr/seed2
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 32Mb
+	NEW_FUNC[1/2]: 0x5604c12a4d30 in pl011_isr(device const*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:56
+	NEW_FUNC[2/2]: 0x5604c12a51a0 in get_uart(device const*) /home/claude/aeroharness/harnesses/../zephyr-src/drivers/serial/uart_pl011_registers.h:41
+#7757	NEW    cov: 9 ft: 10 corp: 2/78b lim: 80 exec/s: 0 rss: 34Mb L: 77/77 MS: 5 ChangeByte-CrossOver-InsertRepeatedBytes-ChangeBinInt-InsertByte-
+#7983	NEW    cov: 11 ft: 12 corp: 3/155b lim: 80 exec/s: 0 rss: 34Mb L: 77/77 MS: 1 ChangeByte-
+	NEW_FUNC[1/1]: 0x5604c12a4d00 in dummy_irq_cb(device const*, void*) /home/claude/aeroharness/harnesses/fuzz_pl011_isr_blind.cpp:87
+#8026	NEW    cov: 15 ft: 16 corp: 4/233b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 3 ChangeBinInt-CopyPart-ShuffleBytes-
+#8104	NEW    cov: 16 ft: 17 corp: 5/311b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 3 CrossOver-ChangeBit-InsertByte-
+#9057	REDUCE cov: 16 ft: 17 corp: 5/310b lim: 86 exec/s: 0 rss: 34Mb L: 77/78 MS: 3 CrossOver-EraseBytes-CrossOver-
+#46896	REDUCE cov: 16 ft: 17 corp: 5/309b lim: 461 exec/s: 0 rss: 40Mb L: 77/77 MS: 4 ChangeBit-EraseBytes-EraseBytes-InsertRepeatedBytes-
+#2097152	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 1048576 rss: 387Mb
+#4194304	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#8388608	pulse  cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#12780301	DONE   cov: 16 ft: 17 corp: 5/309b lim: 4096 exec/s: 798768 rss: 463Mb
+Done 12780301 runs in 16 second(s)

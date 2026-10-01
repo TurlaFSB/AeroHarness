@@ -1,0 +1,31 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1
+INFO: Loaded 1 modules   (17 inline 8-bit counters): 17 [0x55cb082d4e88, 0x55cb082d4e99), 
+INFO: Loaded 1 PC tables (17 PCs): 17 [0x55cb082d4ea0,0x55cb082d4fb0), 
+INFO:        0 files found in blind_corpus/poll_in/seed1
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 31Mb
+	NEW_FUNC[1/3]: 0x55cb0828dbf0 in pl011_poll_in(device const*, unsigned char*) /home/claude/aeroharness/harnesses/fuzz_pl011_poll_in_blind.cpp:64
+	NEW_FUNC[2/3]: 0x55cb0828dd40 in get_uart(device const*) /home/claude/aeroharness/harnesses/../zephyr-src/drivers/serial/uart_pl011_registers.h:41
+#7765	NEW    cov: 7 ft: 8 corp: 2/81b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 3 InsertRepeatedBytes-ShuffleBytes-InsertRepeatedBytes-
+#7791	NEW    cov: 8 ft: 9 corp: 3/161b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 1 CopyPart-
+#7797	NEW    cov: 10 ft: 11 corp: 4/241b lim: 80 exec/s: 0 rss: 34Mb L: 80/80 MS: 1 ChangeBinInt-
+#7799	REDUCE cov: 10 ft: 11 corp: 4/239b lim: 80 exec/s: 0 rss: 34Mb L: 78/80 MS: 2 ChangeBit-EraseBytes-
+#7820	REDUCE cov: 10 ft: 11 corp: 4/238b lim: 80 exec/s: 0 rss: 34Mb L: 79/80 MS: 1 EraseBytes-
+#7957	REDUCE cov: 11 ft: 12 corp: 5/316b lim: 80 exec/s: 0 rss: 34Mb L: 78/80 MS: 2 ChangeBinInt-ChangeBinInt-
+#8083	REDUCE cov: 11 ft: 12 corp: 5/315b lim: 80 exec/s: 0 rss: 34Mb L: 78/80 MS: 1 CrossOver-
+#8515	REDUCE cov: 11 ft: 12 corp: 5/314b lim: 80 exec/s: 0 rss: 34Mb L: 77/80 MS: 2 ChangeBit-EraseBytes-
+#8609	REDUCE cov: 11 ft: 12 corp: 5/313b lim: 80 exec/s: 0 rss: 34Mb L: 77/80 MS: 4 InsertByte-EraseBytes-CrossOver-InsertRepeatedBytes-
+#9024	REDUCE cov: 11 ft: 12 corp: 5/312b lim: 80 exec/s: 0 rss: 34Mb L: 79/79 MS: 5 ShuffleBytes-ChangeBit-EraseBytes-CMP-InsertRepeatedBytes- DE: "\376\000"-
+#9393	REDUCE cov: 11 ft: 12 corp: 5/311b lim: 80 exec/s: 0 rss: 34Mb L: 77/79 MS: 4 PersAutoDict-CrossOver-ShuffleBytes-InsertRepeatedBytes- DE: "\376\000"-
+#9420	REDUCE cov: 11 ft: 12 corp: 5/310b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 2 CrossOver-InsertRepeatedBytes-
+#11744	REDUCE cov: 11 ft: 12 corp: 5/309b lim: 98 exec/s: 0 rss: 34Mb L: 77/77 MS: 4 InsertByte-CopyPart-ChangeBit-EraseBytes-
+#2097152	pulse  cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 1048576 rss: 379Mb
+#4194304	pulse  cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 838860 rss: 462Mb
+#8388608	pulse  cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 838860 rss: 462Mb
+#13521684	DONE   cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 845105 rss: 462Mb
+###### Recommended dictionary. ######
+"\376\000" # Uses: 1258833
+###### End of recommended dictionary. ######
+Done 13521684 runs in 16 second(s)

@@ -1,0 +1,21 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 5
+INFO: Loaded 1 modules   (17 inline 8-bit counters): 17 [0x55d8e21e7e88, 0x55d8e21e7e99), 
+INFO: Loaded 1 PC tables (17 PCs): 17 [0x55d8e21e7ea0,0x55d8e21e7fb0), 
+INFO:        0 files found in blind_corpus/poll_in/seed5
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 31Mb
+	NEW_FUNC[1/3]: 0x55d8e21a0bf0 in pl011_poll_in(device const*, unsigned char*) /home/claude/aeroharness/harnesses/fuzz_pl011_poll_in_blind.cpp:64
+	NEW_FUNC[2/3]: 0x55d8e21a0d40 in get_uart(device const*) /home/claude/aeroharness/harnesses/../zephyr-src/drivers/serial/uart_pl011_registers.h:41
+#7722	NEW    cov: 7 ft: 8 corp: 2/78b lim: 80 exec/s: 0 rss: 34Mb L: 77/77 MS: 5 ShuffleBytes-InsertRepeatedBytes-CrossOver-ChangeBit-InsertRepeatedBytes-
+#7726	NEW    cov: 9 ft: 10 corp: 3/155b lim: 80 exec/s: 0 rss: 34Mb L: 77/77 MS: 4 ShuffleBytes-InsertRepeatedBytes-ChangeBinInt-CopyPart-
+#7847	NEW    cov: 10 ft: 11 corp: 4/233b lim: 80 exec/s: 0 rss: 34Mb L: 78/78 MS: 1 InsertByte-
+#8142	NEW    cov: 11 ft: 12 corp: 5/312b lim: 80 exec/s: 0 rss: 34Mb L: 79/79 MS: 5 ChangeBit-ChangeBinInt-EraseBytes-ChangeByte-CopyPart-
+#9192	REDUCE cov: 11 ft: 12 corp: 5/310b lim: 86 exec/s: 0 rss: 34Mb L: 77/78 MS: 5 EraseBytes-CopyPart-ChangeBit-CrossOver-InsertByte-
+#14361	REDUCE cov: 11 ft: 12 corp: 5/309b lim: 135 exec/s: 0 rss: 35Mb L: 77/77 MS: 4 CopyPart-InsertRepeatedBytes-ChangeASCIIInt-EraseBytes-
+#2097152	pulse  cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 1048576 rss: 386Mb
+#4194304	pulse  cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#8388608	pulse  cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 838860 rss: 463Mb
+#13014301	DONE   cov: 11 ft: 12 corp: 5/309b lim: 4096 exec/s: 813393 rss: 463Mb
+Done 13014301 runs in 16 second(s)

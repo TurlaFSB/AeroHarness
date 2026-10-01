@@ -1,0 +1,33 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 6
+INFO: Loaded 1 modules   (8 inline 8-bit counters): 8 [0x565261ce2e88, 0x565261ce2e90), 
+INFO: Loaded 1 PC tables (8 PCs): 8 [0x565261ce2e90,0x565261ce2f10), 
+INFO:        0 files found in blind_corpus/poll_out/seed6
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 32Mb
+ALARM: working on the last Unit for 3 seconds
+       and the timeout value is 3 (use -timeout=N to change)
+MS: 5 InsertByte-ChangeBit-ChangeBit-ChangeBit-InsertRepeatedBytes-; base unit: adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
+0xe,0x3c,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+\016<\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+artifact_prefix='./'; Test unit written to ./timeout-345897b3a3c41b2041aae5c651d2cf2efbb6b090
+Base64: Djz///////////////////////////////////////////////////////////////////////////////////////////////////////8=
+==1921== ERROR: libFuzzer: timeout after 3 seconds
+    #0 0x565261c66af5 in __sanitizer_print_stack_trace (/home/claude/aeroharness/fuzz_poll_out_blind+0x10daf5) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #1 0x565261bc060c in fuzzer::PrintStackTrace() (/home/claude/aeroharness/fuzz_poll_out_blind+0x6760c) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #2 0x565261ba660b in fuzzer::Fuzzer::AlarmCallback() (/home/claude/aeroharness/fuzz_poll_out_blind+0x4d60b) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #3 0x7f133aa4532f  (/lib/x86_64-linux-gnu/libc.so.6+0x4532f) (BuildId: 8e9fd827446c24067541ac5390e6f527fb5947bb)
+    #4 0x565261c9cba3 in pl011_poll_out(device const*, unsigned char) /home/claude/aeroharness/harnesses/fuzz_pl011_poll_out_blind.cpp:48:5
+    #5 0x565261c9c9ad in LLVMFuzzerTestOneInput /home/claude/aeroharness/harnesses/fuzz_pl011_poll_out_blind.cpp:88:5
+    #6 0x565261ba7c64 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/home/claude/aeroharness/fuzz_poll_out_blind+0x4ec64) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #7 0x565261ba7359 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*) (/home/claude/aeroharness/fuzz_poll_out_blind+0x4e359) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #8 0x565261ba8b45 in fuzzer::Fuzzer::MutateAndTestOne() (/home/claude/aeroharness/fuzz_poll_out_blind+0x4fb45) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #9 0x565261ba96a5 in fuzzer::Fuzzer::Loop(std::vector<fuzzer::SizedFile, std::allocator<fuzzer::SizedFile>>&) (/home/claude/aeroharness/fuzz_poll_out_blind+0x506a5) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #10 0x565261b9697f in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/home/claude/aeroharness/fuzz_poll_out_blind+0x3d97f) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #11 0x565261bc1006 in main (/home/claude/aeroharness/fuzz_poll_out_blind+0x68006) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+    #12 0x7f133aa2a1c9 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #13 0x7f133aa2a28a in __libc_start_main csu/../csu/libc-start.c:360:3
+    #14 0x565261b8b964 in _start (/home/claude/aeroharness/fuzz_poll_out_blind+0x32964) (BuildId: c965b553d68613b4f3a38243ebc6c3a6c79e4307)
+
+SUMMARY: libFuzzer: timeout
