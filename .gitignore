@@ -29,6 +29,11 @@ oom-*
 *.elf
 target_*
 !legacy_v1/target_*
+cov_*_blind
+cve_broad_*
+cve_isolated
+*_rebuild
+*_exact
 
 # Fuzzing corpora
 corpus_*
