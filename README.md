@@ -8,6 +8,12 @@ AeroHarness is a research prototype exploring how LLM agents, combined with dete
 
 The gap this project targets: existing work addresses one half of this problem each. Fuzzware (USENIX Security '22) automatically models hardware/MMIO register behavior via dynamic symbolic execution, but has no semantic understanding of code. QuartetFuzz uses an LLM agent to generate fuzz harnesses with source-level correctness checks, but has only ever been applied to regular software libraries — never to firmware requiring hardware mocking. AeroHarness combines both: an LLM agent proposes hardware register behavior using semantic code understanding, and that proposal is verified against real code-usage patterns before being trusted and used to synthesize working fuzz harnesses.
 
+## Architecture
+
+![AeroHarness Pipeline Architecture](architecture.svg)
+
+Stages 1–3 form a shared front end (AST parsing, LLM register-model proposal, static verification) that then forks into two tracks: a **Validation Track** (Stages 4–5), which benchmarks the front end's accuracy against the third-party P2IM dataset and tests whether a trained classifier can match it, and a **Case-Study Track** (Stages 6–7), which applies the same verified models to synthesize working fuzz harnesses for a real Zephyr driver and uses RL to guide fuzzing time and input sequencing against them. Two dashed arrows show artifacts reused directly across tracks rather than passed down the main pipeline: Stage 1's call-graph data into Stage 6, and Stage 3's uncertainty signal into Stage 7.
+
 ## Pipeline Stages (1-7)
 
 * **Stage 1 — Semantic Analysis**: Real AST-based parsing (`stage1_ast_parser.py`, via libclang) extracts function signatures, call relationships, and MMIO/hardware register accesses from firmware source. Generalized across RTOS codebases (validated on Zephyr and RIOT OS).
