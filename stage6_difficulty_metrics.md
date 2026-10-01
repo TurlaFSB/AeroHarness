@@ -21,9 +21,29 @@ Each static metric contributes to a difficulty score:
 | Function | Cyclomatic Complexity | MMIO Register Count | Call-Graph Depth | Init Prerequisites | Static Score & Class | Repair Iterations | Fuzzing Features | Empirical Class |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `pl011_poll_out` | 2 (0 pts) | 2 (`fr`, `dr`) (0 pts) | 0 (0 pts) | 0 (0 pts) | **0 pts (Easy)** | 1 | 6 | **Easy** |
-| `pl011_poll_in` | 2 (0 pts) | 3 (`cr`, `fr`, `dr`) (1 pt) | 1 (`is_readable`) (1 pt) | 1 (`UARTEN`/`RXE`) (1 pt) | **3 pts (Moderate)** | 2 | 2 | **Moderate** |
+| `pl011_poll_in` | 2 (0 pts) | 3 (`cr`, `fr`, `dr`) (1 pt) | 1 (`is_readable`) (1 pt) | 1 (`UARTEN`/`RXE`) (1 pt) | **3 pts (Moderate)** | 2 | 12 *(corrected Oct 1 2026 — see note below)* | **Moderate** |
 | `pl011_isr` | 4 (1 pt) | 3 (`mis`, `icr`, `imsc`) (1 pt) | 0 (0 pts) | 1 (`irq_cb` setup) (1 pt)| **3 pts (Moderate)** | 4 | 17 | **HARD (Mismatch)** |
 | `kinetis_adc_calibrate` (RIOT/Kinetis, Oct 1 2026) | 4 (1 pt) | 16 (`SC1`,`SC3`,`CLP0-4`,`CLPS`,`CLM0-4`,`CLMS`,`PG`,`MG`) (2 pts) | 0 (0 pts) | 0 (0 pts) | **3 pts (Moderate)** | 4 | 15 | **HARD (Mismatch)** |
+
+---
+
+## Correction (Oct 1 2026, independent audit): `pl011_poll_in`'s Fuzzing Features figure was wrong
+
+This table previously listed `pl011_poll_in`'s "Fuzzing Features" as **2**. Re-running the actual harness — both the committed pinned binary (`fuzz_poll_in`) and a fresh from-scratch rebuild using the project's own documented build flags (`clang++ -g -fsanitize=fuzzer,address -Iharnesses/include`) — reproduces **`cov: 11, ft: 12`** consistently (15M+ executions, `-seed=1`, 15s wall-clock), not 2. `2` is suspiciously exactly libFuzzer's `INITED` baseline value before any mutation finds anything new, which is the likely source of the error (someone probably copied the wrong line from a log rather than the plateau value). This also matches `RESULTS.md`'s own prior "Oct 1 independent re-audit" correction, which already states `poll_in` reaches "11/11 of 17 total PCs" — so the real figure was sitting correctly in one document and incorrectly in this one, and the two were never cross-checked against each other until now. `pl011_poll_out` (6) and `pl011_isr` (17) were independently re-verified in the same pass and both reproduce exactly as documented — this was an isolated error on one row, not a systemic problem with this table.
+
+*(Note on build-flag sensitivity, surfaced incidentally while verifying this: an initial rebuild attempt using `-std=c++17 -O1` instead of the project's documented flags reproduced a different, lower `cov:10/ft:10` — consistent with this project's own previously-documented finding, in the CVE-2020-10062 positive control, that optimization level can silently change which code paths are observable via dead-code elimination. Always rebuild with the exact documented flags, not a plausible-looking variant, when reproducing a specific coverage figure.)*
+
+## Unresolved discrepancy (Oct 1 2026, flagged not fixed): "Repair Iterations" disagrees with `STAGE6_HARNESS_METRICS.md`
+
+This table's "Repair Iterations" column (1 for `poll_out`, 2 for `poll_in`, 4 for `isr`) does **not** match `STAGE6_HARNESS_METRICS.md`'s more granular breakdown of the same thing:
+
+| Function | This table says | `STAGE6_HARNESS_METRICS.md` says | Agree? |
+| :--- | :--- | :--- | :--- |
+| `pl011_poll_out` | 1 | "0 repair iterations; clean compile on first try" | **No** |
+| `pl011_poll_in` | 2 | "Required 2 compile-repair iterations" | Yes |
+| `pl011_isr` | 4 | "1 compile-repair iteration, 1 post-compile behavioral-repair iteration" (= 2 total) | **No** |
+
+Since the original multi-turn LLM harness-generation sessions that these counts describe happened before this audit and aren't reproducible on demand (Gemini's now unreachable from this sandbox, and no raw synthesis/repair transcript or log file exists in the repo — checked, there is no `stage6_synthesis_log`-type file), there's no way to independently verify which figure is correct for `poll_out` and `isr`. Rather than silently picking one side, this is flagged as an open inconsistency between two documents that both claim to describe the same real event. `STAGE6_HARNESS_METRICS.md`'s version is more granular (it distinguishes compile-repair from behavioral-repair) and was written closer to a lifecycle-metrics framing, which makes it marginally more likely to be the careful source — but that's a guess, not a verification, and whoever has the original interactive session notes should resolve this definitively before either number goes into a paper.
 
 ---
 
