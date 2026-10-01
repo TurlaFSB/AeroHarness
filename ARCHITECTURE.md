@@ -1,6 +1,10 @@
-# AeroHarness: Autonomous Embedded-Target Reasoning & Fuzz Harness Synthesis
+# AeroHarness: Agentic, Oracle-Verified Synthesis of Fuzz Drivers for Memory-Safety Bug Hunting in Embedded Firmware
 
 This document presents the complete system architecture for **AeroHarness**, mapping the data flow, decision boundaries, and verification loops across all seven pipeline stages. This architecture is designed to be included in an international research paper or industry whitepaper.
+
+> For a concise, presentation-ready visual (one figure, grid-aligned, with a legend and caption), see [`architecture.svg`](./architecture.svg), referenced from the README's Architecture section. The diagram below is the detailed technical flow, including the Stage 6/7 case-study internals and the independent cross-validation steps.
+>
+> **Independent re-audit (Oct 1 2026):** Stage 6's isolated-harness coverage numbers, the MQTT UBSan classification, the CVE-2020-10062 positive control, and the Stage 6/7 coverage measurement methodology were each independently re-verified against the repo. This surfaced and fixed stale coverage numbers, a build-flag-dependent false negative in the CVE control, and added missing `llvm-cov` source-level cross-validation. It also confirmed the Stage 7 RL-sequencing case study's honest null result stands. See `RESULTS.md` for full detail. This document has been updated to reflect those findings.
 
 ## System Architecture Diagram
 
@@ -31,7 +35,7 @@ flowchart TD
     end
 
     %% Stage 3 & 4
-    subgraph S34 [Stage 3 & 4: Oracle Verification & Benchmarking]
+    subgraph S34 [Stage 3: Shared Front End — Stage 4: Validation Track]
         B4 --> C1(Static Verification Oracle\n AST-pattern structural checker):::oracle
         A3 --> C1
         C1 -- Agreement --> C2[Confirmed Models]:::output
@@ -42,7 +46,7 @@ flowchart TD
     end
 
     %% Stage 5
-    subgraph S5 [Stage 5: Deep Learning Acceleration]
+    subgraph S5 [Stage 5: Deep Learning Acceleration — Validation Track]
         C2 -.->|"Dataset"| D1(Fine-tune CodeBERT):::process
         C2 -.->|"Dataset"| D2(Train XGBoost):::process
         D1 -.->|"Underperformed\n Zero-Shot LLM"| D3[Result: LLM > DL]:::output
@@ -50,22 +54,30 @@ flowchart TD
     end
 
     %% Stage 6
-    subgraph S6 [Stage 6: Harness Synthesis & Self-Repair]
+    subgraph S6 [Stage 6: Harness Synthesis & Self-Repair — Case-Study Track]
         C2 --> E1(Harness Generator):::process
         E1 --> E2[libFuzzer C++ Harness]:::output
         E2 --> E3(Compiler)
         E3 -- "Compilation Error\n (Max 5 Retries)" --> E4(Diagnostic Feedback):::process
         E4 --> E1
-        E3 -- "Success" --> E5[Compiled Fuzz Target ELF]:::output
+        E3 -- "Success" --> E5[3 Isolated Harnesses\n poll_in / poll_out / isr]:::output
+        E5 --> E6(State-Machine Dispatcher\n call-graph-guided bridge):::process
+        E6 --> E7["Dispatcher Binary\n raw sancov cov:76 ft:566"]:::output
+        E7 -.->|"llvm-cov cross-check\n (Oct 1 2026)"| E8[["Real driver coverage: ~29% lines\n/ ~35% branches — NOT 76%"]]:::oracle
+        C2 --> E9(MQTT UBSan Triage +\n CVE-2020-10062 Positive Control):::process
+        E9 --> E10[["UBSan: harness-artifact, fixed.\nCVE: reproduced at -O1 after\nfixing a dead-code-elim false\nnegative (Oct 1 2026)"]]:::output
     end
 
     %% Stage 7
-    subgraph S7 [Stage 7: Uncertainty-Guided RL]
+    subgraph S7 [Stage 7: Uncertainty-Guided RL — Case-Study Track]
         E5 --> F1(Coverage-Guided Fuzzing\n libFuzzer):::fuzzer
         C4 -- "Reward Multiplier" --> F2(RL Scheduler\n Q-Learning, UCB1, PPO):::rl
         F2 -- "Selects Target" --> F1
         F1 -- "Coverage Signal" --> F2
-        F2 --> F3[Statistically Significant\n Variance Reduction]:::output
+        F2 --> F3["Scheduling Ablation: Statistically\nSignificant Variance Reduction\n(F=17.42, p&lt;0.01)"]:::output
+
+        E7 --> G1(RL-Guided Sequencing\n Q-learning / UCB1 / Random select\ndispatcher API call order):::rl
+        G1 -- "8-point measurement audit +\nllvm-cov cross-validation" --> G2[["Honest null result: all algorithms\nconverge to flat 29-PC driver\ncoverage ceiling"]]:::output
     end
     
     %% Future Work
@@ -100,17 +112,21 @@ flowchart TD
 * **Mechanism**: The end-to-end extraction and classification pipeline is benchmarked against the gold-standard P2IM unit-test suite.
 * **Result**: Achieved an empirically verified 83.3% accuracy ceiling using Gemini, proving that LLM-based static reasoning is a highly viable alternative to expensive dynamic symbolic execution.
 
-### Stage 5: Deep Learning Acceleration (Ablation)
+### Stage 5: Deep Learning Acceleration (Ablation) — Validation Track
 * **Mechanism**: Attempted to distill the expensive LLM logic into faster, smaller models (CodeBERT and XGBoost) using the Stage 4 benchmark as training data.
-* **Result**: Both models failed to significantly outperform a naive majority-class baseline due to the limited sample size (N=42). This solidified the finding that *Zero-Shot LLM inference* is currently irreplaceable for this task.
+* **Result**: Neither trained model (CodeBERT 54.0%±24.4%, XGBoost 45.7%±25.3%) significantly outperforms a naive majority-class baseline (40.4%±33.9%; all pairwise p>0.10), against zero-shot LLM inference at 83.3%. The dataset's severe small-N register-level sample size is the cause (see `RESULTS.md` for the exact figures and significance tests — no single precise N is reported in the repo's own evaluation scripts, so none is claimed here). This solidified the finding that *Zero-Shot LLM inference* is currently irreplaceable for this task — a formally tested negative result for the trained classifiers, not an implementation failure.
 
-### Stage 6: Autonomous Self-Repair Loop
-* **Mechanism**: The Confirmed models are injected into C++ `libFuzzer` harnesses. The system attempts to compile them natively. If compilation fails (e.g., due to missing headers or type mismatches), the `stderr` compiler diagnostic is fed *back* into the LLM context.
-* **Engineering Standard**: Employs a strict "Bounded Retry" approach (max 5 retries, informed by the *QuartetFuzz* paper) to prevent infinite loops, successfully synthesizing fully operational ELF binaries.
+### Stage 6: Autonomous Self-Repair Loop + Case-Study Enhancements — Case-Study Track
+* **Mechanism**: The Confirmed models are injected into C++ `libFuzzer` harnesses for 3 PL011 functions (`pl011_poll_in`, `pl011_poll_out`, `pl011_isr`), spanning read, write, and interrupt paths. The system attempts to compile them natively. If compilation fails (e.g., due to missing headers or type mismatches), the `stderr` compiler diagnostic is fed *back* into the LLM context.
+* **Engineering Standard**: Employs a "Bounded Retry" approach (max 5 retries, informed by the *QuartetFuzz* paper) to prevent infinite loops, successfully synthesizing fully operational ELF binaries. Surfaced two real static-mocking limitations along the way: busy-wait timeouts and write-1-to-clear register clobbering.
+* **Enhancement 1 — State-Machine Dispatcher**: A unified harness bridges the 3 isolated functions using call-graph-inferred initialization sequences (the ordering itself is inferred from naming conventions, not literally read off the Stage 1 call graph — the call graph had no ordering constraints to use). It reaches more raw sancov edges (`cov:76 ft:566`) than any isolated harness, but **independent `llvm-cov` source-level cross-validation (Oct 1 2026) shows the real figure is ~29% of the driver's lines and ~35% of its branches** — the raw PC count alone overstates this and must not be read as a driver-coverage percentage.
+* **Enhancement 2 — MQTT UBSan Triage**: An initial UBSan violation on Zephyr's MQTT `properties_decode` function was triaged and definitively classified as a harness artifact (a mock macro promotion bug), not a real vulnerability. Independently reproduced Oct 1 2026: the pre-fix macro reproduces the exact UBSan error; the patched version is clean.
+* **Enhancement 3 — CVE-2020-10062 Positive Control**: Validated pipeline capability against a known ground-truth vulnerability (an MQTT off-by-one, CWE-193). Proved isolated harnesses are blind to this API-contract violation, while a broad-scope, call-graph-aware harness detects the memory corruption within hundreds to low thousands of executions. Independently re-verified and fixed Oct 1 2026: rebuilding from source at the project's own documented `-O1` flag was silently failing to reproduce it — LLVM's dead-code-elimination was removing the vulnerable `malloc`/`memcpy`/`free` sequence because its result was never read. Fixed with a single `volatile` touch forcing the access to be observable; now reproducible at `-O1` as documented.
 
-### Stage 7: RL-Guided Fuzzer Scheduling
-* **Mechanism**: Multi-target fuzzing traditionally spends equal CPU time on all entry points. AeroHarness deploys Reinforcement Learning (Q-learning, UCB1, PPO) to prioritize which harnesses to fuzz. 
-* **Key Innovation**: The RL agent's reward is multiplied by the *Uncertainty Signal* generated in Stage 3. This directs the fuzzer to spend more time exploring code paths where the Oracle was unconfident, resulting in a statistically significant variance-reduction benefit (F=17.42, p<0.01) over random search.
+### Stage 7: RL-Guided Fuzzer Scheduling + Sequencing Case Study — Case-Study Track
+* **Scheduling mechanism**: Multi-target fuzzing traditionally spends equal CPU time on all entry points. AeroHarness deploys Reinforcement Learning (Q-learning, UCB1, PPO) to prioritize which harnesses to fuzz.
+* **Key Innovation**: The RL agent's reward is multiplied by the *Uncertainty Signal* generated in Stage 3. This directs the fuzzer to spend more time exploring code paths where the Oracle was unconfident, resulting in a statistically significant variance-reduction benefit (F=17.42, p<0.01) over random search — characterized, via the Coupon Collector's Problem, as a robustness/variance effect rather than a mean-performance one. Confirmed across 10 seeds for all 3 algorithms.
+* **RL-Guided Sequencing (methodology case study)**: The same RL framework was extended to select API call sequences for the Stage 6 state-machine dispatcher, decoupling sequence length from libFuzzer's mutational payload entirely. Initial results appeared to show Q-learning beating Random (54 vs 41 PCs) — but an exhaustive 8-point measurement audit unmasked every apparent RL victory as a reward-hacking vulnerability or measurement artifact (unsigned underflows, debug `printf` self-rewards, harness-router branch inflation). After a rigorous structural fix (`__attribute__((no_sanitize("coverage")))` + `-fno-inline`) scoped coverage strictly to the target driver, independent `llvm-cov` source-profiling confirmed the true, artifact-free result: **all three algorithms (Random, UCB1, Q-learning) converge to identically flat driver-level coverage (29 PCs)**, reflecting the benchmark's shallow state space rather than a general claim about RL. This honest null result — and the methodology for detecting reward-hacking in RL-guided fuzzing — is itself a core contribution of this work, not a setback to omit.
 
 ---
 
