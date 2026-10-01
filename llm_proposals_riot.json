@@ -1,0 +1,872 @@
+{
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::AHB1ENR::155": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "AHB1ENR",
+    "line": 155,
+    "model": "set",
+    "reasoning": "The code snippet shows that the AHB1ENR register is being written to using the expression `RCC->AHB1ENR &= ~(mask);`. This indicates that a specific bit pattern is being cleared, which suggests that the model 'Set' is appropriate. The 'Set' model is used when a specific bit pattern is written to trigger an action, and in this case, the action is likely to disable or clear a peripheral clock. The use of a bitwise AND with the negation of the mask ensures that only the specified bits are cleared, which fits the 'Set' model's behavior.",
+    "context": "            break;\n#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \\\n      defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32F7)\n        case AHB1:\n            RCC->AHB1ENR &= ~(mask);\n            break;\n/* STM32F410 RCC doesn't provide AHB2 and AHB3 */\n#if !defined(CPU_LINE_STM32F410Rx)\n        case AHB2:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::AHB2ENR::160": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "AHB2ENR",
+    "line": 160,
+    "model": "set",
+    "reasoning": "The code is writing to the AHB2ENR register by performing a bitwise AND operation with the negation of 'mask'. This operation is used to disable clocking for a specific peripheral by setting the corresponding bits to 0. Therefore, it is setting a configuration.",
+    "context": "            break;\n/* STM32F410 RCC doesn't provide AHB2 and AHB3 */\n#if !defined(CPU_LINE_STM32F410Rx)\n        case AHB2:\n            RCC->AHB2ENR &= ~(mask);\n            break;\n        case AHB3:\n            RCC->AHB3ENR &= ~(mask);\n            break;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::AHB3ENR::163": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "AHB3ENR",
+    "line": 163,
+    "model": "set",
+    "reasoning": "The code snippet provided shows the AHB3ENR register being written to via the expression 'RCC->AHB3ENR &= ~(mask);'. This operation is used to clear specific bits within the register, which typically indicates that a configuration or state is being set or modified. The mask is used to specify which bits to clear, implying that a particular state or configuration is being disabled or reset. Therefore, the most appropriate Fuzzware-style model for this register is 'set', as it allows for the triggering of actions or changes in state by setting specific bit patterns.",
+    "context": "        case AHB2:\n            RCC->AHB2ENR &= ~(mask);\n            break;\n        case AHB3:\n            RCC->AHB3ENR &= ~(mask);\n            break;\n#endif\n#endif\n        default:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR1::160": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR1",
+    "line": 160,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "\n    uart_enable_clock(uart);\n\n    /* reset UART configuration -> defaults to 8N1 mode */\n    dev(uart)->CR1 = 0;\n    dev(uart)->CR2 = 0;\n    dev(uart)->CR3 = 0;\n\n#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR2::161": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR2",
+    "line": 161,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    uart_enable_clock(uart);\n\n    /* reset UART configuration -> defaults to 8N1 mode */\n    dev(uart)->CR1 = 0;\n    dev(uart)->CR2 = 0;\n    dev(uart)->CR3 = 0;\n\n#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)\n    switch (uart_config[uart].type) {\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR3::162": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR3",
+    "line": 162,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "\n    /* reset UART configuration -> defaults to 8N1 mode */\n    dev(uart)->CR1 = 0;\n    dev(uart)->CR2 = 0;\n    dev(uart)->CR3 = 0;\n\n#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)\n    switch (uart_config[uart].type) {\n        case STM32_USART:\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR1::184": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR1",
+    "line": 184,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "\n    /* enable RX interrupt if applicable */\n    if (rx_cb) {\n        NVIC_EnableIRQ(uart_config[uart].irqn);\n        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE | RXENABLE);\n    }\n    else {\n        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE);\n    }\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR1::187": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR1",
+    "line": 187,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "        NVIC_EnableIRQ(uart_config[uart].irqn);\n        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE | RXENABLE);\n    }\n    else {\n        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE);\n    }\n\n#ifdef MODULE_STM32_PERIPH_UART_HW_FC\n    if (uart_config[uart].cts_pin != GPIO_UNDEF) {\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR3::192": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR3",
+    "line": 192,
+    "model": "set",
+    "reasoning": "The register CR3 is being written to in the uart_init function. Specifically, the code checks if certain pins are defined (cts_pin and rts_pin) and if they are, it sets the corresponding bits in the CR3 register (USART_CR3_CTSE and USART_CR3_RTSE). This indicates that a specific bit pattern is being written to trigger an action, which matches the behavior of the 'set' model.",
+    "context": "    }\n\n#ifdef MODULE_STM32_PERIPH_UART_HW_FC\n    if (uart_config[uart].cts_pin != GPIO_UNDEF) {\n        dev(uart)->CR3 |= USART_CR3_CTSE;\n    }\n    if (uart_config[uart].rts_pin != GPIO_UNDEF) {\n        dev(uart)->CR3 |= USART_CR3_RTSE;\n    }\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init::CR3::195": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init",
+    "register": "CR3",
+    "line": 195,
+    "model": "set",
+    "reasoning": "The provided code snippet shows that the driver is writing to the CR3 register to set specific bits based on the configuration of the UART device. Specifically, it checks if the CTS and RTS pins are not undefined and then sets the CTSE and RTSE bits in the CR3 register, respectively. This behavior aligns with the 'Set' model, where a specific bit pattern is written to trigger an action or change the state of the device.",
+    "context": "    if (uart_config[uart].cts_pin != GPIO_UNDEF) {\n        dev(uart)->CR3 |= USART_CR3_CTSE;\n    }\n    if (uart_config[uart].rts_pin != GPIO_UNDEF) {\n        dev(uart)->CR3 |= USART_CR3_RTSE;\n    }\n#endif\n\n    return UART_OK;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_init_usart::BRR::262": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_init_usart",
+    "register": "BRR",
+    "line": 262,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    /* calculate and apply baudrate */\n    clk = periph_apb_clk(uart_config[uart].bus) / baudrate;\n    mantissa = (uint16_t)(clk / 16);\n    fraction = (uint8_t)(clk - (mantissa * 16));\n    dev(uart)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);\n}\n\n#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)\n#ifdef MODULE_PERIPH_LPUART\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::send_byte::ISR_REG::302": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "send_byte",
+    "register": "ISR_REG",
+    "line": 302,
+    "model": "passthrough",
+    "reasoning": "The register ISR_REG is being read within a loop to check the ISR_TXE bit. This indicates that the driver is waiting for the transmitter to be empty before sending a byte. The model 'Passthrough' is appropriate because the data written to this register is returned exactly as written on the next read. In this context, the read operation is checking the status of the transmitter being empty, and the write operation is not relevant to the model selection.",
+    "context": "#endif /* STM32L0 || STM32L4 */\n\nstatic inline void send_byte(uart_t uart, uint8_t byte)\n{\n    while (!(dev(uart)->ISR_REG & ISR_TXE)) {}\n    dev(uart)->TDR_REG = byte;\n}\n\nstatic inline void wait_for_tx_complete(uart_t uart)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::send_byte::TDR_REG::303": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "send_byte",
+    "register": "TDR_REG",
+    "line": 303,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "\nstatic inline void send_byte(uart_t uart, uint8_t byte)\n{\n    while (!(dev(uart)->ISR_REG & ISR_TXE)) {}\n    dev(uart)->TDR_REG = byte;\n}\n\nstatic inline void wait_for_tx_complete(uart_t uart)\n{\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::wait_for_tx_complete::ISR_REG::308": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "wait_for_tx_complete",
+    "register": "ISR_REG",
+    "line": 308,
+    "model": "constant",
+    "reasoning": "The register ISR_REG is being read within the wait_for_tx_complete function. It is checked to see if the bit ISR_TC is set, which indicates that the transmission is complete. Since this is a status register that provides a specific bit to check for completion, it should always return a constant value. The value of ISR_REG does not change based on any input or actions performed by the driver. Therefore, the most appropriate model for this register is 'constant'.",
+    "context": "}\n\nstatic inline void wait_for_tx_complete(uart_t uart)\n{\n    while (!(dev(uart)->ISR_REG & ISR_TC)) {}\n}\n\nvoid uart_write(uart_t uart, const uint8_t *data, size_t len)\n{\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::CR1::316": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "CR1",
+    "line": 316,
+    "model": "passthrough",
+    "reasoning": "The code checks if the 'CR1' register's Transmit Enable (TE) bit is set. If it is not set, the function returns without sending data. This indicates that the register is being used to configure the UART's operation mode, specifically enabling or disabling the transmission of data. Since the function relies on the state of this bit to decide whether to send data, a 'passthrough' model is appropriate. This model allows the fuzzer to supply symbolic values for the register and checks if the behavior of the device changes accordingly based on the bit's value.",
+    "context": "{\n    assert(uart < UART_NUMOF);\n#if DEVELHELP\n    /* If tx is not enabled don't try to send */\n    if (!(dev(uart)->CR1 & USART_CR1_TE)) {\n        return;\n    }\n#endif\n#ifdef MODULE_PERIPH_DMA\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::CR3::327": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "CR3",
+    "line": 327,
+    "model": "passthrough",
+    "reasoning": "The register CR3 is involved in checking if a DMA transfer for UART is ongoing by evaluating the USART_CR3_DMAT bit. However, the code snippet does not show any direct write operation to CR3. Instead, it reads the value of CR3 and checks if the DMA transfer bit is set. Given that the register is only being read to check a specific bit and not modified, the Passthrough model is the most appropriate choice. This model allows the fuzzer to supply a symbolic value for CR3, but only the specific bit of interest (USART_CR3_DMAT) is used in the check.",
+    "context": "    }\n    if (uart_config[uart].dma != DMA_STREAM_UNDEF) {\n        if (irq_is_in()) {\n            uint16_t todo = 0;\n            if (dev(uart)->CR3 & USART_CR3_DMAT) {\n                /* DMA transfer for UART on-going */\n                todo = dma_suspend(uart_config[uart].dma);\n            }\n            if (todo) {\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::CR3::333": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "CR3",
+    "line": 333,
+    "model": "set",
+    "reasoning": "The code snippet indicates that the driver is writing to the CR3 register of a UART device. Specifically, the line `dev(uart)->CR3 &= ~USART_CR3_DMAT;` demonstrates a write operation where a bit pattern is being set or cleared. This suggests that the driver is using the CR3 register to configure or manage the DMA transfer settings for the UART. Therefore, the 'Set' model is appropriate because it allows for setting a specific bit pattern to trigger an action, which matches the behavior of the provided code.",
+    "context": "                todo = dma_suspend(uart_config[uart].dma);\n            }\n            if (todo) {\n                dma_stop(uart_config[uart].dma);\n                dev(uart)->CR3 &= ~USART_CR3_DMAT;\n            }\n            for (unsigned i = 0; i < len; i++) {\n                send_byte(uart, data[i]);\n            }\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::CR3::340": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "CR3",
+    "line": 340,
+    "model": "set",
+    "reasoning": "The code snippet shows that the register CR3 is being modified by the line 'dev(uart)->CR3 |= USART_CR3_DMAT;'. This indicates that the driver is setting a specific bit pattern in the register. The USART_CR3_DMAT bit is being used to enable DMA transmission. Therefore, the appropriate model for this register is 'set', as it represents the action of writing a bit pattern to trigger an action, or change a state.",
+    "context": "                send_byte(uart, data[i]);\n            }\n            if (todo > 0) {\n                wait_for_tx_complete(uart);\n                dev(uart)->CR3 |= USART_CR3_DMAT;\n                dma_resume(uart_config[uart].dma, todo);\n            }\n        }\n        else {\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::CR3::346": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "CR3",
+    "line": 346,
+    "model": "passthrough",
+    "reasoning": "The code snippet shows that the register CR3 is being modified by setting the USART_CR3_DMAT bit when the DMA transfer is initiated. This suggests that the register is being used for configuration purposes, where the value written is then read back unchanged, reflecting the new configuration. The Passthrough model fits this scenario as it ensures that any value written to the register is returned exactly as written when read, allowing the fuzzer to explore different configurations.",
+    "context": "            }\n        }\n        else {\n            dma_acquire(uart_config[uart].dma);\n            dev(uart)->CR3 |= USART_CR3_DMAT;\n            dma_transfer(uart_config[uart].dma, uart_config[uart].dma_chan, data,\n                         (void *)&dev(uart)->TDR_REG, len, DMA_MEM_TO_PERIPH, DMA_INC_SRC_ADDR);\n\n            /* make sure the function is synchronous by waiting for the transfer to\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::TDR_REG::348": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "TDR_REG",
+    "line": 348,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided shows that the driver is writing to the TDR_REG register during a DMA transfer. The data from the 'data' parameter is being written to the TDR_REG, and this value is then read back during the DMA transfer. Since the fuzzer should supply a symbolic value and this value is then returned exactly as written on the next read, the most appropriate Fuzzware-style model for this register is 'passthrough'. This model ensures that the value written to the register is reflected in its subsequent reads, allowing the fuzzer to test the DMA transfer with different input values.",
+    "context": "        else {\n            dma_acquire(uart_config[uart].dma);\n            dev(uart)->CR3 |= USART_CR3_DMAT;\n            dma_transfer(uart_config[uart].dma, uart_config[uart].dma_chan, data,\n                         (void *)&dev(uart)->TDR_REG, len, DMA_MEM_TO_PERIPH, DMA_INC_SRC_ADDR);\n\n            /* make sure the function is synchronous by waiting for the transfer to\n             * finish */\n            wait_for_tx_complete(uart);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_write::CR3::353": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_write",
+    "register": "CR3",
+    "line": 353,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided indicates that the driver is writing to the CR3 register by setting specific bits to a certain value and then clearing them. Specifically, it clears the USART_CR3_DMAT bit. The value written to the register is not a constant or a symbolic value based on specific bits. Instead, it is a configuration bit that needs to be set and cleared as part of the UART communication process. Since the data written to the register is returned exactly as written on the next read, the Passthrough model is the most appropriate choice.",
+    "context": "\n            /* make sure the function is synchronous by waiting for the transfer to\n             * finish */\n            wait_for_tx_complete(uart);\n            dev(uart)->CR3 &= ~USART_CR3_DMAT;\n            dma_release(uart_config[uart].dma);\n        }\n        return;\n    }\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_poweron::CR1::373": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_poweron",
+    "register": "CR1",
+    "line": 373,
+    "model": "passthrough",
+    "reasoning": "The code snippet indicates that the driver is setting the USART_CR1 register by using the bitwise OR operation to enable the UART by setting the UE (USART enable) bit. Since there is no indication of reading from the register, no bit manipulation for specific flags being checked, and no action being triggered by writing a specific pattern, the most appropriate model is Passthrough. This model ensures that any data written to the register is returned exactly as written on the next read, which aligns with the behavior of setting a configuration register like USART_CR1.",
+    "context": "    assert(uart < UART_NUMOF);\n\n    uart_enable_clock(uart);\n\n    dev(uart)->CR1 |= (USART_CR1_UE);\n\n#ifdef MODULE_STM32_PERIPH_UART_HW_FC\n    /* STM32F4 errata 2.10.9: nRTS is active while RE or UE = 0\n     * we should only configure nRTS pin after setting UE */\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::uart_poweroff::CR1::395": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "uart_poweroff",
+    "register": "CR1",
+    "line": 395,
+    "model": "constant",
+    "reasoning": "The register CR1 is being written to with the bitwise AND operation to disable UART by clearing the UE bit. The value being written to the register is not dependent on its previous value, nor is it checking a specific bit. Instead, it is setting a specific configuration state (disabling UART). Therefore, the most appropriate model is 'constant' as it always returns a constant value when read, which in this case is effectively a state that doesn't change based on the register's previous value.",
+    "context": "        gpio_set(uart_config[uart].rts_pin);\n    }\n#endif\n\n    dev(uart)->CR1 &= ~(USART_CR1_UE);\n\n    uart_disable_clock(uart);\n}\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::irq_handler::ISR::406": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "irq_handler",
+    "register": "ISR",
+    "line": 406,
+    "model": "bitextract",
+    "reasoning": "The code is reading from the ISR register to check if the USART_ISR_RXNE (Receive Not Empty) bit is set. The ISR register's value is being used in a bitwise operation to determine if a specific event has occurred. This indicates that only specific bits of the register are relevant for the driver's operation, making the Bitextract model the most appropriate choice.",
+    "context": "#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0) || \\\n    defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L4) || \\\n    defined(CPU_FAM_STM32F7)\n\n    uint32_t status = dev(uart)->ISR;\n\n    if (status & USART_ISR_RXNE) {\n        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,\n                            (uint8_t)dev(uart)->RDR & isr_ctx[uart].data_mask);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::irq_handler::RDR::410": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "irq_handler",
+    "register": "RDR",
+    "line": 410,
+    "model": "passthrough",
+    "reasoning": "The register RDR is read in the context of handling an interrupt. The value read from RDR is then used in the callback function. Since the value of RDR is used directly without modification or interpretation based on specific bits, the Passthrough model is appropriate. This model ensures that the exact value written to RDR can be read back, preserving the behavior of the driver in handling incoming data.",
+    "context": "    uint32_t status = dev(uart)->ISR;\n\n    if (status & USART_ISR_RXNE) {\n        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,\n                            (uint8_t)dev(uart)->RDR & isr_ctx[uart].data_mask);\n    }\n    if (status & USART_ISR_ORE) {\n        dev(uart)->ICR |= USART_ICR_ORECF;    /* simply clear flag on overrun */\n    }\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::irq_handler::ICR::413": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "irq_handler",
+    "register": "ICR",
+    "line": 413,
+    "model": "passthrough",
+    "reasoning": "The register ICR (Interrupt Control Register) is being written to with the line 'dev(uart)->ICR |= USART_ICR_ORECF;' to clear a specific flag. This operation is a direct write that does not affect any other part of the register or cause any other actions. The value written is not symbolic or pattern-based; it is a specific bit mask. Therefore, the most appropriate model for this register is 'passthrough', as it simply reflects the written value on subsequent reads.",
+    "context": "        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,\n                            (uint8_t)dev(uart)->RDR & isr_ctx[uart].data_mask);\n    }\n    if (status & USART_ISR_ORE) {\n        dev(uart)->ICR |= USART_ICR_ORECF;    /* simply clear flag on overrun */\n    }\n\n#else\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::irq_handler::SR::418": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "irq_handler",
+    "register": "SR",
+    "line": 418,
+    "model": "bitextract",
+    "reasoning": "The register SR is being read to check if the USART_SR_RXNE bit is set. The specific bit (USART_SR_RXNE) is being examined to determine if a received data is available, and then the driver reads the received data from the DR register. Therefore, the register model that best represents this behavior is 'bitextract' because it involves the fuzzer supplying a symbolic value, but only a specific bit is used for the condition check.",
+    "context": "    }\n\n#else\n\n    uint32_t status = dev(uart)->SR;\n\n    if (status & USART_SR_RXNE) {\n        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,\n                            (uint8_t)dev(uart)->DR & isr_ctx[uart].data_mask);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::irq_handler::DR::422": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "irq_handler",
+    "register": "DR",
+    "line": 422,
+    "model": "passthrough",
+    "reasoning": "The register DR is being read in the context of an interrupt handler. The code reads from DR to get the received data when the USART_SR_RXNE bit is set. Since the value read from DR is used in the callback function, the fuzzer should supply a symbolic value, but the actual value read must match what was written previously to maintain the correctness of the simulation.",
+    "context": "    uint32_t status = dev(uart)->SR;\n\n    if (status & USART_SR_RXNE) {\n        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,\n                            (uint8_t)dev(uart)->DR & isr_ctx[uart].data_mask);\n    }\n    if (status & USART_SR_ORE) {\n        /* ORE is cleared by reading SR and DR sequentially */\n        dev(uart)->DR;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c::irq_handler::DR::426": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/periph/uart.c",
+    "function": "irq_handler",
+    "register": "DR",
+    "line": 426,
+    "model": "passthrough",
+    "reasoning": "The code is reading from the register DR to check the status of an interrupt. It masks the data from DR with isr_ctx[uart].data_mask, which suggests that the register's value is being used to determine some state or data. Since the value of DR is then being used in calculations or conditional statements, it implies that the register is behaving as a passthrough, returning the value that was last written to it. Writing to DR does not appear to modify its value in a predictable way, as it is only being read and masked.",
+    "context": "                            (uint8_t)dev(uart)->DR & isr_ctx[uart].data_mask);\n    }\n    if (status & USART_SR_ORE) {\n        /* ORE is cleared by reading SR and DR sequentially */\n        dev(uart)->DR;\n    }\n\n#endif\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init::APB2ENR::96": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init",
+    "register": "APB2ENR",
+    "line": 96,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided shows that the driver is writing to the APB2ENR register by setting the RCC_APB2ENR_AFIOEN bit. This action is a configuration change that alters the behavior of the register, making it necessary to fuzz the register to test how different configurations impact the device's behavior. The Passthrough model is suitable because it allows the fuzzer to supply symbolic values and observe how the device responds, ensuring that all possible configurations are tested.",
+    "context": "    /* disable the default SWJ RST mode to allow using the pin as IO\n       this may also work on other f103 based boards but it was only tested on\n       nucleo-f103rb */\n    if ((pin_num == 4) && _port_num(pin)) {\n        RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;\n        AFIO->MAPR |= AFIO_MAPR_SWJ_CFG_NOJNTRST;\n    }\n#endif\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init::MAPR::97": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init",
+    "register": "MAPR",
+    "line": 97,
+    "model": "passthrough",
+    "reasoning": "The code is writing to the MAPR register to set a specific configuration. The MAPR register is not being read or checked for a specific bit. Therefore, the most appropriate model is 'passthrough' as the data written to the register is returned exactly as written on the next read.",
+    "context": "       this may also work on other f103 based boards but it was only tested on\n       nucleo-f103rb */\n    if ((pin_num == 4) && _port_num(pin)) {\n        RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;\n        AFIO->MAPR |= AFIO_MAPR_SWJ_CFG_NOJNTRST;\n    }\n#endif\n\n    /* set pin mode */\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init::CR::102": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init",
+    "register": "CR",
+    "line": 102,
+    "model": "set",
+    "reasoning": "The driver is writing to the CR register to set the pin mode. Specifically, it is setting a specific bit pattern within the register to configure the GPIO pin. This fits the 'Set' model, where a specific bit pattern is written to trigger an action, or to change a state machine's bits.",
+    "context": "    }\n#endif\n\n    /* set pin mode */\n    port->CR[pin_num >> 3] &= ~(0xf << ((pin_num & 0x7) * 4));\n    port->CR[pin_num >> 3] |=  ((mode & MODE_MASK) << ((pin_num & 0x7) * 4));\n\n    /* set ODR */\n    if (mode == GPIO_IN_PU)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init::CR::103": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init",
+    "register": "CR",
+    "line": 103,
+    "model": "set",
+    "reasoning": "The register CR is being written to in the gpio_init function. Specifically, it sets the mode for a GPIO pin by clearing and then setting specific bits in the register. This indicates that a specific bit pattern is written to trigger an action, which is characteristic of the 'set' model.",
+    "context": "#endif\n\n    /* set pin mode */\n    port->CR[pin_num >> 3] &= ~(0xf << ((pin_num & 0x7) * 4));\n    port->CR[pin_num >> 3] |=  ((mode & MODE_MASK) << ((pin_num & 0x7) * 4));\n\n    /* set ODR */\n    if (mode == GPIO_IN_PU)\n        port->ODR |= 1 << pin_num;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init::ODR::107": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init",
+    "register": "ODR",
+    "line": 107,
+    "model": "passthrough",
+    "reasoning": "The register ODR is being written to in the code. Specifically, based on the value of the mode variable, either 1 is set at the bit position corresponding to pin_num or cleared from that position in the ODR register. The value read from ODR is not used anywhere in the provided code snippet. Therefore, the most appropriate model for this register is 'passthrough', as data written to the register is returned exactly as written on the next read.",
+    "context": "    port->CR[pin_num >> 3] |=  ((mode & MODE_MASK) << ((pin_num & 0x7) * 4));\n\n    /* set ODR */\n    if (mode == GPIO_IN_PU)\n        port->ODR |= 1 << pin_num;\n    else\n        port->ODR &= ~(1 << pin_num);\n\n    return 0; /* all OK */\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init::ODR::109": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init",
+    "register": "ODR",
+    "line": 109,
+    "model": "passthrough",
+    "reasoning": "The register is being written to and does not appear to be read or checked for specific bits. The function gpio_init is setting a bit pattern in the ODR register based on the mode and pin_num parameters. This behavior is typical of a configuration register where the value written to the register is intended to be returned on subsequent reads, allowing for the verification of the configuration.",
+    "context": "    /* set ODR */\n    if (mode == GPIO_IN_PU)\n        port->ODR |= 1 << pin_num;\n    else\n        port->ODR &= ~(1 << pin_num);\n\n    return 0; /* all OK */\n}\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init_af::CR::122": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init_af",
+    "register": "CR",
+    "line": 122,
+    "model": "passthrough",
+    "reasoning": "The function gpio_init_af writes a value to the CR register. It configures a pin by masking and setting specific bits in the register. This type of operation requires the fuzzer to supply a value that will be written to the register and then returned on subsequent reads, making the 'passthrough' model the most appropriate choice.",
+    "context": "\n    /* enable the clock for the selected port */\n    periph_clk_en(APB2, (RCC_APB2ENR_IOPAEN << _port_num(pin)));\n    /* configure the pin */\n    port->CR[pin_num >> 3] &= ~(0xf << ((pin_num & 0x7) * 4));\n    port->CR[pin_num >> 3] |=  (af << ((pin_num & 0x7) * 4));\n}\n\nvoid gpio_init_analog(gpio_t pin)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init_af::CR::123": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init_af",
+    "register": "CR",
+    "line": 123,
+    "model": "set",
+    "reasoning": "The register 'CR' is being written to in the gpio_init_af function. Specifically, it is used to configure the pin's alternate function (af). The value being written to the register is determined by the 'af' variable, which is a parameter to the function. This means that a specific bit pattern is being set in the register to trigger a configuration action, which aligns with the 'Set' model. The 'Set' model is appropriate because it involves writing a specific bit pattern to the register to change its state or configuration.",
+    "context": "    /* enable the clock for the selected port */\n    periph_clk_en(APB2, (RCC_APB2ENR_IOPAEN << _port_num(pin)));\n    /* configure the pin */\n    port->CR[pin_num >> 3] &= ~(0xf << ((pin_num & 0x7) * 4));\n    port->CR[pin_num >> 3] |=  (af << ((pin_num & 0x7) * 4));\n}\n\nvoid gpio_init_analog(gpio_t pin)\n{\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_init_analog::CR::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_init_analog",
+    "register": "CR",
+    "line": 133,
+    "model": "set",
+    "reasoning": "The code snippet provided is configuring a GPIO pin as an analog input by writing to the CR (Configuration Register). Specifically, it is setting bits in the register to achieve this configuration. Therefore, the most appropriate Fuzzware-style model for this register is 'set', as it involves a specific bit pattern being written to trigger a configuration change.",
+    "context": "    periph_clk_en(APB2, (RCC_APB2ENR_IOPAEN << _port_num(pin)));\n\n    /* map the pin as analog input */\n    int pin_num = _pin_num(pin);\n    _port(pin)->CR[pin_num >= 8] &= ~(0xfl << (4 * (pin_num - ((pin_num >= 8) * 8))));\n}\n\nint gpio_read(gpio_t pin)\n{\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_read::CR::141": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_read",
+    "register": "CR",
+    "line": 141,
+    "model": "passthrough",
+    "reasoning": "The register is being read to determine the state of a GPIO pin. Since the value being read is directly related to the state of the pin and does not trigger any action or change a specific bit pattern, a passthrough model is appropriate. The register is returning the current output data register (ODR) value, which reflects the state of the pin as set by previous writes to the GPIO configuration registers. This behavior is consistent with a passthrough model, where data written to the register is returned exactly as written on the next read.",
+    "context": "{\n    GPIO_TypeDef *port = _port(pin);\n    int pin_num = _pin_num(pin);\n\n    if (port->CR[pin_num >> 3] & (0x3 << ((pin_num & 0x7) << 2))) {\n        /* pin is output */\n        return (port->ODR & (1 << pin_num));\n    }\n    else {\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_read::ODR::143": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_read",
+    "register": "ODR",
+    "line": 143,
+    "model": "passthrough",
+    "reasoning": "The provided code context shows that the function gpio_read is reading from the ODR (Output Data Register) of a GPIO port. The register is being used to check the output state of a pin, but it does not appear to be set or configured by the function. The code checks whether a specific bit in the ODR is set to determine if a pin is in an output state. Since the ODR is being read and not written in this context, and it does not seem to be a configuration register, the most appropriate Fuzzware-style model is 'passthrough'. This model allows the fuzzer to supply a symbolic value for the ODR, and the value returned will be the same as the value written, which aligns with the behavior observed in the provided code.",
+    "context": "    int pin_num = _pin_num(pin);\n\n    if (port->CR[pin_num >> 3] & (0x3 << ((pin_num & 0x7) << 2))) {\n        /* pin is output */\n        return (port->ODR & (1 << pin_num));\n    }\n    else {\n        /* or input */\n        return (port->IDR & (1 << pin_num));\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_read::IDR::147": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_read",
+    "register": "IDR",
+    "line": 147,
+    "model": "passthrough",
+    "reasoning": "The function gpio_read is checking a specific bit in the IDR register. The IDR register is used to read the state of GPIO pins. The function returns the value of a specific bit in IDR, which is based on the state of the GPIO pin. Since the return value is determined by the current state of the GPIO pin, the register behaves like a passthrough model, where data written to the register is returned exactly as written on the next read.",
+    "context": "        return (port->ODR & (1 << pin_num));\n    }\n    else {\n        /* or input */\n        return (port->IDR & (1 << pin_num));\n    }\n}\n\nvoid gpio_set(gpio_t pin)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_set::BSRR::153": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_set",
+    "register": "BSRR",
+    "line": 153,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "}\n\nvoid gpio_set(gpio_t pin)\n{\n    _port(pin)->BSRR = (1 << _pin_num(pin));\n}\n\nvoid gpio_clear(gpio_t pin)\n{\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_clear::BRR::158": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_clear",
+    "register": "BRR",
+    "line": 158,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "}\n\nvoid gpio_clear(gpio_t pin)\n{\n    _port(pin)->BRR = (1 << _pin_num(pin));\n}\n\nvoid gpio_toggle(gpio_t pin)\n{\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_write::BSRR::174": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_write",
+    "register": "BSRR",
+    "line": 174,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "\nvoid gpio_write(gpio_t pin, int value)\n{\n    if (value) {\n        _port(pin)->BSRR = (1 << _pin_num(pin));\n    }\n    else {\n        _port(pin)->BRR = (1 << _pin_num(pin));\n    }\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c::gpio_write::BRR::177": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32f1/periph/gpio.c",
+    "function": "gpio_write",
+    "register": "BRR",
+    "line": 177,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    if (value) {\n        _port(pin)->BSRR = (1 << _pin_num(pin));\n    }\n    else {\n        _port(pin)->BRR = (1 << _pin_num(pin));\n    }\n}\n\n#ifdef MODULE_PERIPH_GPIO_IRQ\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CIR::175": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CIR",
+    "line": 175,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "{\n    /* disable any interrupts. Global interrupts could be enabled if this is\n     * called from some kind of bootloader...  */\n    unsigned is = irq_disable();\n    RCC->CIR = 0;\n\n    /* enable HSI clock for the duration of initialization */\n    stmclk_enable_hsi();\n\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::182": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 182,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    stmclk_enable_hsi();\n\n    /* use HSI as system clock while we do any further configuration and\n     * configure the AHB and APB clock dividers as configure by the board */\n    RCC->CFGR = (RCC_CFGR_SW_HSI | CLOCK_AHB_DIV |\n                 CLOCK_APB1_DIV | CLOCK_APB2_DIV);\n    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI) {}\n\n    /* Flash config */\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::184": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 184,
+    "model": "passthrough",
+    "reasoning": "The register CFGR is being written to with a specific configuration value (RCC->CFGR = ...). There is no indication that the driver is reading from this register or checking a specific bit. The CFGR register is not used as a constant or identity. It is being set to a known value, which fits the definition of a passthrough model where the value written is returned on the next read.",
+    "context": "    /* use HSI as system clock while we do any further configuration and\n     * configure the AHB and APB clock dividers as configure by the board */\n    RCC->CFGR = (RCC_CFGR_SW_HSI | CLOCK_AHB_DIV |\n                 CLOCK_APB1_DIV | CLOCK_APB2_DIV);\n    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI) {}\n\n    /* Flash config */\n    FLASH->ACR = FLASH_ACR_CONFIG;\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::ACR::187": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "ACR",
+    "line": 187,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "                 CLOCK_APB1_DIV | CLOCK_APB2_DIV);\n    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI) {}\n\n    /* Flash config */\n    FLASH->ACR = FLASH_ACR_CONFIG;\n\n    /* disable all active clocks except HSI -> resets the clk configuration */\n    RCC->CR = (RCC_CR_HSION | RCC_CR_HSITRIM_4);\n\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::190": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 190,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    /* Flash config */\n    FLASH->ACR = FLASH_ACR_CONFIG;\n\n    /* disable all active clocks except HSI -> resets the clk configuration */\n    RCC->CR = (RCC_CR_HSION | RCC_CR_HSITRIM_4);\n\n#if (CLOCK_MCO1_SRC)\n#ifndef RCC_CFGR_MCO1\n#error \"stmclk: no MCO1 on this device\"\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::196": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 196,
+    "model": "set",
+    "reasoning": "The code snippet provided is setting specific bits in the RCC->CFGR register to configure the system clock. It is not reading from or checking specific bits; instead, it is configuring the register by writing a specific pattern of bits to achieve a particular system clock configuration. Therefore, the 'Set' model is most appropriate as it describes the behavior of writing a specific bit pattern to trigger an action.",
+    "context": "#if (CLOCK_MCO1_SRC)\n#ifndef RCC_CFGR_MCO1\n#error \"stmclk: no MCO1 on this device\"\n#endif\n    RCC->CFGR |= CLOCK_MCO1_SRC | CLOCK_MCO1_PRE;\n#endif\n#if (CLOCK_MCO2_SRC)\n#ifndef RCC_CFGR_MCO2\n#error \"stmclk: no MCO2 on this device\"\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::202": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 202,
+    "model": "set",
+    "reasoning": "The code snippet shows that the register RCC->CFGR is being written to with specific values (CLOCK_MCO2_SRC | CLOCK_MCO2_PRE) when a condition (CLOCK_MCO2_SRC) is met. This indicates that the driver is setting a configuration in the register, rather than simply reading from or writing to a pass-through register or a register that only returns specific bits. The action taken depends on the specific bit pattern written, which matches the behavior of a 'set' model where a specific bit pattern is written to trigger an action.",
+    "context": "#if (CLOCK_MCO2_SRC)\n#ifndef RCC_CFGR_MCO2\n#error \"stmclk: no MCO2 on this device\"\n#endif\n    RCC->CFGR |= CLOCK_MCO2_SRC | CLOCK_MCO2_PRE;\n#endif\n\n    /* if configured, we need to enable the HSE clock now */\n#if (CLOCK_HSE)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::207": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 207,
+    "model": "set",
+    "reasoning": "The code snippet provided is setting a specific bit pattern in the RCC->CR register to enable the HSE clock. It does not involve reading from the register or checking a specific bit. Instead, it writes to the register to trigger an action, which in this case is enabling the HSE clock. Therefore, the 'set' model is the most appropriate choice as it allows a specific bit pattern to be written to trigger an action.",
+    "context": "#endif\n\n    /* if configured, we need to enable the HSE clock now */\n#if (CLOCK_HSE)\n    RCC->CR |= (RCC_CR_HSEON);\n    while (!(RCC->CR & RCC_CR_HSERDY)) {}\n#endif\n\n#if CLOCK_USE_ALT_48MHZ\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::208": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 208,
+    "model": "passthrough",
+    "reasoning": "The code is writing to the RCC->CR register to enable the HSE clock and checking if the HSERDY bit is set. It is also writing to the RCC->DCKCFGR2 register to select a clock source for the 48 MHz clock. Since the register is being written to and read to check for a status, the model 'passthrough' is appropriate because the value written to the register is expected to be returned on subsequent reads.",
+    "context": "\n    /* if configured, we need to enable the HSE clock now */\n#if (CLOCK_HSE)\n    RCC->CR |= (RCC_CR_HSEON);\n    while (!(RCC->CR & RCC_CR_HSERDY)) {}\n#endif\n\n#if CLOCK_USE_ALT_48MHZ\n    RCC->DCKCFGR2 |= RCC_DCKCFGR2_CK48MSEL;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::DCKCFGR2::212": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "DCKCFGR2",
+    "line": 212,
+    "model": "passthrough",
+    "reasoning": "The code snippet is writing to the DCKCFGR2 register using the bitwise OR operator with a specific configuration bit (RCC_DCKCFGR2_CK48MSEL). There is no indication that the register is being read or that it is checking a specific bit. The purpose of this write operation is to set a configuration, which aligns with the Passthrough model where data written to the register is returned exactly as written on the next read.",
+    "context": "    while (!(RCC->CR & RCC_CR_HSERDY)) {}\n#endif\n\n#if CLOCK_USE_ALT_48MHZ\n    RCC->DCKCFGR2 |= RCC_DCKCFGR2_CK48MSEL;\n#endif\n    /* now we can safely configure and start the PLL */\n#if defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \\\n    defined(CPU_FAM_STM32F7)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::PLLCFGR::217": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "PLLCFGR",
+    "line": 217,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "#endif\n    /* now we can safely configure and start the PLL */\n#if defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \\\n    defined(CPU_FAM_STM32F7)\n    RCC->PLLCFGR = (PLL_SRC | PLL_M | PLL_N | PLL_P | PLL_Q | PLL_R);\n#elif defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \\\n      defined(CPU_FAM_STM32F3)\n    /* reset PLL configuration bits */\n    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMUL);\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::221": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 221,
+    "model": "set",
+    "reasoning": "The code snippet provided is configuring a PLL (Phase-Locked Loop) settings by writing to the CFGR register. It sets various configuration bits such as the PLL source, multiplication factor, and possibly the prescaler. The register is not being read or checked for a specific bit, but rather being set to a specific configuration. Therefore, the 'set' model is the most appropriate as it represents a specific bit pattern being written to trigger an action, in this case, setting the PLL configuration.",
+    "context": "    RCC->PLLCFGR = (PLL_SRC | PLL_M | PLL_N | PLL_P | PLL_Q | PLL_R);\n#elif defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \\\n      defined(CPU_FAM_STM32F3)\n    /* reset PLL configuration bits */\n    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMUL);\n    /* set PLL configuration */\n    RCC->CFGR |= PLL_SRC | PLL_MUL;\n#if CLOCK_PLL_PREDIV == 2\n    RCC->CFGR |= RCC_CFGR_PLLXTPRE; /* PREDIV == 2 */\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::223": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 223,
+    "model": "set",
+    "reasoning": "The code is configuring the PLL settings by writing specific values to the RCC->CFGR register. It is not simply reading from or writing a constant value, nor is it extracting bits for a status check. Instead, it is setting a configuration by writing a combination of predefined constants (PLL_SRC, PLL_MUL, RCC_CFGR_PLLXTPRE) to achieve a desired system clock configuration. Therefore, the 'set' model is the most appropriate as it describes the behavior of writing a specific bit pattern to trigger a configuration change.",
+    "context": "      defined(CPU_FAM_STM32F3)\n    /* reset PLL configuration bits */\n    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMUL);\n    /* set PLL configuration */\n    RCC->CFGR |= PLL_SRC | PLL_MUL;\n#if CLOCK_PLL_PREDIV == 2\n    RCC->CFGR |= RCC_CFGR_PLLXTPRE; /* PREDIV == 2 */\n#elif CLOCK_PLL_PREDIV > 2\n    RCC->CFGR2 = PLL_PREDIV;        /* PREDIV > 2 */\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::225": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 225,
+    "model": "set",
+    "reasoning": "The driver is setting the configuration of the CFGR register by performing bitwise OR operations with various constants. This indicates that a specific bit pattern is being written to the register to trigger an action or change a state machine.",
+    "context": "    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMUL);\n    /* set PLL configuration */\n    RCC->CFGR |= PLL_SRC | PLL_MUL;\n#if CLOCK_PLL_PREDIV == 2\n    RCC->CFGR |= RCC_CFGR_PLLXTPRE; /* PREDIV == 2 */\n#elif CLOCK_PLL_PREDIV > 2\n    RCC->CFGR2 = PLL_PREDIV;        /* PREDIV > 2 */\n#endif\n#endif\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR2::227": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR2",
+    "line": 227,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    RCC->CFGR |= PLL_SRC | PLL_MUL;\n#if CLOCK_PLL_PREDIV == 2\n    RCC->CFGR |= RCC_CFGR_PLLXTPRE; /* PREDIV == 2 */\n#elif CLOCK_PLL_PREDIV > 2\n    RCC->CFGR2 = PLL_PREDIV;        /* PREDIV > 2 */\n#endif\n#endif\n    RCC->CR |= (RCC_CR_PLLON);\n    while (!(RCC->CR & RCC_CR_PLLRDY)) {}\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::230": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 230,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided shows the driver writing to the CR register by setting the RCC_CR_PLLON bit to turn on the PLL. It then waits for the PLL to be ready by checking the RCC_CR_PLLRDY bit. After the PLL is ready, the driver sets the RCC_CFGR_SW_PLL bit to switch the system clock to the PLL. This indicates that the register is being used to configure and control the system clock, and the value written to the register is relevant to the system's operation. Therefore, the most appropriate Fuzzware model for this register is 'passthrough' because data written to the register is expected to be returned exactly as written on the next read, reflecting the actual configuration of the system clock.",
+    "context": "#elif CLOCK_PLL_PREDIV > 2\n    RCC->CFGR2 = PLL_PREDIV;        /* PREDIV > 2 */\n#endif\n#endif\n    RCC->CR |= (RCC_CR_PLLON);\n    while (!(RCC->CR & RCC_CR_PLLRDY)) {}\n\n    /* now that the PLL is running, we use it as system clock */\n    RCC->CFGR |= (RCC_CFGR_SW_PLL);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::231": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 231,
+    "model": "set",
+    "reasoning": "The code sets a specific bit pattern in the RCC->CR register by writing RCC_CR_PLLON to enable the PLL. It also checks if the PLL is ready by reading the RCC->CR register and waiting for the PLLRDY bit to be set. Therefore, this register model is best described as 'set' since the primary function is to write a specific bit pattern to trigger an action (enabling the PLL).",
+    "context": "    RCC->CFGR2 = PLL_PREDIV;        /* PREDIV > 2 */\n#endif\n#endif\n    RCC->CR |= (RCC_CR_PLLON);\n    while (!(RCC->CR & RCC_CR_PLLRDY)) {}\n\n    /* now that the PLL is running, we use it as system clock */\n    RCC->CFGR |= (RCC_CFGR_SW_PLL);\n    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::234": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 234,
+    "model": "set",
+    "reasoning": "The driver is setting a configuration by writing a bit pattern to the RCC->CFGR register. Specifically, it is setting the system clock to use the PLL by writing (RCC_CFGR_SW_PLL) to the register. This triggers an action, changing the system clock source.",
+    "context": "    RCC->CR |= (RCC_CR_PLLON);\n    while (!(RCC->CR & RCC_CR_PLLRDY)) {}\n\n    /* now that the PLL is running, we use it as system clock */\n    RCC->CFGR |= (RCC_CFGR_SW_PLL);\n    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}\n\n    stmclk_disable_hsi();\n\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CFGR::235": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CFGR",
+    "line": 235,
+    "model": "passthrough",
+    "reasoning": "The register CFGR is being written to with the value (RCC_CFGR_SW_PLL). The code then waits for the change to take effect by checking the value of CFGR again. This indicates that the register is being used to configure the system clock, and the written value should be returned when read, as per the Passthrough model.",
+    "context": "    while (!(RCC->CR & RCC_CR_PLLRDY)) {}\n\n    /* now that the PLL is running, we use it as system clock */\n    RCC->CFGR |= (RCC_CFGR_SW_PLL);\n    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}\n\n    stmclk_disable_hsi();\n\n#if (CLOCK_ENABLE_PLL_I2S)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::PLLI2SCFGR::240": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "PLLI2SCFGR",
+    "line": 240,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "\n    stmclk_disable_hsi();\n\n#if (CLOCK_ENABLE_PLL_I2S)\n    RCC->PLLI2SCFGR = (CLOCK_PLL_I2S_SRC | PLLI2S_M | PLLI2S_N | PLLI2S_P | PLLI2S_Q | PLLI2S_R);\n    RCC->CR |= (RCC_CR_PLLI2SON);\n    while (!(RCC->CR & RCC_CR_PLLI2SRDY)) {}\n#endif /* CLOCK_ENABLE_PLLI2S */\n\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::241": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 241,
+    "model": "set",
+    "reasoning": "The provided code context shows that the driver is writing specific bit patterns to the CR register. The lines 'RCC->CR |= (RCC_CR_PLLI2SON);' and 'RCC->CR &= ~(RCC_CR_PLLI2SON);' indicate that bits in the CR register are being set or cleared to enable or disable the PLLI2S. This behavior is consistent with a 'set' model, where specific bit patterns are written to trigger actions or state changes.",
+    "context": "    stmclk_disable_hsi();\n\n#if (CLOCK_ENABLE_PLL_I2S)\n    RCC->PLLI2SCFGR = (CLOCK_PLL_I2S_SRC | PLLI2S_M | PLLI2S_N | PLLI2S_P | PLLI2S_Q | PLLI2S_R);\n    RCC->CR |= (RCC_CR_PLLI2SON);\n    while (!(RCC->CR & RCC_CR_PLLI2SRDY)) {}\n#endif /* CLOCK_ENABLE_PLLI2S */\n\n#if (CLOCK_ENABLE_PLL_SAI)\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::242": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 242,
+    "model": "passthrough",
+    "reasoning": "The provided code snippet does not show any explicit read or write operations on the CR register. Instead, it is involved in configuring and enabling PLLs (Phase-Locked Loops) for different clock sources. The register is being set using bitwise OR operations to enable specific configurations. Since there is no indication of the register being used to check specific bits or setting a configuration through a specific bit pattern, the most appropriate model for this register is 'passthrough'. This model allows the fuzzer to supply a symbolic value, which would be written to the register, and then read back exactly as written.",
+    "context": "\n#if (CLOCK_ENABLE_PLL_I2S)\n    RCC->PLLI2SCFGR = (CLOCK_PLL_I2S_SRC | PLLI2S_M | PLLI2S_N | PLLI2S_P | PLLI2S_Q | PLLI2S_R);\n    RCC->CR |= (RCC_CR_PLLI2SON);\n    while (!(RCC->CR & RCC_CR_PLLI2SRDY)) {}\n#endif /* CLOCK_ENABLE_PLLI2S */\n\n#if (CLOCK_ENABLE_PLL_SAI)\n    RCC->PLLSAICFGR = (PLLSAI_M | PLLSAI_N | PLLSAI_P | PLLSAI_Q | PLLSAI_R);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::PLLSAICFGR::246": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "PLLSAICFGR",
+    "line": 246,
+    "model": "not_applicable_write_only",
+    "reasoning": "This access is a pure write operation.",
+    "context": "    while (!(RCC->CR & RCC_CR_PLLI2SRDY)) {}\n#endif /* CLOCK_ENABLE_PLLI2S */\n\n#if (CLOCK_ENABLE_PLL_SAI)\n    RCC->PLLSAICFGR = (PLLSAI_M | PLLSAI_N | PLLSAI_P | PLLSAI_Q | PLLSAI_R);\n    RCC->CR |= (RCC_CR_PLLSAION);\n    while (!(RCC->CR & RCC_CR_PLLSAIRDY)) {}\n#endif\n\n",
+    "backend": "none"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::247": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 247,
+    "model": "identity",
+    "reasoning": "The provided code context does not explicitly read from or write to the CR register directly. Instead, it is configuring the PLLSAICFGR register and then enabling the PLLSAI through the CR register. The code also includes a wait loop to check if the PLLSAI is ready by reading the CR register. However, the main interaction with the CR register is not for reading or writing but for checking a specific bit (PLLSAIRDY) to determine if the PLLSAI is configured correctly. Given that the focus is on setting a configuration and checking a status bit, the most appropriate model is 'identity' as it indicates that the register will always return a specific identity value, which in this case is the readiness of the PLLSAI.",
+    "context": "#endif /* CLOCK_ENABLE_PLLI2S */\n\n#if (CLOCK_ENABLE_PLL_SAI)\n    RCC->PLLSAICFGR = (PLLSAI_M | PLLSAI_N | PLLSAI_P | PLLSAI_Q | PLLSAI_R);\n    RCC->CR |= (RCC_CR_PLLSAION);\n    while (!(RCC->CR & RCC_CR_PLLSAIRDY)) {}\n#endif\n\n    irq_restore(is);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c::stmclk_init_sysclk::CR::248": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/stmclk.c",
+    "function": "stmclk_init_sysclk",
+    "register": "CR",
+    "line": 248,
+    "model": "set",
+    "reasoning": "The register CR is being used in a context where a specific configuration is being set by writing to it. The code snippet shows that the register is being modified with a bit pattern (RCC_CR_PLLSAION) to enable the PLLSAI. This operation is typical of a 'Set' model where a specific bit pattern is written to trigger an action, or to change the state of a register.",
+    "context": "\n#if (CLOCK_ENABLE_PLL_SAI)\n    RCC->PLLSAICFGR = (PLLSAI_M | PLLSAI_N | PLLSAI_P | PLLSAI_Q | PLLSAI_R);\n    RCC->CR |= (RCC_CR_PLLSAION);\n    while (!(RCC->CR & RCC_CR_PLLSAIRDY)) {}\n#endif\n\n    irq_restore(is);\n}\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::APB1ENR1::74": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "APB1ENR1",
+    "line": 74,
+    "model": "set",
+    "reasoning": "The code snippet indicates that the driver is writing a value to the APB1ENR1 register. Specifically, it is setting bits in this register by performing a bitwise OR operation with a mask. This suggests that the purpose of this operation is to enable peripheral clocks on the APB1 bus. Since the driver is changing the register's value to trigger an action (enabling clocks), the 'Set' model is the most appropriate choice. It allows for the symbolic representation of the bits that are being set and ensures that the state machine or action is correctly triggered.",
+    "context": "{\n    switch (bus) {\n        case APB1:\n#if defined(CPU_FAM_STM32L4)\n            RCC->APB1ENR1 |= mask;\n#else\n            RCC->APB1ENR |= mask;\n#endif\n            break;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::APB1ENR::76": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "APB1ENR",
+    "line": 76,
+    "model": "set",
+    "reasoning": "The provided code snippet demonstrates a configuration operation where the register is being written to. Specifically, the driver is enabling peripheral clocks by setting bits in the APB1ENR or APB2ENR registers. The mask variable is being OR-ed with the respective register to enable specific peripherals. Therefore, the most appropriate model for this register is 'set', as it involves setting a specific bit pattern to trigger an action, which in this case is enabling a peripheral clock.",
+    "context": "        case APB1:\n#if defined(CPU_FAM_STM32L4)\n            RCC->APB1ENR1 |= mask;\n#else\n            RCC->APB1ENR |= mask;\n#endif\n            break;\n        case APB2:\n            RCC->APB2ENR |= mask;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::APB2ENR::80": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "APB2ENR",
+    "line": 80,
+    "model": "set",
+    "reasoning": "The driver is writing to the APB2ENR register by performing a bitwise OR operation with the mask. This indicates that the goal is to enable specific peripherals or features on the APB2 bus, rather than reading a value or checking a bit. Therefore, the 'set' model is the most appropriate, as it allows the fuzzer to supply a symbolic value that will enable certain bits, triggering actions or changes in the device's state.",
+    "context": "            RCC->APB1ENR |= mask;\n#endif\n            break;\n        case APB2:\n            RCC->APB2ENR |= mask;\n            break;\n#if defined(CPU_FAM_STM32L4)\n        case APB12:\n            RCC->APB1ENR2 |= mask;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::APB1ENR2::84": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "APB1ENR2",
+    "line": 84,
+    "model": "set",
+    "reasoning": "The code snippet demonstrates that the driver is writing a 'mask' value to the 'APB1ENR2' register using the bitwise OR operator ('|='), which is a set operation. This indicates that the driver is configuring or enabling specific peripheral clocks by writing a bit pattern to the register. The 'Set' model is appropriate as it captures the behavior of writing a specific bit pattern to trigger an action or change a state.",
+    "context": "            RCC->APB2ENR |= mask;\n            break;\n#if defined(CPU_FAM_STM32L4)\n        case APB12:\n            RCC->APB1ENR2 |= mask;\n            break;\n#endif\n#if defined(CPU_FAM_STM32L0)\n        case AHB:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::AHBENR::89": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "AHBENR",
+    "line": 89,
+    "model": "set",
+    "reasoning": "The provided code snippet shows that the driver is writing to the AHBENR register. Specifically, it uses the OR operator to set bits in the register. This indicates that the register is being configured by writing specific bit patterns to enable certain peripheral clocks. Therefore, the most appropriate Fuzzware model for this register is 'set', as it involves writing a specific bit pattern to trigger an action or change a state within the device.",
+    "context": "            break;\n#endif\n#if defined(CPU_FAM_STM32L0)\n        case AHB:\n            RCC->AHBENR |= mask;\n            break;\n        case IOP:\n            RCC->IOPENR |= mask;\n            break;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::IOPENR::92": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "IOPENR",
+    "line": 92,
+    "model": "set",
+    "reasoning": "The register IOPENR is being used to enable peripheral clocks. The code snippet demonstrates a bitwise OR operation where a mask is applied to the IOPENR register. This indicates that a specific bit pattern is being written to the register to trigger an action, in this case, enabling a peripheral clock. The 'Set' model is appropriate because it represents the action of writing a bit pattern to change the state of the register, such as enabling a peripheral clock.",
+    "context": "        case AHB:\n            RCC->AHBENR |= mask;\n            break;\n        case IOP:\n            RCC->IOPENR |= mask;\n            break;\n#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1) || \\\n      defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)\n        case AHB:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::AHBENR::97": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "AHBENR",
+    "line": 97,
+    "model": "set",
+    "reasoning": "The provided code snippet indicates that the register AHBENR is being written to with a value from the variable 'mask' using the bitwise OR operator. This suggests that the driver is setting a configuration by enabling specific bits in the register. Therefore, the most appropriate model for this register is 'set', as it allows the fuzzer to supply a symbolic value that will trigger an action or change a state machine within the device.",
+    "context": "            break;\n#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1) || \\\n      defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)\n        case AHB:\n            RCC->AHBENR |= mask;\n            break;\n#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \\\n      defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32F7)\n        case AHB1:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::AHB1ENR::102": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "AHB1ENR",
+    "line": 102,
+    "model": "set",
+    "reasoning": "The code snippet shows that the register AHB1ENR is being written to using the bitwise OR operator with a mask. This indicates that the driver is setting specific bits in the register to enable peripheral clocks. Therefore, the most appropriate model is 'set', as it represents a specific bit pattern being written to trigger an action, which in this case is enabling peripheral clocks.",
+    "context": "            break;\n#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \\\n      defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32F7)\n        case AHB1:\n            RCC->AHB1ENR |= mask;\n            break;\n/* STM32F410 RCC doesn't provide AHB2 and AHB3 */\n#if !defined(CPU_LINE_STM32F410Rx)\n        case AHB2:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::AHB2ENR::107": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "AHB2ENR",
+    "line": 107,
+    "model": "set",
+    "reasoning": "The provided code snippet demonstrates that the driver is writing to the AHB2ENR register by using the bitwise OR operator with a mask. This indicates that the driver is setting specific bits in the register to enable certain peripherals. The model 'set' is appropriate because it involves writing a specific bit pattern to trigger an action or change the state of the hardware. In this case, writing to AHB2ENR with a mask enables the peripherals associated with the AHB2 bus, making the 'set' model the most suitable choice.",
+    "context": "            break;\n/* STM32F410 RCC doesn't provide AHB2 and AHB3 */\n#if !defined(CPU_LINE_STM32F410Rx)\n        case AHB2:\n            RCC->AHB2ENR |= mask;\n            break;\n        case AHB3:\n            RCC->AHB3ENR |= mask;\n            break;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_en::AHB3ENR::110": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_en",
+    "register": "AHB3ENR",
+    "line": 110,
+    "model": "set",
+    "reasoning": "The provided code snippet shows that the driver is writing a value to the AHB3ENR register using the bitwise OR operator (|). This indicates that the driver is setting specific bits in the register to enable peripherals. Therefore, the most appropriate Fuzzware model for this register is 'set', as it allows for the specification of a bit pattern to trigger an action, which aligns with the observed behavior of setting bits in the register.",
+    "context": "        case AHB2:\n            RCC->AHB2ENR |= mask;\n            break;\n        case AHB3:\n            RCC->AHB3ENR |= mask;\n            break;\n#endif\n#endif\n        default:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::APB1ENR1::127": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "APB1ENR1",
+    "line": 127,
+    "model": "passthrough",
+    "reasoning": "The code is writing to the register RCC->APB1ENR1 by using the bitwise AND operation with the negation of a mask. This indicates that the driver is configuring or disabling a specific peripheral clock. Since the value written to the register affects its future state, but no specific value is returned when read, the 'passthrough' model is the most appropriate. This model allows the fuzzer to supply symbolic values to simulate different configurations and observe their effects on the device's behavior.",
+    "context": "{\n    switch (bus) {\n        case APB1:\n#if defined(CPU_FAM_STM32L4)\n            RCC->APB1ENR1 &= ~(mask);\n#else\n            RCC->APB1ENR &= ~(mask);\n#endif\n            break;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::APB1ENR::129": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "APB1ENR",
+    "line": 129,
+    "model": "set",
+    "reasoning": "The code snippet is setting a configuration by writing a bitmask to the APB1ENR (or APB1ENR1 in the case of CPU_FAM_STM32L4) register. The function periph_clk_dis is intended to disable peripheral clocks by clearing bits in the register. The register is not being read or checked for a specific bit; instead, a specific bit pattern is being written to trigger an action. Therefore, the 'set' model is the most appropriate as it describes the operation of setting bits in a configuration register.",
+    "context": "        case APB1:\n#if defined(CPU_FAM_STM32L4)\n            RCC->APB1ENR1 &= ~(mask);\n#else\n            RCC->APB1ENR &= ~(mask);\n#endif\n            break;\n        case APB2:\n            RCC->APB2ENR &= ~(mask);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::APB2ENR::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "APB2ENR",
+    "line": 133,
+    "model": "set",
+    "reasoning": "The code snippet demonstrates a write operation to the APB2ENR register. It uses the bitwise AND operation with the negation of a mask to clear specific bits in the register. This operation is typically used to disable or stop a peripheral's clock, which aligns with the function periph_clk_dis, indicating that the register is being used to configure or set the state of peripheral clocks. Therefore, the 'Set' model is appropriate as it describes a scenario where specific bits in the register are written to trigger an action, in this case, disabling or stopping peripheral clocks.",
+    "context": "            RCC->APB1ENR &= ~(mask);\n#endif\n            break;\n        case APB2:\n            RCC->APB2ENR &= ~(mask);\n            break;\n#if defined(CPU_FAM_STM32L4)\n        case APB12:\n            RCC->APB1ENR2 &= ~(mask);\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::APB1ENR2::137": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "APB1ENR2",
+    "line": 137,
+    "model": "passthrough",
+    "reasoning": "The provided code context indicates that the function `periph_clk_dis` is writing a value to the `APB1ENR2` register using the bitwise AND operation with a mask, which effectively clears certain bits in the register. Since the value written is not being read back or modified in any way other than the bits being cleared, this operation is consistent with a passthrough model where data written to the register is returned exactly as written on the next read.",
+    "context": "            RCC->APB2ENR &= ~(mask);\n            break;\n#if defined(CPU_FAM_STM32L4)\n        case APB12:\n            RCC->APB1ENR2 &= ~(mask);\n            break;\n#endif\n#if defined(CPU_FAM_STM32L0)\n        case AHB:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::AHBENR::142": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "AHBENR",
+    "line": 142,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided shows that the driver is writing to the AHBENR register using the expression `RCC->AHBENR &= ~(mask);`. This operation clears specific bits in the register based on the value of `mask`. Since the driver is writing a value to the register and not reading it, the Passthrough model is appropriate. This model allows the fuzzer to supply a symbolic value that is then written to the register, and on the next read, the fuzzer can check if the correct bits have been cleared or modified as expected.",
+    "context": "            break;\n#endif\n#if defined(CPU_FAM_STM32L0)\n        case AHB:\n            RCC->AHBENR &= ~(mask);\n            break;\n        case IOP:\n            RCC->IOPENR &= ~(mask);\n            break;\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::IOPENR::145": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "IOPENR",
+    "line": 145,
+    "model": "passthrough",
+    "reasoning": "The code snippet provided shows a write operation to the IOPENR register. Specifically, it uses the bitwise AND operation with the mask to clear certain bits in the register. There is no indication of reading from the register, checking specific bits, or setting a configuration. The register appears to be used for controlling the peripheral clock, and the write operation is simply clearing specific bits without changing the overall state or value of the register. Therefore, the 'passthrough' model is most appropriate as it accurately reflects that the value written to the register is returned as is on subsequent reads.",
+    "context": "        case AHB:\n            RCC->AHBENR &= ~(mask);\n            break;\n        case IOP:\n            RCC->IOPENR &= ~(mask);\n            break;\n#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1) || \\\n      defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)\n        case AHB:\n",
+    "backend": "ollama"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c::periph_clk_dis::AHBENR::150": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/stm32_common/cpu_common.c",
+    "function": "periph_clk_dis",
+    "register": "AHBENR",
+    "line": 150,
+    "model": "passthrough",
+    "reasoning": "The provided code snippet shows that the register AHBENR is being written to with a bitwise AND operation, which means the driver is setting specific bits to disable peripheral clocks. The 'passthrough' model is appropriate here because the value written to the register is returned exactly as written on the next read, which is typical for configuration registers where the written value needs to be preserved and read back.",
+    "context": "            break;\n#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1) || \\\n      defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)\n        case AHB:\n            RCC->AHBENR &= ~(mask);\n            break;\n#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \\\n      defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32F7)\n        case AHB1:\n",
+    "backend": "ollama"
+  }
+}

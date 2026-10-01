@@ -1,0 +1,12 @@
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_in_sbsa.cpp -o targets/target_poll_in_sbsa
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_in_cr_uarten.cpp -o targets/target_poll_in_cr_uarten
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_in_cr_rxe.cpp -o targets/target_poll_in_cr_rxe
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_in_fr_rxfe.cpp -o targets/target_poll_in_fr_rxfe
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_in_dr.cpp -o targets/target_poll_in_dr
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_out_fr_txff.cpp -o targets/target_poll_out_fr_txff
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_out_dr.cpp -o targets/target_poll_out_dr
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_isr_ctsmim.cpp -o targets/target_isr_ctsmim
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_isr_error.cpp -o targets/target_isr_error
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_isr_w1c_clobber.cpp -o targets/target_isr_w1c_clobber
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_isr_imsc.cpp -o targets/target_isr_imsc
+clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_isr_irq_cb.cpp -o targets/target_isr_irq_cb

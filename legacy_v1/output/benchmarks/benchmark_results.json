@@ -1,0 +1,156 @@
+{
+  "aeroharness_summary": {
+    "total_targets": 5,
+    "compilation_success_rate_pct": 0.0,
+    "smoke_pass_rate_pct": 0.0,
+    "avg_iterations_to_converge": 0.0,
+    "avg_branch_coverage_pct": 0.0,
+    "avg_line_coverage_pct": 0.0,
+    "vulnerabilities_discovered": 0,
+    "unique_crashes": 0
+  },
+  "singleshot_summary": {
+    "total_targets": 5,
+    "compilation_success_rate_pct": 0.0,
+    "smoke_pass_rate_pct": 0.0,
+    "avg_iterations_to_converge": 0.0,
+    "avg_branch_coverage_pct": 0.0,
+    "avg_line_coverage_pct": 0.0,
+    "vulnerabilities_discovered": 0,
+    "unique_crashes": 0
+  },
+  "aeroharness_detailed": [
+    {
+      "target_name": "ToyFirmware-FrameParser",
+      "target_api": "protocol_process_frame",
+      "mode": "AeroHarness-ClosedLoop",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 5,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "ToyFirmware-Init",
+      "target_api": "protocol_init",
+      "mode": "AeroHarness-ClosedLoop",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 5,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "FreeRTOS-IP-PacketProcess",
+      "target_api": "prvProcessIPPacket",
+      "mode": "AeroHarness-ClosedLoop",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 5,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "FreeRTOS-UDP-Process",
+      "target_api": "xProcessReceivedUDPPacket",
+      "mode": "AeroHarness-ClosedLoop",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 5,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "FreeRTOS-DNS-ReplyParser",
+      "target_api": "prvParseDNSReply",
+      "mode": "AeroHarness-ClosedLoop",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 5,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    }
+  ],
+  "singleshot_detailed": [
+    {
+      "target_name": "ToyFirmware-FrameParser",
+      "target_api": "protocol_process_frame",
+      "mode": "SingleShot-Baseline",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 1,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "ToyFirmware-Init",
+      "target_api": "protocol_init",
+      "mode": "SingleShot-Baseline",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 1,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "FreeRTOS-IP-PacketProcess",
+      "target_api": "prvProcessIPPacket",
+      "mode": "SingleShot-Baseline",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 1,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "FreeRTOS-UDP-Process",
+      "target_api": "xProcessReceivedUDPPacket",
+      "mode": "SingleShot-Baseline",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 1,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    },
+    {
+      "target_name": "FreeRTOS-DNS-ReplyParser",
+      "target_api": "prvParseDNSReply",
+      "mode": "SingleShot-Baseline",
+      "compiled_successfully": false,
+      "smoke_test_passed": false,
+      "iterations_to_converge": 1,
+      "branch_coverage_pct": 0.0,
+      "line_coverage_pct": 0.0,
+      "crashed": false,
+      "time_to_vulnerability_sec": null,
+      "crash_type": null
+    }
+  ]
+}

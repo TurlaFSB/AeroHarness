@@ -1,0 +1,20 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4017045799
+INFO: Loaded 1 modules   (47 inline 8-bit counters): 47 [0x5747e2aa1030, 0x5747e2aa105f), 
+INFO: Loaded 1 PC tables (47 PCs): 47 [0x5747e2aa1060,0x5747e2aa1350), 
+INFO:        4 files found in corpus_isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 3b max: 3b total: 12b rss: 31Mb
+#5	INITED cov: 29 ft: 30 corp: 4/12b exec/s: 0 rss: 32Mb
+#24	NEW    cov: 30 ft: 31 corp: 5/14b lim: 4 exec/s: 0 rss: 32Mb L: 2/3 MS: 4 CrossOver-CMP-InsertByte-EraseBytes- DE: "\377\377"-
+#170	REDUCE cov: 30 ft: 31 corp: 5/13b lim: 4 exec/s: 0 rss: 32Mb L: 1/3 MS: 1 EraseBytes-
+#2097152	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 699050 rss: 186Mb
+#4194304	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 599186 rss: 337Mb
+#8388608	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 599186 rss: 610Mb
+#16777216	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 645277 rss: 613Mb
+#33554432	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 633102 rss: 613Mb
+#67108864	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 615677 rss: 614Mb
+#134217728	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 618514 rss: 614Mb
+#268435456	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 619943 rss: 615Mb
+#536870912	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 616384 rss: 615Mb
+==296== libFuzzer: run interrupted; exiting

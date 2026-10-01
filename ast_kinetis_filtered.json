@@ -1,0 +1,2011 @@
+{
+  "functions": {
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::prep": {
+      "signature": "void (int) prep",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev",
+        "bit_set32",
+        "defined",
+        "mutex_lock",
+        "dev_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SCGC6",
+          "line": 70,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SCGC6",
+          "line": 77,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::done": {
+      "signature": "void (int) done",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev",
+        "bit_clear32",
+        "defined",
+        "mutex_unlock",
+        "dev_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SCGC6",
+          "line": 89,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SCGC6",
+          "line": 96,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate": {
+      "signature": "int (int *) kinetis_adc_calibrate",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": [
+        {
+          "register": "SC3",
+          "line": 118,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SC3",
+          "line": 120,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SC3",
+          "line": 124,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP0",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP1",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP2",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP3",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP4",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLPS",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "PG",
+          "line": 144,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CLM0",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM1",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM2",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM3",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM4",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLMS",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "MG",
+          "line": 149,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::adc_init": {
+      "signature": "int (int) adc_init",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "prep",
+        "gpio_init_port",
+        "ADC_CFG1_ADIV",
+        "ADC_CFG1_ADICLK",
+        "dev",
+        "ADC_CFG2_ADLSTS",
+        "ADC_SC2_REFSEL",
+        "ADC_SC1_ADCH",
+        "kinetis_adc_calibrate",
+        "done"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CFG1",
+          "line": 195,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CFG2",
+          "line": 197,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "SC2",
+          "line": 199,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "SC3",
+          "line": 201,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::adc_sample": {
+      "signature": "int (int, int) adc_sample",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "res",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "prep",
+        "dev",
+        "done"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CFG1",
+          "line": 223,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFG1",
+          "line": 224,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SC3",
+          "line": 226,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/dac.c::dac_init": {
+      "signature": "int8_t (int) dac_init",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "bit_set32",
+        "dev",
+        "bit_set8",
+        "dac_set"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 50,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C2",
+          "line": 51,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::clk_en": {
+      "signature": "void (int) clk_en",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "defined",
+        "bit_set32",
+        "port_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SCGC5",
+          "line": 193,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::gpio_init": {
+      "signature": "int (int, int) gpio_init",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mode",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio_init_port",
+        "gpio",
+        "pin_num",
+        "port"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "PDDR",
+          "line": 210,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "PDDR",
+          "line": 213,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::gpio_read": {
+      "signature": "int (int) gpio_read",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio",
+        "pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "PDDR",
+          "line": 252,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::gpio_set": {
+      "signature": "void (int) gpio_set",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio",
+        "pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "PSOR",
+          "line": 262,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/gpio.c::gpio_write": {
+      "signature": "void (int, int) gpio_write",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "value",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio",
+        "pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "PSOR",
+          "line": 278,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_clear_irq_flags": {
+      "signature": "void (int *) i2c_clear_irq_flags",
+      "params": [
+        {
+          "name": "i2c",
+          "type": "int *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": [
+        {
+          "register": "S",
+          "line": 175,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_init": {
+      "signature": "void (int) i2c_init",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "DEBUG",
+        "assert",
+        "I2C0_CLKEN",
+        "I2C1_CLKEN",
+        "I2C2_CLKEN",
+        "gpio_init_port",
+        "i2c_find_divider",
+        "i2c_clear_irq_flags",
+        "NVIC_EnableIRQ",
+        "mutex_unlock"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 221,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "FLT",
+          "line": 224,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "FLT",
+          "line": 226,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "F",
+          "line": 228,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C1",
+          "line": 230,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_stop": {
+      "signature": "int (int) i2c_stop",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "TRACE",
+        "bit_clear8",
+        "DEBUG"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 240,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 240,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 241,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 243,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 250,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 250,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_tx_addr": {
+      "signature": "int (int, uint8_t) i2c_tx_addr",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "byte",
+          "type": "uint8_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "TRACE",
+        "i2c_clear_irq_flags",
+        "DEBUG",
+        "bit_clear8"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "D",
+          "line": 258,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "S",
+          "line": 262,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 282,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_start": {
+      "signature": "int (int, uint16_t, unsigned int, uint8_t) i2c_start",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "addr",
+          "type": "uint16_t",
+          "is_pointer": false
+        },
+        {
+          "name": "read_flag",
+          "type": "unsigned int",
+          "is_pointer": false
+        },
+        {
+          "name": "flags",
+          "type": "uint8_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "TRACE",
+        "DEBUG",
+        "i2c_clear_irq_flags",
+        "bit_clear8",
+        "i2c_tx_addr"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 292,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 292,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 294,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 296,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "S",
+          "line": 305,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 312,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "C1",
+          "line": 315,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 315,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 316,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 319,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_read_bytes": {
+      "signature": "int (int, uint16_t, void *, int, uint8_t) i2c_read_bytes",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "addr",
+          "type": "uint16_t",
+          "is_pointer": false
+        },
+        {
+          "name": "data",
+          "type": "void *",
+          "is_pointer": true
+        },
+        {
+          "name": "len",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "flags",
+          "type": "uint8_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "DEBUG",
+        "bit_set8",
+        "bit_clear8",
+        "i2c_start",
+        "__get_PRIMASK",
+        "irq_is_in",
+        "TRACE",
+        "thread_flags_wait_any",
+        "i2c_stop",
+        "__assert_fail"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 358,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 361,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 375,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 380,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "D",
+          "line": 386,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 389,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 389,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 394,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_write_bytes": {
+      "signature": "int (int, uint16_t, const void *, int, uint8_t) i2c_write_bytes",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "addr",
+          "type": "uint16_t",
+          "is_pointer": false
+        },
+        {
+          "name": "data",
+          "type": "const void *",
+          "is_pointer": true
+        },
+        {
+          "name": "len",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "flags",
+          "type": "uint8_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "DEBUG",
+        "i2c_start",
+        "__get_PRIMASK",
+        "irq_is_in",
+        "bit_set8",
+        "TRACE",
+        "thread_flags_wait_any",
+        "bit_clear8",
+        "i2c_stop",
+        "__assert_fail"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 429,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 433,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 434,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 434,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "D",
+          "line": 437,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C1",
+          "line": 443,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_irq_signal_done": {
+      "signature": "void (int *, int) i2c_irq_signal_done",
+      "params": [
+        {
+          "name": "i2c",
+          "type": "int *",
+          "is_pointer": true
+        },
+        {
+          "name": "pid",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "thread_flags_set",
+        "thread_get",
+        "bit_clear8"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 465,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_irq_mst_tx_handler": {
+      "signature": "void (int *, i2c_state_t *, uint8_t) i2c_irq_mst_tx_handler",
+      "params": [
+        {
+          "name": "i2c",
+          "type": "int *",
+          "is_pointer": true
+        },
+        {
+          "name": "state",
+          "type": "i2c_state_t *",
+          "is_pointer": true
+        },
+        {
+          "name": "S",
+          "type": "uint8_t",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "DEBUG",
+        "bit_clear8",
+        "i2c_irq_signal_done",
+        "TRACE"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 481,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "D",
+          "line": 495,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_irq_mst_rx_handler": {
+      "signature": "void (int *, i2c_state_t *) i2c_irq_mst_rx_handler",
+      "params": [
+        {
+          "name": "i2c",
+          "type": "int *",
+          "is_pointer": true
+        },
+        {
+          "name": "state",
+          "type": "i2c_state_t *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [
+        "assert",
+        "bit_set8",
+        "i2c_irq_signal_done",
+        "TRACE",
+        "DEBUG"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 510,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 515,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "D",
+          "line": 521,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/i2c.c::i2c_irq_handler": {
+      "signature": "void (int) i2c_irq_handler",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "DEBUG",
+        "bit_clear8",
+        "i2c_irq_signal_done",
+        "i2c_irq_mst_tx_handler",
+        "i2c_irq_mst_rx_handler",
+        "cortexm_isr_end"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "S",
+          "line": 530,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 532,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C1",
+          "line": 533,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 538,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 543,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/ics.c::SystemInit": {
+      "signature": "void (void) SystemInit",
+      "params": [],
+      "calls": [
+        "elif"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 127,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C1",
+          "line": 129,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C2",
+          "line": 130,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C4",
+          "line": 131,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 132,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C2",
+          "line": 135,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 136,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C4",
+          "line": 137,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C1",
+          "line": 138,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 140,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 148,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 151,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 154,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/ics.c::SystemCoreClockUpdate": {
+      "signature": "void (void) SystemCoreClockUpdate",
+      "params": [],
+      "calls": [],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 169,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 171,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 176,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR",
+          "line": 178,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 187,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 191,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C2",
+          "line": 199,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_disable_pll": {
+      "signature": "void (void) kinetis_mcg_disable_pll",
+      "params": [],
+      "calls": [
+        "bit_clear8"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C6",
+          "line": 50,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fll_factor": {
+      "signature": "void (int) kinetis_mcg_set_fll_factor",
+      "params": [
+        {
+          "name": "factor",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": [
+        {
+          "register": "C4",
+          "line": 63,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_enable_osc": {
+      "signature": "void (void) kinetis_mcg_enable_osc",
+      "params": [],
+      "calls": [
+        "defined",
+        "bit_set8",
+        "bit_clear8",
+        "bit_clear32",
+        "bit_set32",
+        "RSIM_CONTROL_RF_OSC_EN"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 72,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "CR",
+          "line": 79,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C2",
+          "line": 80,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 83,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C2",
+          "line": 86,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_init_erclk32k": {
+      "signature": "void (void) kinetis_mcg_init_erclk32k",
+      "params": [],
+      "calls": [
+        "RTC_CLKEN"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 128,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR",
+          "line": 131,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "SOPT1",
+          "line": 135,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_init_mcgirclk": {
+      "signature": "void (void) kinetis_mcg_init_mcgirclk",
+      "params": [],
+      "calls": [
+        "bit_set8",
+        "bit_clear8"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SC",
+          "line": 149,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SC",
+          "line": 155,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C2",
+          "line": 156,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C2",
+          "line": 159,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 164,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 167,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 172,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 175,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fei": {
+      "signature": "void (void) kinetis_mcg_set_fei",
+      "params": [],
+      "calls": [
+        "kinetis_mcg_set_fll_factor",
+        "MCG_C1_CLKS",
+        "bit_clear8"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 193,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C2",
+          "line": 196,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 199,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 202,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fee": {
+      "signature": "void (void) kinetis_mcg_set_fee",
+      "params": [],
+      "calls": [
+        "kinetis_mcg_enable_osc",
+        "kinetis_mcg_set_fll_factor",
+        "MCG_C1_CLKS",
+        "MCG_S_CLKST"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C1",
+          "line": 220,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "S",
+          "line": 223,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fbi": {
+      "signature": "void (void) kinetis_mcg_set_fbi",
+      "params": [],
+      "calls": [
+        "kinetis_mcg_set_fll_factor",
+        "bit_clear8",
+        "MCG_C1_CLKS",
+        "MCG_S_CLKST"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 245,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 248,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "S",
+          "line": 251,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 254,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_fbe": {
+      "signature": "void (void) kinetis_mcg_set_fbe",
+      "params": [],
+      "calls": [
+        "kinetis_mcg_enable_osc",
+        "kinetis_mcg_set_fll_factor",
+        "bit_clear8",
+        "MCG_C1_CLKS",
+        "MCG_S_CLKST",
+        "kinetis_mcg_disable_pll"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 274,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 277,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "S",
+          "line": 280,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_blpi": {
+      "signature": "void (void) kinetis_mcg_set_blpi",
+      "params": [],
+      "calls": [
+        "bit_set8",
+        "kinetis_mcg_disable_pll"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 296,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_blpe": {
+      "signature": "void (void) kinetis_mcg_set_blpe",
+      "params": [],
+      "calls": [
+        "bit_set8",
+        "kinetis_mcg_disable_pll"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 310,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_set_safe_mode": {
+      "signature": "void (void) kinetis_mcg_set_safe_mode",
+      "params": [],
+      "calls": [
+        "bit_clear8",
+        "MCG_C1_CLKS",
+        "MCG_S_CLKST",
+        "kinetis_mcg_set_fll_factor"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "C2",
+          "line": 423,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C2",
+          "line": 427,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C6",
+          "line": 431,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 432,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 435,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "S",
+          "line": 438,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C6",
+          "line": 440,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 442,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "C1",
+          "line": 450,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "S",
+          "line": 453,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "S",
+          "line": 456,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/mcg.c::kinetis_mcg_init": {
+      "signature": "void (void) kinetis_mcg_init",
+      "params": [],
+      "calls": [
+        "irq_disable",
+        "kinetis_mcg_set_safe_mode",
+        "kinetis_mcg_init_mcgirclk",
+        "kinetis_mcg_init_erclk32k",
+        "kinetis_mcg_set_mode",
+        "irq_restore"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CLKDIV1",
+          "line": 477,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C7",
+          "line": 480,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C1",
+          "line": 483,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C5",
+          "line": 487,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "C6",
+          "line": 490,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::rtt_init": {
+      "signature": "void (void) rtt_init",
+      "params": [],
+      "calls": [
+        "RTC_CLKEN",
+        "bit_set32",
+        "bit_clear32",
+        "NVIC_EnableIRQ",
+        "rtt_poweron"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 57,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SR",
+          "line": 64,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SR",
+          "line": 68,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::rtt_set_counter": {
+      "signature": "void (int) rtt_set_counter",
+      "params": [
+        {
+          "name": "counter",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "bit_clear32",
+        "bit_set32"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SR",
+          "line": 112,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SR",
+          "line": 117,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::rtt_poweron": {
+      "signature": "void (void) rtt_poweron",
+      "params": [],
+      "calls": [
+        "bit_set32"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SR",
+          "line": 158,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::rtt_poweroff": {
+      "signature": "void (void) rtt_poweroff",
+      "params": [],
+      "calls": [
+        "bit_clear32"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SR",
+          "line": 164,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/rtt.c::isr_rtc": {
+      "signature": "void (void) isr_rtc",
+      "params": [],
+      "calls": [
+        "bit_clear32",
+        "alarm_cb",
+        "overflow_cb",
+        "cortexm_isr_end"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SR",
+          "line": 169,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SR",
+          "line": 177,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/spi.c::poweron": {
+      "signature": "void (int) poweron",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SCGC6",
+          "line": 57,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "MCR",
+          "line": 67,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/spi.c::poweroff": {
+      "signature": "void (int) poweroff",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "MCR",
+          "line": 73,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SCGC6",
+          "line": 78,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/spi.c::spi_init": {
+      "signature": "void (int) spi_init",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "mutex_init",
+        "spi_init_pins",
+        "poweron",
+        "dev",
+        "poweroff"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "MCR",
+          "line": 102,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "RSER",
+          "line": 108,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "SR",
+          "line": 111,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/spi.c::spi_acquire": {
+      "signature": "int (int, int, int, int) spi_acquire",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "cs",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mode",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "clk",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "mutex_lock",
+        "poweron",
+        "dev",
+        "SPI_CTAR_FMSZ"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "MCR",
+          "line": 155,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/spi.c::spi_release": {
+      "signature": "void (int) spi_release",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev",
+        "poweroff",
+        "mutex_unlock"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "MCR",
+          "line": 166,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SR",
+          "line": 169,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/spi.c::spi_transfer_bytes": {
+      "signature": "void (int, int, int, const void *, void *, int) spi_transfer_bytes",
+      "params": [
+        {
+          "name": "bus",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "cs",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "cont",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "out",
+          "type": "const void *",
+          "is_pointer": true
+        },
+        {
+          "name": "in",
+          "type": "void *",
+          "is_pointer": true
+        },
+        {
+          "name": "len",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "assert",
+        "gpio_clear",
+        "dev",
+        "gpio_set"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SR",
+          "line": 201,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SR",
+          "line": 204,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "POPR",
+          "line": 205,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/timer.c::pit_init": {
+      "signature": "int (int, int, int, void *) pit_init",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "freq",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "cb",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "arg",
+          "type": "void *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [
+        "PIT_CLKEN",
+        "irq_disable",
+        "NVIC_EnableIRQ",
+        "NVIC_ClearPendingIRQ",
+        "irq_restore"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "MCR",
+          "line": 160,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "MCR",
+          "line": 169,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/wdog.c::wdog_disable": {
+      "signature": "void (void) wdog_disable",
+      "params": [],
+      "calls": [
+        "SystemDisableWatchdog"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "UNLOCK",
+          "line": 72,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "UNLOCK",
+          "line": 73,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "STCTRLH",
+          "line": 74,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    }
+  }
+}

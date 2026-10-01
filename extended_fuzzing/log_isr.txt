@@ -1,0 +1,23 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1790283378
+INFO: Loaded 1 modules   (47 inline 8-bit counters): 47 [0x5696a3416030, 0x5696a341605f), 
+INFO: Loaded 1 PC tables (47 PCs): 47 [0x5696a3416060,0x5696a3416350), 
+INFO:        0 files found in corpus_isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 31Mb
+	NEW_FUNC[1/2]: 0x5696a33cec58 in pl011_isr(device const*) fuzz_pl011_isr.cpp
+	NEW_FUNC[2/2]: 0x5696a33cf128 in get_uart(device const*) fuzz_pl011_isr.cpp
+#4	NEW    cov: 18 ft: 19 corp: 2/4b lim: 4 exec/s: 0 rss: 32Mb L: 3/3 MS: 2 InsertByte-InsertByte-
+	NEW_FUNC[1/1]: 0x5696a33cec38 in dummy_irq_cb(device const*, void*) fuzz_pl011_isr.cpp
+#11	NEW    cov: 26 ft: 27 corp: 3/8b lim: 4 exec/s: 0 rss: 32Mb L: 4/4 MS: 2 CopyPart-ChangeByte-
+#13	NEW    cov: 29 ft: 30 corp: 4/12b lim: 4 exec/s: 0 rss: 32Mb L: 4/4 MS: 2 InsertByte-ChangeByte-
+#58	NEW    cov: 30 ft: 31 corp: 5/15b lim: 4 exec/s: 0 rss: 32Mb L: 3/4 MS: 5 CrossOver-CMP-ChangeByte-CopyPart-EraseBytes- DE: "\001\000"-
+#94	REDUCE cov: 30 ft: 31 corp: 5/14b lim: 4 exec/s: 0 rss: 32Mb L: 3/4 MS: 1 CrossOver-
+#148	REDUCE cov: 30 ft: 31 corp: 5/13b lim: 4 exec/s: 0 rss: 32Mb L: 3/3 MS: 4 EraseBytes-PersAutoDict-PersAutoDict-CrossOver- DE: "\001\000"-"\001\000"-
+#1048576	pulse  cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 524288 rss: 110Mb
+#1852303	DONE   cov: 30 ft: 31 corp: 5/13b lim: 4096 exec/s: 0 rss: 167Mb
+###### Recommended dictionary. ######
+"\001\000" # Uses: 178024
+###### End of recommended dictionary. ######
+Done 1852303 runs in -1 second(s)

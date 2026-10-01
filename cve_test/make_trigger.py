@@ -1,0 +1,2 @@
+with open('/mnt/d/aeroharness/cve_test/trigger.bin', 'wb') as f:
+    f.write(b'\x30\xFF\xFF\xFF\xFF\x7F\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')

@@ -1,0 +1,293 @@
+{
+  "constants": [
+    "ENABLE_DEBUG",
+    "MODE_MASK",
+    "ODR_POS"
+  ],
+  "functions": {
+    "_port": {
+      "signature": "int *(int) _port",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "_port_num": {
+      "signature": "int (int) _port_num",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "_pin_num": {
+      "signature": "int (int) _pin_num",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "gpio_init": {
+      "signature": "int (int, int) gpio_init",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "mode",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num",
+        "periph_clk_en",
+        "_port_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "APB2ENR",
+          "line": 96,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "MAPR",
+          "line": 97,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CR",
+          "line": 102,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR",
+          "line": 103,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ODR",
+          "line": 107,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "ODR",
+          "line": 109,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        }
+      ]
+    },
+    "gpio_init_af": {
+      "signature": "void (int, int) gpio_init_af",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "af",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_pin_num",
+        "_port",
+        "periph_clk_en",
+        "_port_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 122,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CR",
+          "line": 123,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "gpio_init_analog": {
+      "signature": "void (int) gpio_init_analog",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "periph_clk_en",
+        "_port_num",
+        "_pin_num",
+        "_port"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "gpio_read": {
+      "signature": "int (int) gpio_read",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CR",
+          "line": 141,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "ODR",
+          "line": 143,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "IDR",
+          "line": 147,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "gpio_set": {
+      "signature": "void (int) gpio_set",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BSRR",
+          "line": 153,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "gpio_clear": {
+      "signature": "void (int) gpio_clear",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BRR",
+          "line": 158,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "gpio_toggle": {
+      "signature": "void (int) gpio_toggle",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "gpio_read",
+        "gpio_clear",
+        "gpio_set"
+      ],
+      "mmio_accesses": []
+    },
+    "gpio_write": {
+      "signature": "void (int, int) gpio_write",
+      "params": [
+        {
+          "name": "pin",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "value",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "_port",
+        "_pin_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "BSRR",
+          "line": 174,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "BRR",
+          "line": 177,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    }
+  },
+  "extraction_warnings": [
+    "'cpu.h' file not found"
+  ]
+}

@@ -1,0 +1,20 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4017343114
+INFO: Loaded 1 modules   (37 inline 8-bit counters): 37 [0x5e1cbb27cfd8, 0x5e1cbb27cffd), 
+INFO: Loaded 1 PC tables (37 PCs): 37 [0x5e1cbb27d000,0x5e1cbb27d250), 
+INFO:        4 files found in corpus_poll_in
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 4b max: 4b total: 16b rss: 31Mb
+#5	INITED cov: 22 ft: 23 corp: 4/16b exec/s: 0 rss: 32Mb
+#9	NEW    cov: 23 ft: 24 corp: 5/18b lim: 4 exec/s: 0 rss: 32Mb L: 2/4 MS: 4 ShuffleBytes-ChangeBit-CrossOver-EraseBytes-
+#55	REDUCE cov: 23 ft: 24 corp: 5/17b lim: 4 exec/s: 0 rss: 32Mb L: 1/4 MS: 1 CrossOver-
+#2097152	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 699050 rss: 191Mb
+#4194304	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 699050 rss: 348Mb
+#8388608	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 645277 rss: 591Mb
+#16777216	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 699050 rss: 593Mb
+#33554432	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 684784 rss: 593Mb
+#67108864	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 684784 rss: 594Mb
+#134217728	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 674460 rss: 595Mb
+#268435456	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 667749 rss: 595Mb
+#536870912	pulse  cov: 23 ft: 24 corp: 5/17b lim: 4096 exec/s: 665267 rss: 596Mb
+==303== libFuzzer: run interrupted; exiting

@@ -1,0 +1,41 @@
+{
+  "constants": [],
+  "functions": {
+    "wdog_disable": {
+      "signature": "void (void) wdog_disable",
+      "params": [],
+      "calls": [
+        "SystemDisableWatchdog"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "UNLOCK",
+          "line": 72,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "UNLOCK",
+          "line": 73,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "STCTRLH",
+          "line": 74,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "COPC",
+          "line": 83,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    }
+  },
+  "extraction_warnings": [
+    "'wdog.h' file not found"
+  ]
+}

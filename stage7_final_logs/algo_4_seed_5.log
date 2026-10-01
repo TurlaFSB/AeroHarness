@@ -1,0 +1,9 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 5
+INFO: Loaded 1 PC tables (67 PCs): 67 [0x5aa3fe604088,0x5aa3fe6044b8), 
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED ft: 1 corp: 1/1b exec/s: 0 rss: 27Mb
+#100000	DONE   ft: 1 corp: 1/1b lim: 994 exec/s: 0 rss: 27Mb
+Done 100000 runs in 0 second(s)
+FINAL_COV: 29
