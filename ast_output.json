@@ -1,41 +1,343 @@
 {
-  "constants": [],
+  "constants": [
+    "ADC_MAX_CLK"
+  ],
   "functions": {
-    "wdog_disable": {
-      "signature": "void (void) wdog_disable",
-      "params": [],
+    "dev": {
+      "signature": "int *(int) dev",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": []
+    },
+    "dev_num": {
+      "signature": "int (int) dev_num",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
       "calls": [
-        "SystemDisableWatchdog"
+        "dev"
+      ],
+      "mmio_accesses": []
+    },
+    "prep": {
+      "signature": "void (int) prep",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev",
+        "bit_set32",
+        "defined",
+        "mutex_lock",
+        "dev_num"
       ],
       "mmio_accesses": [
         {
-          "register": "UNLOCK",
-          "line": 72,
+          "register": "SCGC6",
+          "line": 70,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SCGC3",
+          "line": 75,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SCGC6",
+          "line": 77,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "done": {
+      "signature": "void (int) done",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "dev",
+        "bit_clear32",
+        "defined",
+        "mutex_unlock",
+        "dev_num"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "SCGC6",
+          "line": 89,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SCGC3",
+          "line": 94,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SCGC6",
+          "line": 96,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "kinetis_adc_calibrate": {
+      "signature": "int (int *) kinetis_adc_calibrate",
+      "params": [
+        {
+          "name": "dev",
+          "type": "int *",
+          "is_pointer": true
+        }
+      ],
+      "calls": [],
+      "mmio_accesses": [
+        {
+          "register": "SC3",
+          "line": 118,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SC3",
+          "line": 120,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SC1",
+          "line": 122,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SC3",
+          "line": 124,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP0",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP1",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP2",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP3",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLP4",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLPS",
+          "line": 133,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "PG",
+          "line": 144,
           "method": "heuristic",
           "access_type": "write"
         },
         {
-          "register": "UNLOCK",
-          "line": 73,
+          "register": "CLM0",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM1",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM2",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM3",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLM4",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "CLMS",
+          "line": 146,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "MG",
+          "line": 149,
+          "method": "heuristic",
+          "access_type": "write"
+        }
+      ]
+    },
+    "adc_init": {
+      "signature": "int (int) adc_init",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "prep",
+        "gpio_init_port",
+        "ADC_CFG1_ADIV",
+        "ADC_CFG1_ADICLK",
+        "dev",
+        "ADC_CFG2_ADLSTS",
+        "ADC_SC2_REFSEL",
+        "ADC_SC1_ADCH",
+        "kinetis_adc_calibrate",
+        "done"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CFG1",
+          "line": 195,
           "method": "heuristic",
           "access_type": "write"
         },
         {
-          "register": "STCTRLH",
-          "line": 74,
+          "register": "CFG2",
+          "line": 197,
           "method": "heuristic",
           "access_type": "write"
         },
         {
-          "register": "COPC",
-          "line": 83,
+          "register": "SC2",
+          "line": 199,
           "method": "heuristic",
           "access_type": "write"
+        },
+        {
+          "register": "SC3",
+          "line": 201,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "SC1",
+          "line": 202,
+          "method": "heuristic",
+          "access_type": "read"
+        }
+      ]
+    },
+    "adc_sample": {
+      "signature": "int (int, int) adc_sample",
+      "params": [
+        {
+          "name": "line",
+          "type": "int",
+          "is_pointer": false
+        },
+        {
+          "name": "res",
+          "type": "int",
+          "is_pointer": false
+        }
+      ],
+      "calls": [
+        "prep",
+        "dev",
+        "done"
+      ],
+      "mmio_accesses": [
+        {
+          "register": "CFG1",
+          "line": 223,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "CFG1",
+          "line": 224,
+          "method": "heuristic",
+          "access_type": "read-modify-write"
+        },
+        {
+          "register": "SC3",
+          "line": 226,
+          "method": "heuristic",
+          "access_type": "write"
+        },
+        {
+          "register": "SC1",
+          "line": 228,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "SC1",
+          "line": 230,
+          "method": "heuristic",
+          "access_type": "read"
+        },
+        {
+          "register": "R",
+          "line": 232,
+          "method": "heuristic",
+          "access_type": "read"
         }
       ]
     }
   },
   "extraction_warnings": [
-    "'wdog.h' file not found"
+    "'cpu.h' file not found"
   ]
 }

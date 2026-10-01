@@ -1,0 +1,164 @@
+{
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::SC3::118": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "SC3",
+    "line": 118,
+    "model": "set",
+    "reasoning": "dev->SC3 |= ADC_SC3_CAL_MASK; sets a single bit (the calibration-start trigger) without reading or testing any value first. This is a bare trigger write, matching the Set taxonomy.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::SC3::120": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "SC3",
+    "line": 120,
+    "model": "bitextract",
+    "reasoning": "while (dev->SC3 & ADC_SC3_CAL_MASK) {} polls a single bit (CAL) to gate an infinite busy-wait until hardware self-clears it on calibration completion. Only that one bit's value matters for control flow.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::SC1::122": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "SC1",
+    "line": 122,
+    "model": "bitextract",
+    "reasoning": "while (!(dev->SC1[0] & ADC_SC1_COCO_MASK)) {} polls a single bit (COCO, conversion-complete) to gate a busy-wait. Only that one bit matters.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::SC3::124": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "SC3",
+    "line": 124,
+    "model": "bitextract",
+    "reasoning": "if (dev->SC3 & ADC_SC3_CALF_MASK) { return -1; } branches on a single bit (CALF, calibration-failed) to decide the error-return path. Only that one bit matters.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLP0::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLP0",
+    "line": 133,
+    "model": "passthrough",
+    "reasoning": "Summed directly into an arithmetic calculation (cal = CLP0+CLP1+CLP2+CLP3+CLP4+CLPS) with no bit-masking or comparison -- the raw numeric value flows straight into the result, so the fuzzer-controlled value should pass through unmodified.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLP1::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLP1",
+    "line": 133,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLP0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLP2::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLP2",
+    "line": 133,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLP0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLP3::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLP3",
+    "line": 133,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLP0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLP4::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLP4",
+    "line": 133,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLP0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLPS::133": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLPS",
+    "line": 133,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLP0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::PG::144": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "PG",
+    "line": 144,
+    "model": "not_applicable_write_only",
+    "reasoning": "dev->PG = cal; is a pure write, never read back within this function. Matches the existing partial Stage 2 run's label for this register exactly.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLM0::146": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLM0",
+    "line": 146,
+    "model": "passthrough",
+    "reasoning": "Summed into the minus-side gain calculation (cal = CLM0+CLM1+CLM2+CLM3+CLM4+CLMS), same pattern as CLP0-CLPS.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLM1::146": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLM1",
+    "line": 146,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLM0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLM2::146": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLM2",
+    "line": 146,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLM0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLM3::146": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLM3",
+    "line": 146,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLM0.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLM4::146": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLM4",
+    "line": 146,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLM0. NOTE: the existing partial Stage 2 run (llm_proposals_kinetis_v2.json, Gemini/Ollama backend) labeled this register 'identity' without visibility into the full summation context (it only saw this one access site in isolation). With the complete function body in view, passthrough is the more usage-consistent model -- flagged here as a disagreement with the prior partial run, not silently overridden.",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::CLMS::146": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "CLMS",
+    "line": 146,
+    "model": "passthrough",
+    "reasoning": "Same arithmetic-sum context as CLM0. NOTE: the existing partial Stage 2 run labeled this register 'constant' in isolation; with full context, passthrough is more usage-consistent (same caveat as CLM4).",
+    "backend": "claude_fallback"
+  },
+  "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c::kinetis_adc_calibrate::MG::149": {
+    "source": "p2im-unit_tests/RIOT/RIOT-ENV/cpu/kinetis/periph/adc.c",
+    "function": "kinetis_adc_calibrate",
+    "register": "MG",
+    "line": 149,
+    "model": "not_applicable_write_only",
+    "reasoning": "dev->MG = cal; is a pure write, never read back within this function. Matches the existing partial Stage 2 run's label for this register exactly.",
+    "backend": "claude_fallback"
+  }
+}

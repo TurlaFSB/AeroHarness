@@ -1,0 +1,35 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1
+INFO: Loaded 1 modules   (26 inline 8-bit counters): 26 [0x55f4bcf47ec8, 0x55f4bcf47ee2), 
+INFO: Loaded 1 PC tables (26 PCs): 26 [0x55f4bcf47ee8,0x55f4bcf48088), 
+INFO:        0 files found in kinetis_corpus/seed_1
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 32Mb
+ALARM: working on the last Unit for 3 seconds
+       and the timeout value is 3 (use -timeout=N to change)
+MS: 4 ShuffleBytes-CrossOver-InsertRepeatedBytes-InsertRepeatedBytes-; base unit: adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
+0xa,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xe9,0xe9,0xe9,0xe9,0xe9,0xe9,0xe9,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xa,
+\012\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\351\351\351\351\351\351\351\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\012
+artifact_prefix='./'; Test unit written to ./timeout-0e91c0695e7dc280f7fc826a61415b7dd0773d94
+Base64: Cv///////////////////+np6enp6en///////////////////////////////////8K
+==1084== ERROR: libFuzzer: timeout after 3 seconds
+    #0 0x55f4bceccb75 in __sanitizer_print_stack_trace (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x10db75) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #1 0x55f4bce2668c in fuzzer::PrintStackTrace() (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x6768c) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #2 0x55f4bce0c68b in fuzzer::Fuzzer::AlarmCallback() (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4d68b) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #3 0x7f047944532f  (/lib/x86_64-linux-gnu/libc.so.6+0x4532f) (BuildId: 8e9fd827446c24067541ac5390e6f527fb5947bb)
+    #4 0x55f4bcf0138f  (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x14238f) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #5 0x7f047944532f  (/lib/x86_64-linux-gnu/libc.so.6+0x4532f) (BuildId: 8e9fd827446c24067541ac5390e6f527fb5947bb)
+    #6 0x55f4bcf00e75 in kinetis_adc_calibrate /home/claude/aeroharness/harnesses/fuzz_kinetis_adc_calibrate.c:118:5
+    #7 0x55f4bcf00e75 in LLVMFuzzerTestOneInput /home/claude/aeroharness/harnesses/fuzz_kinetis_adc_calibrate.c:321:15
+    #8 0x55f4bce0dce4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4ece4) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #9 0x55f4bce0d3d9 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4e3d9) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #10 0x55f4bce0ebc5 in fuzzer::Fuzzer::MutateAndTestOne() (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4fbc5) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #11 0x55f4bce0f725 in fuzzer::Fuzzer::Loop(std::vector<fuzzer::SizedFile, std::allocator<fuzzer::SizedFile>>&) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x50725) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #12 0x55f4bcdfc9ff in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x3d9ff) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #13 0x55f4bce27086 in main (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x68086) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #14 0x7f047942a1c9 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #15 0x7f047942a28a in __libc_start_main csu/../csu/libc-start.c:360:3
+    #16 0x55f4bcdf19e4 in _start (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x329e4) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+
+SUMMARY: libFuzzer: timeout

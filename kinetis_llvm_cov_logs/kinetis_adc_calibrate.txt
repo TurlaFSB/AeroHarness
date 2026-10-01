@@ -1,0 +1,10 @@
+File '/home/claude/aeroharness/harnesses/fuzz_kinetis_adc_calibrate.c':
+Name                                                Regions    Miss   Cover     Lines    Miss   Cover  Branches    Miss   Cover
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+kinetis_adc_calibrate                                    12       1  91.67%        18       0 100.00%         6       1  83.33%
+LLVMFuzzerTestOneInput                                   20       3  85.00%        63       5  92.06%         8       3  62.50%
+fuzz_kinetis_adc_calibrate.c:read_u32                     1       0 100.00%         5       0 100.00%         0       0   0.00%
+fuzz_kinetis_adc_calibrate.c:install_handler_once         1       0 100.00%         8       0 100.00%         0       0   0.00%
+fuzz_kinetis_adc_calibrate.c:sigusr1_clear_cal            4       0 100.00%         6       0 100.00%         2       1  50.00%
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                    38       4  89.47%       100       5  95.00%        16       5  68.75%

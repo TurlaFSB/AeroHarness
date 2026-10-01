@@ -1,0 +1,24 @@
+Initializing simplified static-AST oracle (kinetis_adc_calibrate run)
+  SC3    @ line  118: proposed=set          oracle=unconfident -> UNCONFIDENT
+  SC3    @ line  120: proposed=bitextract   oracle=bitextract   -> CONFIRMED
+  SC1    @ line  122: proposed=bitextract   oracle=bitextract   -> CONFIRMED
+  SC3    @ line  124: proposed=bitextract   oracle=bitextract   -> CONFIRMED
+  CLP0   @ line  133: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLP1   @ line  133: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLP2   @ line  133: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLP3   @ line  133: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLP4   @ line  133: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLPS   @ line  133: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  PG     @ line  144: not_applicable_write_only -> CONFIRMED (auto)
+  CLM0   @ line  146: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLM1   @ line  146: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLM2   @ line  146: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLM3   @ line  146: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLM4   @ line  146: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  CLMS   @ line  146: proposed=passthrough  oracle=unconfident -> UNCONFIDENT
+  MG     @ line  149: not_applicable_write_only -> CONFIRMED (auto)
+
+Oracle Evaluation Complete (18 total registers processed):
+  Confirmed: 5
+  Unconfident (fallback/unsupported AST pattern): 13
+  Disagreements: 0
