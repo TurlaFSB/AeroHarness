@@ -1,4 +1,4 @@
-import os, sys, time, json, subprocess, shutil
+import os, sys, time, json, subprocess, shutil, argparse, platform
 from datetime import datetime
 
 TARGETS = {
@@ -180,9 +180,39 @@ You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the h
 Include all necessary standard headers."""
 }
 
-OLLAMA_MODEL = "qwen2.5-coder:14b"
+# --- Portability fix (Oct 1 2026, independent audit) ---
+# The original script hardcoded a `wsl` subprocess wrapper and Windows-style
+# paths (D:/, /mnt/d/) into evaluate_harness(), meaning it could only ever
+# run on the original author's specific Windows+WSL machine. That's why no
+# raw trial log for this experiment survived in the repo: the script itself
+# was never portable enough to re-run anywhere else. Fixed below to call
+# clang++ directly with OS-native paths, with a clear error if clang++ with
+# libFuzzer+ASan support isn't on PATH. Nothing about the experimental
+# design (prompts, temperature, seed logic, N_TRIALS, success criteria, Arm
+# A/B branching) was changed -- only the mechanics of invoking the compiler.
+#
+# Run from the repo root as:
+#   python3 run_ablation_b_v2.py --model qwen2.5-coder:7b
+#   python3 run_ablation_b_v2.py --model qwen2.5-coder:14b
+# (run once per model; results are written to a model-specific file so a
+# 7b run and a 14b run never silently overwrite or merge into each other --
+# the original script's single hardcoded "ablation_b_v2_results.json" name
+# didn't guard against that.)
+
+_parser = argparse.ArgumentParser()
+_parser.add_argument("--model", default="qwen2.5-coder:14b", help="Exact ollama model tag, e.g. qwen2.5-coder:7b")
+_parser.add_argument("--trials", type=int, default=2, help="Trials per target (default 2, matching the original pilot)")
+_args, _ = _parser.parse_known_args()
+
+OLLAMA_MODEL = _args.model
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-N_TRIALS = 2
+N_TRIALS = _args.trials
+_MODEL_SLUG = OLLAMA_MODEL.replace(":", "_").replace("/", "_")
+RESULTS_FILE = f"ablation_b_v2_results_{_MODEL_SLUG}.json"
+
+CLANG = shutil.which("clang++")
+if not CLANG:
+    sys.exit("clang++ not found on PATH. Install LLVM/clang (with libFuzzer + AddressSanitizer support) before running this script.")
 
 def call_ollama(prompt, seed):
     data = {
@@ -231,23 +261,31 @@ def evaluate_harness(harness_code, dir_path, target_func):
     if target_func not in harness_code:
         return False, "Target function missing from generated code (Trivial)", "Target function missing"
         
-    # 1. Compile
+    # 1. Compile (portable: plain clang++, OS-native absolute include paths, no wsl wrapper)
+    repo_root = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
     res_compile = subprocess.run(
-        ["wsl", "clang++", "-fsanitize=fuzzer,address", "-O1", "-fno-inline", "-I" + os.path.abspath("harnesses/include").replace("\\", "/").replace("D:/", "/mnt/d/"), "-I/mnt/d/aeroharness", "harness.cpp", "-o", "fuzz_bin"],
+        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline",
+         "-I" + os.path.join(repo_root, "harnesses", "include"),
+         "-I" + repo_root,
+         "harness.cpp", "-o", "fuzz_bin"],
         cwd=dir_path, capture_output=True, text=True
     )
     if res_compile.returncode != 0:
         return False, "Compiler Error", res_compile.stderr
 
+    fuzz_bin = os.path.join(dir_path, "fuzz_bin" + (".exe" if platform.system() == "Windows" else ""))
     try:
         res_run = subprocess.run(
-            ["wsl", "./fuzz_bin", "-max_total_time=1", "-timeout=2"],
+            [fuzz_bin, "-max_total_time=1", "-timeout=2"],
             cwd=dir_path, capture_output=True, text=True, timeout=5
         )
         out_stderr = res_run.stderr
         ret_code = res_run.returncode
     except subprocess.TimeoutExpired as e:
-        subprocess.run(["wsl", "pkill", "-9", "fuzz_bin"])
+        try:
+            subprocess.run(["pkill", "-9", "-f", "fuzz_bin"])
+        except Exception:
+            pass
         out_stderr = e.stderr if e.stderr else (e.output.decode('utf-8', errors='ignore') if e.output else "")
         ret_code = 77 # Libfuzzer timeout exit code is usually 77, we'll handle it below
         out_stderr += "\n== ALARM: libFuzzer timeout ==\n"
@@ -293,11 +331,11 @@ def run_experiment():
     print(f"Time: {datetime.now().isoformat()}")
     
     results = {}
-    base_dir = "ablation_b_v2_logs"
+    base_dir = f"ablation_b_v2_logs_{_MODEL_SLUG}"  # model-specific dir: a 7b and 14b run must never share/overwrite raw trial files
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
         
-    results_file = "ablation_b_v2_results.json"
+    results_file = RESULTS_FILE
     if os.path.exists(results_file):
         with open(results_file, "r") as f:
             results = json.load(f)
@@ -387,7 +425,7 @@ def run_experiment():
             })
             
             # Write partial results
-            with open("ablation_b_v2_results.json", "w") as f:
+            with open(RESULTS_FILE, "w") as f:
                 json.dump(results, f, indent=2)
                 
     print("\nExperiment Complete.")
