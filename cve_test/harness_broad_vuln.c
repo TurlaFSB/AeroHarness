@@ -158,6 +158,15 @@ void dummy_cb(struct mqtt_client *client, const struct mqtt_evt *evt) {
         char *app_buffer = malloc(1024);
         if (app_buffer) {
             memcpy(app_buffer, client->rx_buf, payload_len);
+            /* Force the copy to be observable so -O1+ can't dead-code-eliminate
+             * this malloc/memcpy/free sequence (confirmed via LLVM IR inspection,
+             * Oct 1 audit: at -O1, with no further use of app_buffer, the
+             * optimizer removes the entire block and the vulnerability silently
+             * never executes — this is what caused the CVE-2020-10062 positive
+             * control to fail to reproduce at the project's documented -O1
+             * build flag). This line is why -O1 now also detects it. */
+            volatile char touch = app_buffer[0];
+            (void)touch;
             free(app_buffer);
         }
     }
