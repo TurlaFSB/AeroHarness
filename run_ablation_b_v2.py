@@ -19,8 +19,8 @@ static int pl011_poll_in(const struct device *dev, unsigned char *c)
 	return 0;
 }
 ```
-The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it and provide every mock, type, struct and macro it needs ABOVE that point. Note that these functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
-You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs.
+The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it ABOVE that point using the exact same `static` qualifier shown in the source above (a forward declaration using `extern` or `extern "C"` instead of `static` will fail to link against the appended definition), and provide every mock, type, struct and macro it needs. These functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
+You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs — the build system already provides `struct device` (fields: `config`, `data`, `mmio_base`) and the `BIT`, `GENMASK`, and `DEVICE_MMIO_GET` macros that header needs, via <zephyr/device.h>. Do NOT redefine `struct device`, `BIT`, `GENMASK`, or `DEVICE_MMIO_GET` yourself — that causes a redefinition error. Before calling the target function, set `dev->mmio_base` to point at your mock `struct pl011_regs` instance (this is what `get_uart()`/`DEVICE_MMIO_GET` reads). Use `dev->data` for driver runtime state (e.g. `struct pl011_data`) and `dev->config` for driver config (e.g. `struct pl011_config`) only if the target function needs them.
 Include all necessary standard headers.""",
 
     "pl011_poll_out": """Write a libFuzzer harness in C++ for the function 'pl011_poll_out' from Zephyr PL011.
@@ -39,8 +39,8 @@ static void pl011_poll_out(const struct device *dev, unsigned char c)
 	uart->dr = (uint32_t)c;
 }
 ```
-The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it and provide every mock, type, struct and macro it needs ABOVE that point. Note that these functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
-You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs.
+The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it ABOVE that point using the exact same `static` qualifier shown in the source above (a forward declaration using `extern` or `extern "C"` instead of `static` will fail to link against the appended definition), and provide every mock, type, struct and macro it needs. These functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
+You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs — the build system already provides `struct device` (fields: `config`, `data`, `mmio_base`) and the `BIT`, `GENMASK`, and `DEVICE_MMIO_GET` macros that header needs, via <zephyr/device.h>. Do NOT redefine `struct device`, `BIT`, `GENMASK`, or `DEVICE_MMIO_GET` yourself — that causes a redefinition error. Before calling the target function, set `dev->mmio_base` to point at your mock `struct pl011_regs` instance (this is what `get_uart()`/`DEVICE_MMIO_GET` reads). Use `dev->data` for driver runtime state (e.g. `struct pl011_data`) and `dev->config` for driver config (e.g. `struct pl011_config`) only if the target function needs them.
 Include all necessary standard headers.""",
 
     "pl011_isr": """Write a libFuzzer harness in C++ for the function 'pl011_isr' from Zephyr PL011.
@@ -69,8 +69,8 @@ static void pl011_isr(const struct device *dev)
 	}
 }
 ```
-The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it and provide every mock, type, struct and macro it needs ABOVE that point. Note that these functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
-You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs.
+The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it ABOVE that point using the exact same `static` qualifier shown in the source above (a forward declaration using `extern` or `extern "C"` instead of `static` will fail to link against the appended definition), and provide every mock, type, struct and macro it needs. These functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
+You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs — the build system already provides `struct device` (fields: `config`, `data`, `mmio_base`) and the `BIT`, `GENMASK`, and `DEVICE_MMIO_GET` macros that header needs, via <zephyr/device.h>. Do NOT redefine `struct device`, `BIT`, `GENMASK`, or `DEVICE_MMIO_GET` yourself — that causes a redefinition error. Before calling the target function, set `dev->mmio_base` to point at your mock `struct pl011_regs` instance (this is what `get_uart()`/`DEVICE_MMIO_GET` reads). Use `dev->data` for driver runtime state (e.g. `struct pl011_data`) and `dev->config` for driver config (e.g. `struct pl011_config`) only if the target function needs them.
 Include all necessary standard headers.""",
 
     "pl011_runtime_configure_internal": """Write a libFuzzer harness in C++ for the function 'pl011_runtime_configure_internal' from Zephyr PL011.
@@ -139,8 +139,8 @@ static int pl011_runtime_configure_internal(const struct device *dev,
 	return 0;
 }
 ```
-The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it and provide every mock, type, struct and macro it needs ABOVE that point. Note that these functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
-You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs.
+The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it ABOVE that point using the exact same `static` qualifier shown in the source above (a forward declaration using `extern` or `extern "C"` instead of `static` will fail to link against the appended definition), and provide every mock, type, struct and macro it needs. These functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
+You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs — the build system already provides `struct device` (fields: `config`, `data`, `mmio_base`) and the `BIT`, `GENMASK`, and `DEVICE_MMIO_GET` macros that header needs, via <zephyr/device.h>. Do NOT redefine `struct device`, `BIT`, `GENMASK`, or `DEVICE_MMIO_GET` yourself — that causes a redefinition error. Before calling the target function, set `dev->mmio_base` to point at your mock `struct pl011_regs` instance (this is what `get_uart()`/`DEVICE_MMIO_GET` reads). Use `dev->data` for driver runtime state (e.g. `struct pl011_data`) and `dev->config` for driver config (e.g. `struct pl011_config`) only if the target function needs them.
 Include all necessary standard headers.""",
 
     "pl011_init": """Write a libFuzzer harness in C++ for the function 'pl011_init' from Zephyr PL011.
@@ -175,8 +175,8 @@ static int pl011_init(const struct device *dev)
 	return 0;
 }
 ```
-The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it and provide every mock, type, struct and macro it needs ABOVE that point. Note that these functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
-You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs.
+The function definition will be appended by the build system, so do NOT include or rewrite it; forward-declare it ABOVE that point using the exact same `static` qualifier shown in the source above (a forward declaration using `extern` or `extern "C"` instead of `static` will fail to link against the appended definition), and provide every mock, type, struct and macro it needs. These functions are static, so they must be in the same translation unit, and appending is what makes a forward declaration plus a later definition work.
+You can #include "zephyr-src/drivers/serial/uart_pl011_registers.h" to get the hardware register structs — the build system already provides `struct device` (fields: `config`, `data`, `mmio_base`) and the `BIT`, `GENMASK`, and `DEVICE_MMIO_GET` macros that header needs, via <zephyr/device.h>. Do NOT redefine `struct device`, `BIT`, `GENMASK`, or `DEVICE_MMIO_GET` yourself — that causes a redefinition error. Before calling the target function, set `dev->mmio_base` to point at your mock `struct pl011_regs` instance (this is what `get_uart()`/`DEVICE_MMIO_GET` reads). Use `dev->data` for driver runtime state (e.g. `struct pl011_data`) and `dev->config` for driver config (e.g. `struct pl011_config`) only if the target function needs them.
 Include all necessary standard headers."""
 }
 
