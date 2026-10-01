@@ -1,6 +1,6 @@
 # AeroHarness
 
-**Autonomous Embedded-Target Reasoning and Oracle-Guided Harness Synthesis Feedback-Driven Agentic Synthesis of Fuzz Drivers for Memory-Safety Bug Hunting in Embedded Firmware**
+**AeroHarness: Agentic, Oracle-Verified Synthesis of Fuzz Drivers for Memory-Safety Bug Hunting in Embedded Firmware**
 
 ## Overview
 
@@ -16,9 +16,9 @@ The gap this project targets: existing work addresses one half of this problem e
 * **Stage 4 — Dataset Benchmarking**: Evaluated against P2IM, the standard benchmark used by Fuzzware and related work, across two microcontroller architectures (STM32, NXP Kinetis) and 5 peripheral types. Achieved 83.3% [95% CI: 69.4%–91.7%] access-level accuracy on the STM32/RIOT USART benchmark against P2IM's published ground truth (script: `evaluate_accuracy_canonical.py`).
 * **Stage 5 — Deep Learning Classifier**: Fine-tuned CodeBERT and an XGBoost baseline trained on the Stage 4 dataset, evaluated against a majority-class baseline with formal significance testing. Honest finding: neither trained model (CodeBERT 54.0%±24.4%, XGBoost 45.7%±25.3%) significantly outperforms naive majority-class guessing (40.4%±33.9%, all p>0.10), while zero-shot LLM inference (83.3%) meaningfully outperforms both.
 * **Stage 6 — Harness Synthesis & Self-Repair Loop**: Real libFuzzer harnesses generated for 3 functions (`pl011_poll_in`, `pl011_poll_out`, `pl011_isr`) spanning read, write, and interrupt paths. Compilation failures are fed to the LLM as real diagnostics, repeated until success (bounded retry). Surfaced two real static-mocking limitations: busy-wait timeouts and write-1-to-clear register clobbering.
-  * **Enhancement 1 (State-Machine Dispatcher)**: Built a unified harness bridging the 3 isolated functions using call-graph-inferred initialization sequences (Stage 1 data), vastly expanding loaded PC surface area.
-  * **Enhancement 2 (MQTT UBSan)**: Triaged an initial UBSan violation on the Zephyr MQTT `properties_decode` function, definitively classifying and fixing it as a harness artifact (mock macro promotion bug), not a vulnerability.
-  * **Enhancement 3 (Ground-Truth Methodology Validation)**: Validated pipeline capability against a known positive control (CVE-2020-10062: MQTT off-by-one). Proved that isolated harnesses are blind to this API contract violation, but a broad-scope, call-graph-aware harness modeling a naive application consumer detects the memory corruption instantly. (Explicitly a positive-control validation, not a new discovery).
+  * **Enhancement 1 (State-Machine Dispatcher)**: Built a unified harness bridging the 3 isolated functions using call-graph-inferred initialization sequences (Stage 1 data). Reaches more total coverage than any isolated harness, but only ~29% of the real driver's lines/~35% of its branches by independent `llvm-cov` measurement — the raw sancov PC count alone overstates this and should not be read as a coverage percentage (see `RESULTS.md` for the full isolated-vs-dispatcher comparison, independently re-verified and corrected Oct 1 2026).
+  * **Enhancement 2 (MQTT UBSan)**: Triaged an initial UBSan violation on the Zephyr MQTT `properties_decode` function, definitively classifying and fixing it as a harness artifact (mock macro promotion bug), not a vulnerability. Independently reproduced (Oct 1 2026): the pre-fix macro reproduces the exact UBSan error, the patched version is clean.
+  * **Enhancement 3 (Ground-Truth Methodology Validation)**: Validated pipeline capability against a known positive control (CVE-2020-10062: MQTT off-by-one). Proved that isolated harnesses are blind to this API contract violation, but a broad-scope, call-graph-aware harness modeling a naive application consumer detects the memory corruption within hundreds to low thousands of executions (<1 second). (Explicitly a positive-control validation, not a new discovery.) Independently re-verified and fixed (Oct 1 2026): the harness originally failed to reproduce this at the project's own documented `-O1` build flag — LLVM's optimizer was dead-code-eliminating the vulnerable code path — now fixed and reproducible (see `RESULTS.md`).
 * **Stage 7 — Uncertainty-Guided RL Scheduling & State-Machine Sequencing**: 
   * **Ablation**: Q-learning, UCB1, and PPO agents trained to prioritize fuzzing time using Stage 3's uncertainty data as an added reward signal. Characterized, via the Coupon Collector's Problem (empirically validated), the scale at which scheduling helps vs. random search. An ablation confirmed the real uncertainty signal provides a statistically significant robustness/variance-reduction benefit (F=17.42, p<0.01), not a mean-performance one. 10-seed final results across all 3 algorithms confirmed.
   * **RL-Guided Sequencing (Methodology Case Study)**: Extended the RL framework to select API sequences for the Stage 6 state-machine dispatcher, completely decoupling sequence length from libFuzzer's mutational payload. Initial results appeared to show Q-learning outperforming Random (54 vs 41 PCs). However, an exhaustive 8-point measurement audit unmasked every apparent RL victory as a reward-hacking vulnerability or measurement artifact (e.g., unsigned underflows, debug `printf` self-rewards, and harness-router branch inflation). Applying a rigorous structural fix (`__attribute__((no_sanitize("coverage")))` + `-fno-inline`) strictly scoped coverage to the target driver. Independent `llvm-cov` source-profiling confirmed the true, artifact-free result: **all algorithms (Random, UCB1, Q-learning) converge to identically flat driver-level coverage (29 PCs).** This honest null result is a reflection of the benchmark's shallow state space (a single 10-step random sequence hits 90% of branches), not a general claim about RL. The real contribution is the rigorous methodology case study mapping the failure modes of raw coverage counters in RL-guided fuzzing (see `RESULTS.md`).
@@ -33,6 +33,7 @@ All 7 stages implemented and empirically evaluated with real execution evidence.
 * Real compiler-driven self-repair loop demonstrated on 3 functions.
 * RL-guided scheduling characterized across 3 algorithms and 10 seeds: no mean-performance advantage at unit-test scale, but a significant robustness benefit.
 * Ongoing verification: a prompt-methodology inconsistency was found between our Zephyr and Kinetis Stage 2 scripts and corrected; a Gemini spot-check on the corrected prompt (n=13, see `RESULTS.md`) tentatively supports consistent performance across architectures, though the sample's limited register diversity means this remains a preliminary finding.
+* Independent re-audit (Oct 1 2026): Stage 6's isolated-harness coverage numbers, the MQTT UBSan classification, the CVE-2020-10062 positive control, and the Stage 6 coverage measurement method were each re-verified from scratch against the actual repo (not just the prose claims). Two real defects were found and fixed in the process — stale/incorrect isolated-harness coverage numbers, and a build-flag-dependent false negative in the CVE positive control — and `llvm-cov` cross-validation (previously missing for Stage 6) was added for all four Stage 6 harnesses. See `RESULTS.md` for full detail.
 
 ## Datasets & Provenance
 
@@ -61,7 +62,10 @@ See `REPRODUCE.md` for full setup. Quick start:
 ```bash
 python3 stage1_ast_parser.py <path_to_driver.c>
 python3 evaluate_accuracy_canonical.py
-python3 rl_strict_ablation.py
+python3 rl_strict_ablation.py       # Stage 7 scheduling ablation (F=17.42, p<0.01) — verified current (Oct 1 2026)
+python3 run_llvm_cov.py             # Stage 7 sequencing case study: consolidated harness (fuzz_consolidated.c)
+                                     # + independent llvm-cov cross-validation — reproduces the flat-29-PC null
+                                     # result across all 6 conditions (verified Oct 1 2026)
 ```
 
 ## Related Work
