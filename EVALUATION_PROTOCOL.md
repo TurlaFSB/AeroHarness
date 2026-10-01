@@ -11,7 +11,7 @@ This checklist dictates the definitive, final set of tables and experiments the 
   - Status: DONE (Stage 4). Referenced in RESULTS.md.
 
 - [x] **Table 3: ML Model Classifier Accuracy (CodeBERT vs XGBoost vs Zero-Shot)**
-  - Comparison of static analysis accelerators: CodeBERT (54.0% ± 24.4%) vs XGBoost (45.7% ± 25.3%) vs Majority Baseline (40.4% ± 33.9%). Zero-shot LLM outperformed all at 83.3%. 
+  - Comparison of static analysis accelerators: CodeBERT (54.0% ï¿½ 24.4%) vs XGBoost (45.7% ï¿½ 25.3%) vs Majority Baseline (40.4% ï¿½ 33.9%). Zero-shot LLM outperformed all at 83.3%. 
   - Status: DONE (Stage 5). Referenced in RESULTS.md.
 
 - [x] **Table 4: RL Algorithm Performance (10-Seed Coupon Collector Evaluation)**
@@ -19,5 +19,9 @@ This checklist dictates the definitive, final set of tables and experiments the 
   - Status: DONE (Stage 7). Referenced in RESULTS.md.
 
 - [x] **Table 5: Oracle Ablation (Learned Uncertainty vs Random)**
-  - UCB1 run with the genuine Oracle uncertainty multiplier (80.80 ± 4.53) vs randomly shuffled target multipliers (73.20 ± 18.90). Verifies our learned signal breaks uniformity.
+  - UCB1 run with the genuine Oracle uncertainty multiplier (80.80 ï¿½ 4.53) vs randomly shuffled target multipliers (73.20 ï¿½ 18.90). Verifies our learned signal breaks uniformity.
   - Status: DONE (Stage 7 Extension). Referenced in RESULTS.md.
+
+- [x] **Table 6: Informed vs. Blind Harness Construction Ablation**
+  - Distinctively novel finding justifying the exception to "no more ad hoc additions" above: tests whether Stage 2/3's semantic MMIO modeling is actually load-bearing for coverage, isolated as its own variable for the first time. Result: not a blanket multiplier -- no measurable difference on shallow functions (`poll_in`, `isr`: identical coverage ceiling, informed vs. blind), but a real, quantified benefit on functions with a single-bit hazard buried in a large raw search space (`poll_out`: informed reaches deeper pre-hang coverage in 9/10 seeds vs. 3/10 for blind). Cross-validated with `llvm-cov`.
+  - Status: DONE (Stage 6 Ablation). Referenced in RESULTS.md.
