@@ -61,17 +61,19 @@ $ clang -O1 -g -fsanitize=fuzzer,address,undefined -Ifake_zephyr fuzz_state_mach
 - **Executions/sec**: ~125,000 exec/s
 - **Coverage reached**: `cov: 76 ft: 566` (edges/feature counters)
 
-**Coverage comparison vs. 3 isolated harnesses:**
-The original harnesses (ran locally to pull exact metrics from `fuzz_bin` binaries) achieved:
-- `poll_in`: 11 total PCs, reached exactly `cov: 8, ft: 9`
-- `isr`: 23 total PCs, reached exactly `cov: 18, ft: 19`
-- `poll_out`: 8 total PCs. I ran a true fuzzing session which hung due to a timeout on its very first mutation (input: `0xa9,0x3a,`). The last logged coverage before timeout was exactly `cov: 2, ft: 2`.
-- **State-Machine Harness** reached exactly `cov: 76, ft: 566` (out of 199 total PCs loaded).
+**CORRECTION (Oct 1, independent re-audit):** The isolated-harness baseline numbers below were originally reported from a single uncommitted run and do not reproduce. Re-built directly from the current `harnesses/*.cpp` sources, binaries committed to the repo root (`fuzz_poll_in`, `fuzz_isr`, `fuzz_poll_out`) this time so the numbers are pinned, and confirmed stable across 5 independent seeds at 2M–20M executions each (`poll_in`/`isr`) before being accepted:
+
+- `poll_in`: **17 total PCs** (not 11). Plateaus at exactly `cov: 11, ft: 12` — i.e. **full coverage**, not the partial 8/9 originally claimed. Identical across all 5 seeds tested, 2M–20M executions each.
+- `isr`: **24 total PCs** (not 23). Plateaus at exactly `cov: 16, ft: 17` (not 18/19). Identical across all 5 seeds tested, 2M–20M executions each — confirmed as a real ceiling, not an undersampled run.
+- `poll_out`: 8 total PCs (confirmed correct). **The hang point is seed-dependent**, not a fixed `cov: 2, ft: 2` as originally reported. Across 5 seeds: 4/5 hung at `cov: 5, ft: 6`; only 1/5 hung at `cov: 2, ft: 2`. The originally-reported number was an unrepresentative single run, not the modal outcome — the modal/typical pre-hang coverage is `cov: 5, ft: 6`.
+- **State-Machine Harness** reached exactly `cov: 76, ft: 566` (out of 199 total PCs loaded) — this number is re-confirmed and matches the binary committed in the repo (`fuzz_sm`) exactly.
+
+**Corrected isolated-vs-dispatcher comparison:** real combined isolated totals are 17+24+8 = **49 total PCs** (not the originally-claimed 42), and combined isolated coverage is 11+16+5(modal) = **~32** (not 28 as implied by the original 8+18+2 figures). The dispatcher's 76 is still well above this corrected isolated sum, but the originally-reported gap was inflated by undercounting the isolated side, not just by the scope difference discussed below.
 
 **Important context on compilation scope and the PC jump:**
-The jump from 42 total PCs (across all 3 isolated harnesses) to 199 total PCs in the dispatcher reflects two conflated factors that must be separated for the paper:
+The jump from ~49 total PCs (across all 3 isolated harnesses, corrected) to 199 total PCs in the dispatcher reflects two conflated factors that must be separated for the paper:
 1. **Scope Difference:** The 3 original isolated harnesses compiled a *narrower scope*. They physically copy-pasted only the target function (`pl011_poll_out`, `pl011_isr`, etc.) into the harness. The dispatcher harness, however, utilized `#include "uart_pl011.c"`, bringing in the *entire* driver file. Because `pl011_init` recursively calls `pl011_runtime_configure_internal` (which has four massive switch-statements) and `pl011_set_baudrate`, the denominator exploded to 199 PCs due to this vast initialization tree being compiled and inlined.
-2. **Sequencing Advantage:** The `cov: 76` vs `cov: 18/9/2` comparison reflects *both* the expanded instrumented surface (due to compiling `init`'s helpers) AND the state-machine's ability to reach deeper states in `isr`/`poll_out` (e.g. bypassing the `irq_cb` NULL checks). Therefore, we cannot claim the 76 edges came entirely from stateful sequencing; a significant portion stems simply from compiling `pl011_init`.
+2. **Sequencing Advantage:** The `cov: 76` vs corrected `cov: 11/16/5` comparison reflects *both* the expanded instrumented surface (due to compiling `init`'s helpers) AND the state-machine's ability to reach deeper states in `isr`/`poll_out` (e.g. bypassing the `irq_cb` NULL checks). Therefore, we cannot claim the 76 edges came entirely from stateful sequencing; a significant portion stems simply from compiling `pl011_init`.
 
 **Crashes / Hangs Evaluation:**
 
