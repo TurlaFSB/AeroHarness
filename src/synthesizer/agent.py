@@ -4,6 +4,7 @@ Generates C++ libFuzzer harnesses and handles multi-turn self-repair conversatio
 """
 import os
 import re
+import time
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
@@ -71,31 +72,55 @@ class HarnessSynthesizerAgent:
                 self.client = None
                 self.last_error = f"client init failed: {e!r}"
 
+    # NOTE (Oct 2 2026): added after item 2's real run hit a 503 UNAVAILABLE ("high
+    # demand ... usually temporary") on EVERY key for BOTH the primary and fallback
+    # model, on the very first real attempt after this file's own fallback-model fix
+    # landed. That report also surfaced that key rotation (RotatingHarnessSynthesizerAgent)
+    # is structurally useless against this failure mode: a 503 is a model-wide backend
+    # condition, not a per-key problem, so cycling through all 4 keys just burns one call
+    # per key for the identical, guaranteed-to-repeat error. Retrying the SAME model a
+    # couple of times with a short delay -- cheap, and explicitly licensed by Google's own
+    # error text -- is a much better first response than immediately treating a transient
+    # spike as a hard failure. Only retries on a real 503 (ServerError with .code == 503);
+    # a 404 (bad model name) or 429 (quota) will not resolve by waiting a few seconds, so
+    # those still fail fast onto the next model/key exactly as before.
+    _SERVER_BUSY_RETRY_DELAYS_SEC = [10, 30]
+
     def _generate_content(self, prompt: str, system_prompt: str, temperature: float, context: str):
         """Tries `self.model_name` first, then `self.fallback_model` (only if it's a
-        different string) on any exception from the primary. Returns (response_text,
-        model_used) on success, or (None, None) if every attempt failed -- in which case
-        self.last_error holds the LAST failure's text (the most recent attempt is the
-        most informative one for a caller deciding what to report). Added Oct 2 2026 once
-        a second real working model (gemini-3.7-flash, alongside gemini-3.8-flash) was
-        confirmed live -- see the __init__ note on fallback_model."""
+        different string), retrying a transient 503 in place a couple of times before
+        moving on. Returns (response_text, model_used) on success, or (None, None) if
+        every attempt across every model failed -- in which case self.last_error holds
+        EVERY attempt's failure text (not just the last one), so a caller/report can see
+        whether e.g. the primary model also 503'd or failed for some different reason
+        than the fallback did. Added Oct 2 2026 once a second real working model
+        (gemini-3.7-flash, alongside gemini-3.8-flash) was confirmed live -- see the
+        __init__ note on fallback_model."""
         models_to_try = [self.model_name]
         if self.fallback_model and self.fallback_model != self.model_name:
             models_to_try.append(self.fallback_model)
 
+        attempt_errors: List[str] = []
         for model in models_to_try:
-            try:
-                response = self.client.models.generate_content(
-                    model=model,
-                    contents=prompt,
-                    config={
-                        "system_instruction": system_prompt,
-                        "temperature": temperature
-                    }
-                )
-                return response.text, model
-            except Exception as e:
-                self.last_error = f"{context} ({model}): {e!r}"
+            delays = [0] + self._SERVER_BUSY_RETRY_DELAYS_SEC
+            for attempt_num, delay in enumerate(delays):
+                if delay:
+                    time.sleep(delay)
+                try:
+                    response = self.client.models.generate_content(
+                        model=model,
+                        contents=prompt,
+                        config={
+                            "system_instruction": system_prompt,
+                            "temperature": temperature
+                        }
+                    )
+                    return response.text, model
+                except Exception as e:
+                    attempt_errors.append(f"{context} ({model}, attempt {attempt_num + 1}): {e!r}")
+                    if getattr(e, "code", None) != 503:
+                        break  # not a transient-busy error -- no point retrying this model
+        self.last_error = " | ".join(attempt_errors)
         return None, None
 
     def synthesize_initial_harness(
