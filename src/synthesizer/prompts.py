@@ -29,8 +29,33 @@ Strict Harness Engineering Rules:
         header_context: ExtractedHeaderContext,
         target_api: FunctionSignature,
         risk_score: Optional[APIRiskScore],
-        header_filename: str
+        header_filename: str,
+        externally_linked: bool = False,
+        mmio_convention_note: Optional[str] = None
     ) -> str:
+        """
+        `externally_linked` (added Oct 2 2026, Work Plan item 2): set this True when the
+        target function is a `static`-at-source-but-externally-relinked real driver
+        function that will be compiled as its own separate translation unit and linked
+        against the harness, rather than something the LLM is expected to define itself.
+        Without this, the model has no way to know the function already exists elsewhere,
+        and Ablation B v2 already documented this exact failure mode: the model attempting
+        to define the target function itself, which the project treats as a genuine compile
+        failure (symbol redefinition) rather than something to silently work around -- this
+        flag only reduces how often that avoidable failure mode occurs, it does not suppress
+        it as a scored outcome if the model does it anyway.
+
+        `mmio_convention_note` (added Oct 2 2026, Work Plan item 2): this system prompt's
+        default MMIO guidance (bullet 2, below) steers the model toward writing standalone
+        `hw_read_reg32`/`hw_write_reg32`-style accessor functions. That is the wrong
+        convention for a target whose real body already calls a fixed accessor like
+        `get_uart(dev)` that dereferences a specific global the harness must set, rather
+        than calling functions the harness defines -- an externally-linked real function
+        cannot be redirected to call whatever mock functions the LLM invents. When set,
+        this string is appended verbatim as its own instruction so the actual convention
+        in force can be stated exactly (which global, what struct, how to point it) instead
+        of silently relying on the generic guidance below, which does not apply.
+        """
         prompt_lines = [
             f"### Target Embedded API: `{target_api.raw_declaration}`",
             f"Header Include: `#include \"{header_filename}\"`\n",
@@ -68,6 +93,17 @@ Strict Harness Engineering Rules:
         prompt_lines.append("2. Implement mock stubs for hardware register read/write functions.")
         prompt_lines.append("3. Properly initialize any context struct, call the target API with fuzzer data, and cleanup.")
         prompt_lines.append("4. Output complete, compilable C++ code.")
+        if externally_linked:
+            prompt_lines.append(
+                f"5. `{target_api.name}` is a real, already-implemented function that will be "
+                f"COMPILED SEPARATELY and LINKED against your harness. Do NOT write a body for "
+                f"it. Only forward-declare its exact signature (`extern \"C\" {target_api.raw_declaration}` "
+                f"if needed for C linkage, or a plain declaration if the header above already "
+                f"provides one) and call it. Writing your own implementation of this function "
+                f"will cause a symbol-redefinition link error."
+            )
+        if mmio_convention_note:
+            prompt_lines.append(f"6. MMIO convention override for this target: {mmio_convention_note}")
 
         return "\n".join(prompt_lines)
 

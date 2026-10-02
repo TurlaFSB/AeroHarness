@@ -104,12 +104,21 @@ class SelfRepairOrchestrator:
         target_c_files: List[Path],
         include_dirs: List[Path],
         output_dir: Path,
+        externally_linked: bool = False,
+        mmio_convention_note: Optional[str] = None,
     ) -> RepairOutcome:
         """
         Runs the full closed-loop workflow for one target API and returns a `RepairOutcome`
         describing whether a harness that compiles, links, and survives the smoke-test
         oracle was ever produced, and the full per-iteration history either way (used by
         work-plan item 2's statistical analysis of iteration counts).
+
+        `externally_linked` (added Oct 2 2026, item 2): pass True when `target_api` is a
+        real function being supplied via `target_c_files` rather than something the model
+        should define itself -- see `PromptFactory.build_synthesis_prompt`'s docstring for
+        why this matters for real driver-style targets (e.g. the Zephyr `uart_pl011.c`
+        functions) as opposed to the toy, header-declared, externally-linked
+        `protocol_process_frame`-style targets this flag happens not to be needed for.
         """
         output_dir.mkdir(parents=True, exist_ok=True)
         harness_src_path = output_dir / f"fuzz_{target_api.name}.cpp"
@@ -122,6 +131,8 @@ class SelfRepairOrchestrator:
             target_api=target_api,
             risk_score=risk_score,
             header_filename=header_path.name,
+            externally_linked=externally_linked,
+            mmio_convention_note=mmio_convention_note,
         )
 
         last_comp_res: Optional[CompilationResult] = None
