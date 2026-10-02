@@ -32,6 +32,16 @@ class HarnessSynthesizerAgent:
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.model_name = model_name
+        # NOTE (Oct 2 2026): found while diagnosing item 2's model-deprecation failure --
+        # `fallback_model` is accepted and stored here but is NEVER actually used anywhere
+        # else in this class. The "fallback" that happens on any API exception is the
+        # deterministic offline generator (see synthesize_initial_harness/repair_harness
+        # below), not a second attempt against `fallback_model`. Not fixed here: as of
+        # this commit there is no second distinct Gemini model confirmed to work (see
+        # config/settings.py's comment), so a real model_name -> fallback_model retry
+        # path has nothing meaningful to fall back to yet and would be untested dead
+        # weight. Flagging explicitly rather than leaving this silently misleading; wire
+        # up a genuine retry here once a second working model is confirmed.
         self.fallback_model = fallback_model
         self.client = None
         # NOTE (Oct 2 2026, Work Plan item 2): the except blocks below have always
