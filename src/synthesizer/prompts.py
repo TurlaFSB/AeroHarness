@@ -97,10 +97,13 @@ Strict Harness Engineering Rules:
             prompt_lines.append(
                 f"5. `{target_api.name}` is a real, already-implemented function that will be "
                 f"COMPILED SEPARATELY and LINKED against your harness. Do NOT write a body for "
-                f"it. Only forward-declare its exact signature (`extern \"C\" {target_api.raw_declaration}` "
-                f"if needed for C linkage, or a plain declaration if the header above already "
-                f"provides one) and call it. Writing your own implementation of this function "
-                f"will cause a symbol-redefinition link error."
+                f"it, and do NOT write your own forward declaration of it either -- the "
+                f"`#include \"{header_filename}\"` directive above already declares it with the "
+                f"correct signature and linkage, so writing any additional declaration of "
+                f"`{target_api.name}` (with or without `extern \"C\"`) will conflict with that "
+                f"header declaration and fail to compile. Simply include the header (as "
+                f"instructed above) and call `{target_api.name}` directly. Writing your own "
+                f"implementation of this function will cause a symbol-redefinition link error."
             )
         if mmio_convention_note:
             prompt_lines.append(f"6. MMIO convention override for this target: {mmio_convention_note}")
