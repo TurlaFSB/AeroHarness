@@ -62,12 +62,29 @@ class HarnessSynthesizerAgent:
         self.last_error: Optional[str] = None
         self._init_client()
 
+    # NOTE (Oct 2 2026): a real item-2 run stalled completely for 40+ minutes mid-target
+    # with zero further log output and zero further API calls recorded, until it was
+    # killed by hand. Root cause, confirmed by reading the google.genai SDK's own
+    # HttpOptions.timeout field: it defaults to None -- no request timeout at all -- so a
+    # stalled/hung network connection to the Gemini API blocks generate_content()
+    # indefinitely, never raises an exception, and therefore never triggers any of the
+    # retry/fallback/rotation logic this file and rotating_agent.py already have (all of
+    # which only fire on an actual exception). A 2-minute cap is generous for a normal
+    # response but far short of "indefinitely" -- a call that's really just stuck now
+    # fails fast and flows into the existing retry/fallback path instead of freezing the
+    # whole unattended run.
+    _REQUEST_TIMEOUT_MS = 120_000
+
     def _init_client(self):
         """Initializes the Google GenAI client if an API key is present."""
         if self.api_key:
             try:
                 from google import genai
-                self.client = genai.Client(api_key=self.api_key)
+                from google.genai import types
+                self.client = genai.Client(
+                    api_key=self.api_key,
+                    http_options=types.HttpOptions(timeout=self._REQUEST_TIMEOUT_MS),
+                )
             except Exception as e:
                 self.client = None
                 self.last_error = f"client init failed: {e!r}"
