@@ -281,10 +281,20 @@ def evaluate_harness(harness_code, dir_path, target_func):
     if res_compile.returncode != 0:
         return False, "Compiler Error", res_compile.stderr
 
-    fuzz_bin = os.path.join(dir_path, "fuzz_bin" + (".exe" if platform.system() == "Windows" else ""))
+    # Bug fix (Oct 2026, Ablation B v2 full-sweep crash): this used to be
+    # os.path.join(dir_path, "fuzz_bin"), i.e. an already-dir_path-prefixed
+    # path, passed to subprocess.run with cwd=dir_path ALSO set. Since the
+    # path contains a slash, the OS resolves it relative to the new cwd,
+    # not the original one -- so it looked for dir_path/dir_path/fuzz_bin,
+    # which never existed, and crashed with FileNotFoundError. This had
+    # been latent since before this experiment started; it only fired now
+    # because nothing had ever compiled successfully before this run.
+    # Fix: reference the binary relative to dir_path, since cwd already is
+    # dir_path.
+    fuzz_bin_name = "./fuzz_bin" + (".exe" if platform.system() == "Windows" else "")
     try:
         res_run = subprocess.run(
-            [fuzz_bin, "-max_total_time=1", "-timeout=2"],
+            [fuzz_bin_name, "-max_total_time=1", "-timeout=2"],
             cwd=dir_path, capture_output=True, text=True, timeout=5
         )
         out_stderr = res_run.stderr
