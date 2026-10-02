@@ -23,20 +23,20 @@ class Settings(BaseModel):
     # Pro-tier model) returned 429 RESOURCE_EXHAUSTED with an explicit limit of 0 on the
     # free tier -- architecturally unusable on these keys, not just quota-exhausted for
     # today, so there is currently no usable Pro-tier model at all.
-    # gemini-3.8-flash first returned a transient 503 (high demand) twice in a row, then
-    # SUCCEEDED on a later retry, confirming the earlier 503s were genuinely temporary
-    # rather than a name problem. A second, independent, equally capable-tier model,
-    # gemini-3.7-flash, also returned a real SUCCESS in the same diagnostic run, giving
-    # genuine model diversity -- primary_model is the newest/most capable confirmed-live
-    # model (Google's own description: "most intelligent Flash model, engineered for
-    # long-horizon software engineering" -- a good match for harness synthesis), and
-    # fallback_model is a different, also-confirmed-live model, not a duplicate of
-    # primary_model. HarnessSynthesizerAgent now genuinely retries fallback_model on a
-    # primary_model failure (src/synthesizer/agent.py::_generate_content) instead of
-    # silently storing an unused field.
+    # gemini-3.8-flash (the newest flagship Flash model) succeeded once in diagnostics,
+    # then 503'd twice more in the very next real run -- plausibly the most
+    # demand-contended model simply because it's the newest. gemini-3.7-flash succeeded
+    # in BOTH diagnostic runs, and gemini-3.6-flash succeeded the one time it was tried,
+    # with neither ever observed 503ing -- a better track record so far, and a generation
+    # or two behind the bleeding edge is still "good enough" for harness synthesis (not a
+    # task that needs the absolute newest model). primary_model/fallback_model set to
+    # these two instead, both confirmed live, genuinely distinct, real model diversity.
+    # HarnessSynthesizerAgent genuinely retries fallback_model on a primary_model failure
+    # (src/synthesizer/agent.py::_generate_content), with an in-place retry on a
+    # transient 503 before even falling through to fallback_model.
     gemini_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY"))
-    primary_model: str = "gemini-3.8-flash"
-    fallback_model: str = "gemini-3.7-flash"
+    primary_model: str = "gemini-3.7-flash"
+    fallback_model: str = "gemini-3.6-flash"
     temperature: float = 0.2
     
     # Compiler & Fuzzer Settings
