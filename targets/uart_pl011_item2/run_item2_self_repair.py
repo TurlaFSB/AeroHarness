@@ -48,7 +48,7 @@ from src.analyzer.c_ast_extractor import (  # noqa: E402
 from src.analyzer.call_graph import CallGraphBuilder  # noqa: E402
 from src.oracle.repair_loop import SelfRepairOrchestrator  # noqa: E402
 from src.synthesizer.agent import HarnessSynthesizerAgent  # noqa: E402
-from target_definitions import TARGETS  # noqa: E402
+from item2_target_bodies import TARGETS  # noqa: E402
 from rotating_agent import AllKeysExhaustedError, RotatingHarnessSynthesizerAgent  # noqa: E402
 
 ITEM2_DIR = Path(__file__).parent
