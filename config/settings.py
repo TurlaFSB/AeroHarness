@@ -16,28 +16,27 @@ class Settings(BaseModel):
     output_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parent.parent / "output")
     
     # LLM Configuration
-    # UPDATED Oct 2 2026, via a real diagnostic API call (targets/uart_pl011_item2/
+    # UPDATED Oct 2 2026, via real diagnostic API calls (targets/uart_pl011_item2/
     # diagnose_model.py), not a guess -- see FAILURE_TAXONOMY.md for the full finding.
-    # gemini-1.5-pro and gemini-2.0-flash (the previous values) both returned a live
-    # 404 NOT_FOUND. Google's own 404 error body for gemini-2.0-flash explicitly named
-    # the replacement: "Please update your code to use models/gemini-3.8-flash" -- a
-    # first-party confirmation, not web-research inference. gemini-3.1-pro-preview (the
-    # only candidate Pro-tier model) returned 429 RESOURCE_EXHAUSTED with an explicit
-    # limit of 0 on the free tier ("Quota exceeded ... limit: 0, model: gemini-3.1-pro"),
-    # i.e. it is not merely daily-quota-exhausted, it is architecturally unusable on this
-    # project's free-tier keys -- so there is currently no usable Pro-tier model at all.
-    # gemini-3.8-flash itself returned a transient 503 UNAVAILABLE ("high demand") on
-    # this one diagnostic call -- that is a temporary availability issue, not a model-name
-    # problem (it would 404 if the name were wrong, the way the two retired models did).
-    # Both fields are set to gemini-3.8-flash because it is the only model this sandbox's
-    # diagnostic confirmed actually exists and is reachable on the free tier; there is no
-    # second distinct model currently known to work, so fallback_model cannot yet provide
-    # real model diversity (see the note on HarnessSynthesizerAgent.fallback_model in
-    # agent.py -- it is also currently never used as an actual retry target, a separate,
-    # pre-existing gap, not fixed here since there is nothing else to fall back to yet).
+    # gemini-1.5-pro and gemini-2.0-flash (the original values) both returned a live
+    # 404 NOT_FOUND -- confirmed dead. gemini-3.1-pro-preview (the only candidate
+    # Pro-tier model) returned 429 RESOURCE_EXHAUSTED with an explicit limit of 0 on the
+    # free tier -- architecturally unusable on these keys, not just quota-exhausted for
+    # today, so there is currently no usable Pro-tier model at all.
+    # gemini-3.8-flash first returned a transient 503 (high demand) twice in a row, then
+    # SUCCEEDED on a later retry, confirming the earlier 503s were genuinely temporary
+    # rather than a name problem. A second, independent, equally capable-tier model,
+    # gemini-3.7-flash, also returned a real SUCCESS in the same diagnostic run, giving
+    # genuine model diversity -- primary_model is the newest/most capable confirmed-live
+    # model (Google's own description: "most intelligent Flash model, engineered for
+    # long-horizon software engineering" -- a good match for harness synthesis), and
+    # fallback_model is a different, also-confirmed-live model, not a duplicate of
+    # primary_model. HarnessSynthesizerAgent now genuinely retries fallback_model on a
+    # primary_model failure (src/synthesizer/agent.py::_generate_content) instead of
+    # silently storing an unused field.
     gemini_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY"))
     primary_model: str = "gemini-3.8-flash"
-    fallback_model: str = "gemini-3.8-flash"
+    fallback_model: str = "gemini-3.7-flash"
     temperature: float = 0.2
     
     # Compiler & Fuzzer Settings

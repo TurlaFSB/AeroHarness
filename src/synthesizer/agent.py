@@ -32,16 +32,17 @@ class HarnessSynthesizerAgent:
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.model_name = model_name
-        # NOTE (Oct 2 2026): found while diagnosing item 2's model-deprecation failure --
-        # `fallback_model` is accepted and stored here but is NEVER actually used anywhere
-        # else in this class. The "fallback" that happens on any API exception is the
-        # deterministic offline generator (see synthesize_initial_harness/repair_harness
-        # below), not a second attempt against `fallback_model`. Not fixed here: as of
-        # this commit there is no second distinct Gemini model confirmed to work (see
-        # config/settings.py's comment), so a real model_name -> fallback_model retry
-        # path has nothing meaningful to fall back to yet and would be untested dead
-        # weight. Flagging explicitly rather than leaving this silently misleading; wire
-        # up a genuine retry here once a second working model is confirmed.
+        # NOTE (Oct 2 2026): `fallback_model` used to be accepted and stored here but
+        # never actually used anywhere else in the class -- the only "fallback" that
+        # happened on any API exception was the deterministic offline generator, not a
+        # second attempt against a different Gemini model. That was left unfixed at
+        # first because there was no second distinct Gemini model confirmed to work (see
+        # config/settings.py's history). Now there is: a live diagnostic
+        # (targets/uart_pl011_item2/diagnose_model.py) confirmed gemini-3.8-flash AND
+        # gemini-3.7-flash both return real SUCCESS responses. `_generate_content` below
+        # now genuinely tries `model_name` first and `fallback_model` second (only when
+        # they differ) before giving up to the deterministic generator -- real model
+        # diversity, not dead config.
         self.fallback_model = fallback_model
         self.client = None
         # NOTE (Oct 2 2026, Work Plan item 2): the except blocks below have always
@@ -70,6 +71,33 @@ class HarnessSynthesizerAgent:
                 self.client = None
                 self.last_error = f"client init failed: {e!r}"
 
+    def _generate_content(self, prompt: str, system_prompt: str, temperature: float, context: str):
+        """Tries `self.model_name` first, then `self.fallback_model` (only if it's a
+        different string) on any exception from the primary. Returns (response_text,
+        model_used) on success, or (None, None) if every attempt failed -- in which case
+        self.last_error holds the LAST failure's text (the most recent attempt is the
+        most informative one for a caller deciding what to report). Added Oct 2 2026 once
+        a second real working model (gemini-3.7-flash, alongside gemini-3.8-flash) was
+        confirmed live -- see the __init__ note on fallback_model."""
+        models_to_try = [self.model_name]
+        if self.fallback_model and self.fallback_model != self.model_name:
+            models_to_try.append(self.fallback_model)
+
+        for model in models_to_try:
+            try:
+                response = self.client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config={
+                        "system_instruction": system_prompt,
+                        "temperature": temperature
+                    }
+                )
+                return response.text, model
+            except Exception as e:
+                self.last_error = f"{context} ({model}): {e!r}"
+        return None, None
+
     def synthesize_initial_harness(
         self,
         header_context: ExtractedHeaderContext,
@@ -91,30 +119,22 @@ class HarnessSynthesizerAgent:
         system_prompt = PromptFactory.get_system_prompt()
 
         if self.client:
-            try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config={
-                        "system_instruction": system_prompt,
-                        "temperature": 0.2
-                    }
-                )
-                raw_code = self._extract_code(response.text)
+            response_text, model_used = self._generate_content(
+                prompt, system_prompt, temperature=0.2, context="synthesize_initial_harness"
+            )
+            if response_text is not None:
+                raw_code = self._extract_code(response_text)
                 return SynthesisCandidate(
                     target_api=target_api.name,
                     code=raw_code,
                     iteration=0,
-                    model_used=self.model_name,
+                    model_used=model_used,
                     history=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt},
                         {"role": "assistant", "content": raw_code}
                     ]
                 )
-            except Exception as e:
-                # Fall back to template synthesizer if network/API error
-                self.last_error = f"synthesize_initial_harness: {e!r}"
 
         # Offline / Deterministic Template Synthesizer Fallback
         fallback_code = self._generate_deterministic_harness(header_context, target_api, header_filename)
@@ -143,26 +163,29 @@ class HarnessSynthesizerAgent:
         )
 
         if self.client:
-            try:
-                system_prompt = PromptFactory.get_system_prompt()
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=repair_prompt,
-                    config={
-                        "system_instruction": system_prompt,
-                        "temperature": 0.1
-                    }
-                )
-                fixed_code = self._extract_code(response.text)
+            system_prompt = PromptFactory.get_system_prompt()
+            response_text, model_used = self._generate_content(
+                repair_prompt, system_prompt, temperature=0.1, context="repair_harness"
+            )
+            if response_text is not None:
+                fixed_code = self._extract_code(response_text)
                 candidate.code = fixed_code
+                # NOTE (Oct 2 2026): candidate.model_used previously was never touched
+                # here at all -- on a fallback it silently kept whatever value the
+                # *initial* synthesis call had set, which would make
+                # RotatingHarnessSynthesizerAgent's fallback-detection (it checks
+                # candidate.model_used after every call) blind to a repair call that
+                # actually fell back to the deterministic generator. Set explicitly on
+                # every path now, success or fallback, so it always reflects the call
+                # that just happened, not a stale earlier one.
+                candidate.model_used = model_used
                 candidate.history.append({"role": "user", "content": repair_prompt})
                 candidate.history.append({"role": "assistant", "content": fixed_code})
                 return candidate
-            except Exception as e:
-                self.last_error = f"repair_harness: {e!r}"
 
         # Deterministic patch if offline
         candidate.code = self._apply_deterministic_fix(candidate.code, error_message)
+        candidate.model_used = "deterministic-generator"
         return candidate
 
     def _extract_code(self, response_text: str) -> str:
