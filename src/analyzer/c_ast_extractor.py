@@ -179,7 +179,18 @@ class CASTExtractor:
             if param_str and param_str != "void":
                 raw_params = [p.strip() for p in param_str.split(',') if p.strip()]
                 for raw_p in raw_params:
-                    p_match = re.search(r'([A-Za-z0-9_\s\*]+?)\s+([A-Za-z0-9_]+)$', raw_p)
+                    # NOTE (Oct 2026): the separator between the type and the parameter
+                    # name was originally `\s+` (one or more whitespace), which silently
+                    # failed to match the extremely common "Type *name" C style (no space
+                    # between '*' and the identifier, e.g. `protocol_context_t *ctx`) --
+                    # that parameter was then dropped from `params` entirely rather than
+                    # raising an error. Confirmed independently while verifying the
+                    # rebuilt SelfRepairOrchestrator against the toy_firmware target
+                    # (see FAILURE_TAXONOMY.md): `protocol_process_frame`'s `ctx` and
+                    # `data` pointer parameters were both silently dropped, leaving only
+                    # `size`. Changed to `\s*` so a bare '*' (already inside the type
+                    # character class) satisfies the separator on its own.
+                    p_match = re.search(r'([A-Za-z0-9_\s\*]+?)\s*([A-Za-z0-9_]+)$', raw_p)
                     if p_match:
                         ptype = p_match.group(1).strip()
                         pname = p_match.group(2).strip()
