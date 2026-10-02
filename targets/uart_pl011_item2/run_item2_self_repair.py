@@ -48,6 +48,7 @@ from src.analyzer.c_ast_extractor import (  # noqa: E402
 from src.analyzer.call_graph import CallGraphBuilder  # noqa: E402
 from src.oracle.repair_loop import SelfRepairOrchestrator  # noqa: E402
 from src.synthesizer.agent import HarnessSynthesizerAgent  # noqa: E402
+from config.settings import get_settings  # noqa: E402
 from item2_target_bodies import TARGETS  # noqa: E402
 from rotating_agent import AllKeysExhaustedError, RotatingHarnessSynthesizerAgent  # noqa: E402
 
@@ -140,8 +141,19 @@ def build_agent(offline: bool):
     if not keys:
         raise RuntimeError("No GEMINI_API_KEY_1..4 found but offline=False was requested")
     print(f"REAL mode: {len(keys)} API key(s) loaded for rotation.", file=sys.stderr)
+    # NOTE (Oct 2 2026): previously hardcoded model_name="gemini-1.5-pro",
+    # fallback_model="gemini-2.0-flash" literally here, a second independent copy of
+    # config/settings.py's primary_model/fallback_model. Both of those model names are
+    # now confirmed deprecated/shut down by Google as of Oct 2026 (see
+    # FAILURE_TAXONOMY.md), which is almost certainly why every key failed on its very
+    # first call in the second real run (1 call per key, not the ~20 a genuine
+    # quota-exhaustion shape would show). Reading from get_settings() here means there is
+    # exactly one place left to fix once the correct model string is confirmed live
+    # (see ANTIGRAVITY_TASK_ITEM2.md's revision note) -- this file no longer needs its
+    # own edit when that happens.
+    settings = get_settings()
     return RotatingHarnessSynthesizerAgent(
-        api_keys=keys, model_name="gemini-1.5-pro", fallback_model="gemini-2.0-flash"
+        api_keys=keys, model_name=settings.primary_model, fallback_model=settings.fallback_model
     )
 
 

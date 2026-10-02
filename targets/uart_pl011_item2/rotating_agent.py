@@ -23,9 +23,19 @@ from typing import Dict, List, Optional
 
 from src.synthesizer.agent import HarnessSynthesizerAgent, SynthesisCandidate
 
-# The two real model names agent.py/config/settings.py actually configure. Anything else
-# coming back in `model_used` (i.e. "deterministic-generator") means the live call failed.
-_REAL_MODEL_NAMES = {"gemini-1.5-pro", "gemini-2.0-flash"}
+# NOTE (Oct 2 2026): this used to hardcode its own copy of the two real model names
+# ({"gemini-1.5-pro", "gemini-2.0-flash"}), duplicating config/settings.py's
+# primary_model/fallback_model as a second, independent source of truth. That duplication
+# is exactly how this went stale silently: config/settings.py's models were never updated
+# for Google's Oct 2026 Gemini 1.5/2.0 deprecation, but even if they had been, this
+# constant would not have followed unless someone remembered to edit it here too. Fixed
+# to derive from get_settings() directly, so there is exactly one place to change when
+# the real model names are confirmed (see ANTIGRAVITY_TASK_ITEM2.md's revision note on
+# running a live diagnostic call before trusting any guessed model string).
+from config.settings import get_settings
+
+_settings = get_settings()
+_REAL_MODEL_NAMES = {_settings.primary_model, _settings.fallback_model}
 
 
 class AllKeysExhaustedError(RuntimeError):
@@ -101,7 +111,17 @@ class RotatingHarnessSynthesizerAgent:
             attempts += 1
             if attempts < len(self._agents):
                 self._rotate()
+        # NOTE (Oct 2 2026): last_error was previously discarded by agent.py's bare
+        # `except Exception: pass` blocks, so this exception used to carry only the key
+        # indices tried, with no way to tell "quota exhausted" from "model name retired"
+        # from "network unreachable" without external investigation (this is exactly
+        # what happened during item 2's second real run -- see FAILURE_TAXONOMY.md).
+        # agent.py now captures the real exception text per-agent in `.last_error`;
+        # surface it here per key so a future ALL_KEYS_EXHAUSTED is diagnosable from the
+        # report alone.
+        last_errors = {i: self._agents[i].last_error for i in tried_keys}
         raise AllKeysExhaustedError(
             f"{method_name} fell back to the deterministic generator on every configured "
-            f"key (tried key indices {tried_keys}); all keys are exhausted or failing."
+            f"key (tried key indices {tried_keys}); all keys are exhausted or failing. "
+            f"Per-key last_error: {last_errors}"
         )

@@ -34,6 +34,20 @@ class HarnessSynthesizerAgent:
         self.model_name = model_name
         self.fallback_model = fallback_model
         self.client = None
+        # NOTE (Oct 2 2026, Work Plan item 2): the except blocks below have always
+        # silently discarded the real exception before falling back to the
+        # deterministic generator -- there was no way for any caller to tell "quota
+        # exhausted" apart from "model name retired" apart from "network unreachable"
+        # apart from "malformed API key." This surfaced for real during item 2's
+        # Antigravity run: all 4 keys fell back on their very first call each (1 call
+        # per key, not ~20), which is NOT the quota-exhaustion shape at all, but with
+        # no captured exception there was no way to tell what it actually was without
+        # more guessing and more burned API calls. Root cause (confirmed via Google's
+        # own current deprecation docs, not guessed): both `gemini-1.5-pro` and
+        # `gemini-2.0-flash` are deprecated/shut down as of Oct 2026 -- a model-name
+        # problem, not a key or quota problem. `last_error` now captures the real
+        # exception text so this is diagnosable without external guesswork next time.
+        self.last_error: Optional[str] = None
         self._init_client()
 
     def _init_client(self):
@@ -44,6 +58,7 @@ class HarnessSynthesizerAgent:
                 self.client = genai.Client(api_key=self.api_key)
             except Exception as e:
                 self.client = None
+                self.last_error = f"client init failed: {e!r}"
 
     def synthesize_initial_harness(
         self,
@@ -89,7 +104,7 @@ class HarnessSynthesizerAgent:
                 )
             except Exception as e:
                 # Fall back to template synthesizer if network/API error
-                pass
+                self.last_error = f"synthesize_initial_harness: {e!r}"
 
         # Offline / Deterministic Template Synthesizer Fallback
         fallback_code = self._generate_deterministic_harness(header_context, target_api, header_filename)
@@ -133,8 +148,8 @@ class HarnessSynthesizerAgent:
                 candidate.history.append({"role": "user", "content": repair_prompt})
                 candidate.history.append({"role": "assistant", "content": fixed_code})
                 return candidate
-            except Exception:
-                pass
+            except Exception as e:
+                self.last_error = f"repair_harness: {e!r}"
 
         # Deterministic patch if offline
         candidate.code = self._apply_deterministic_fix(candidate.code, error_message)
