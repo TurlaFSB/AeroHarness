@@ -1,0 +1,56 @@
+=== isr seed 1 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1
+INFO: Loaded 1 modules   (16 inline 8-bit counters): 16 [0x55e10d6e2e88, 0x55e10d6e2e98), 
+INFO: Loaded 1 PC tables (16 PCs): 16 [0x55e10d6e2e98,0x55e10d6e2f98), 
+INFO:        0 files found in blackbox_corpus/isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 8 ft: 8 corp: 1/1b exec/s: 0 rss: 32Mb
+	NEW_FUNC[1/1]: 0x55e10d69caa0 in dummy_irq_cb(device const*, void*) /home/claude/aeroharness/harnesses/blackbox/fuzz_pl011_isr_blackbox.cpp:85
+#15594718	DONE   cov: 15 ft: 15 corp: 5/148b lim: 4096 exec/s: 974669 rss: 511Mb
+Done 15594718 runs in 16 second(s)
+=== isr seed 2 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 2
+INFO: Loaded 1 modules   (16 inline 8-bit counters): 16 [0x5596bb9cce88, 0x5596bb9cce98), 
+INFO: Loaded 1 PC tables (16 PCs): 16 [0x5596bb9cce98,0x5596bb9ccf98), 
+INFO:        4 files found in blackbox_corpus/isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 1b max: 78b total: 147b rss: 31Mb
+#5	INITED cov: 15 ft: 15 corp: 4/147b exec/s: 0 rss: 32Mb
+#14403620	DONE   cov: 15 ft: 15 corp: 4/147b lim: 4096 exec/s: 900226 rss: 498Mb
+Done 14403620 runs in 16 second(s)
+=== isr seed 3 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3
+INFO: Loaded 1 modules   (16 inline 8-bit counters): 16 [0x564a1b215e88, 0x564a1b215e98), 
+INFO: Loaded 1 PC tables (16 PCs): 16 [0x564a1b215e98,0x564a1b215f98), 
+INFO:        4 files found in blackbox_corpus/isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 1b max: 78b total: 147b rss: 31Mb
+#5	INITED cov: 15 ft: 15 corp: 4/147b exec/s: 0 rss: 32Mb
+#15015580	DONE   cov: 15 ft: 15 corp: 4/147b lim: 4096 exec/s: 938473 rss: 498Mb
+Done 15015580 runs in 16 second(s)
+=== isr seed 4 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4
+INFO: Loaded 1 modules   (16 inline 8-bit counters): 16 [0x5647056b2e88, 0x5647056b2e98), 
+INFO: Loaded 1 PC tables (16 PCs): 16 [0x5647056b2e98,0x5647056b2f98), 
+INFO:        4 files found in blackbox_corpus/isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 1b max: 78b total: 147b rss: 31Mb
+#5	INITED cov: 15 ft: 15 corp: 4/147b exec/s: 0 rss: 32Mb
+#15362110	DONE   cov: 15 ft: 15 corp: 4/147b lim: 4096 exec/s: 960131 rss: 499Mb
+Done 15362110 runs in 16 second(s)
+=== isr seed 5 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 5
+INFO: Loaded 1 modules   (16 inline 8-bit counters): 16 [0x560d56c0ce88, 0x560d56c0ce98), 
+INFO: Loaded 1 PC tables (16 PCs): 16 [0x560d56c0ce98,0x560d56c0cf98), 
+INFO:        4 files found in blackbox_corpus/isr
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 1b max: 78b total: 147b rss: 31Mb
+#5	INITED cov: 15 ft: 15 corp: 4/147b exec/s: 0 rss: 32Mb
+#14703135	DONE   cov: 15 ft: 15 corp: 4/147b lim: 4096 exec/s: 918945 rss: 498Mb
+Done 14703135 runs in 16 second(s)

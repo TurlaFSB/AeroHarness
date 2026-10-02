@@ -1,0 +1,273 @@
+warning: harnesses/blackbox/fuzz_pl011_poll_in_blackbox.cpp: Source file doesn't exist, proceeded by ignoring it.
+/home/claude/aeroharness/harnesses/blackbox/fuzz_pl011_poll_in_blackbox.cpp:
+    1|       |// BLACKBOX-BASELINE VARIANT (Work Plan item 3, Oct 2 2026).
+    2|       |// See fuzz_pl011_poll_out_blackbox.cpp for the full rationale and explicit
+    3|       |// scope note. Same two removals relative to the blind condition: no
+    4|       |// minimum-size guard (zero-pad instead of reject), no semantic correctness
+    5|       |// assertion (crash-only oracle).
+    6|       |#include <stdint.h>
+    7|       |#include <stddef.h>
+    8|       |#include <stdbool.h>
+    9|       |#include <string.h>
+   10|       |#include <algorithm>
+   11|       |
+   12|       |#define DEVICE_MMIO_RAM
+   13|     10|#define BIT(n) (1UL << (n))
+   14|       |
+   15|       |struct uart_config {
+   16|       |    int baudrate;
+   17|       |    int parity;
+   18|       |    int stop_bits;
+   19|       |    int data_bits;
+   20|       |    int flow_ctrl;
+   21|       |};
+   22|       |
+   23|       |struct device {
+   24|       |    void *data;
+   25|       |    const void *config;
+   26|       |};
+   27|       |
+   28|       |extern volatile void *mock_regs_ptr;
+   29|     12|#define DEVICE_MMIO_GET(dev) (mock_regs_ptr)
+   30|       |
+   31|       |#include "../../zephyr-src/drivers/serial/uart_pl011_registers.h"
+   32|       |
+   33|       |struct pl011_data {
+   34|       |    DEVICE_MMIO_RAM;
+   35|       |    struct uart_config uart_cfg;
+   36|       |    bool sbsa;
+   37|       |    uint32_t clk_freq;
+   38|       |};
+   39|       |
+   40|       |// === TARGET FUNCTIONS (byte-for-byte identical to the informed/blind harnesses) ===
+   41|       |static bool pl011_is_readable(const struct device *dev)
+   42|      6|{
+   43|      6|    struct pl011_data *data = (struct pl011_data *)dev->data;
+   44|      6|    volatile struct pl011_regs *uart = get_uart(dev);
+   45|      6|    uint32_t cr = uart->cr;
+   46|       |
+   47|      6|    if (!data->sbsa &&
+   48|      6|        (!(cr & PL011_CR_UARTEN) || !(cr & PL011_CR_RXE))) {
+   49|      3|        return false;
+   50|      3|    }
+   51|       |
+   52|      3|    return (uart->fr & PL011_FR_RXFE) == 0U;
+   53|      6|}
+   54|       |
+   55|       |static int pl011_poll_in(const struct device *dev, unsigned char *c)
+   56|      6|{
+   57|      6|    volatile struct pl011_regs *uart = get_uart(dev);
+   58|       |
+   59|      6|    if (!pl011_is_readable(dev)) {
+   60|      3|        return -1;
+   61|      3|    }
+   62|       |
+   63|      3|    *c = (unsigned char)uart->dr;
+   64|       |
+   65|      3|    return 0;
+   66|      6|}
+   67|       |
+   68|       |// === LIBFUZZER HARNESS (BLACKBOX: no size guard, no correctness oracle) ===
+   69|       |volatile void *mock_regs_ptr;
+   70|       |
+   71|      6|extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+   72|      6|    struct pl011_data pl_data;
+   73|      6|    memset(&pl_data, 0, sizeof(pl_data));
+   74|       |    // Software-state byte still consumed from a fixed position (byte 0, bit
+   75|       |    // 0) for the same reason the blind condition did -- a harness has to
+   76|       |    // consume its input in *some* fixed order. This is not a claim that
+   77|       |    // byte 0 was chosen because it's "the important field"; it is simply
+   78|       |    // the first byte in sequential consumption order.
+   79|      6|    pl_data.sbsa = (size > 0) ? (data[0] & 1) : 0;
+   80|       |
+   81|      6|    struct pl011_regs regs;
+   82|      6|    memset(&regs, 0, sizeof(regs));
+   83|       |
+   84|      6|    size_t avail = (size > 1) ? (size - 1) : 0;
+   85|      6|    size_t reg_bytes = std::min(avail, sizeof(regs));
+   86|      6|    if (reg_bytes > 0) {
+   87|      4|        memcpy(&regs, data + 1, reg_bytes);
+   88|      4|    }
+   89|       |
+   90|      6|    mock_regs_ptr = &regs;
+   91|       |
+   92|      6|    struct device dev;
+   93|      6|    dev.data = &pl_data;
+   94|       |
+   95|      6|    unsigned char c = 0xFF;
+   96|      6|    pl011_poll_in(&dev, &c);
+   97|       |
+   98|       |    // No correctness assertion -- crash-only oracle (ASan/UBSan).
+   99|      6|    return 0;
+  100|      6|}
+
+/home/claude/aeroharness/zephyr-src/drivers/serial/uart_pl011_registers.h:
+    1|       |/*
+    2|       | * Copyright (c) 2018 Linaro Limited
+    3|       | * Copyright (c) 2022 Arm Limited (or its affiliates). All rights reserved.
+    4|       | * Copyright (c) 2023 Antmicro <www.antmicro.com>
+    5|       | *
+    6|       | * SPDX-License-Identifier: Apache-2.0
+    7|       | */
+    8|       |
+    9|       |#ifndef ZEPHYR_DRIVERS_SERIAL_UART_PL011_REGISTERS_H_
+   10|       |#define ZEPHYR_DRIVERS_SERIAL_UART_PL011_REGISTERS_H_
+   11|       |
+   12|       |#include <zephyr/device.h>
+   13|       |
+   14|       |/*
+   15|       | * UART PL011 register map structure
+   16|       | */
+   17|       |struct pl011_regs {
+   18|       |	uint32_t dr;			/* data register */
+   19|       |	union {
+   20|       |		uint32_t rsr;
+   21|       |		uint32_t ecr;
+   22|       |	};
+   23|       |	uint32_t reserved_0[4];
+   24|       |	uint32_t fr;			/* flags register */
+   25|       |	uint32_t reserved_1;
+   26|       |	uint32_t ilpr;
+   27|       |	uint32_t ibrd;
+   28|       |	uint32_t fbrd;
+   29|       |	uint32_t lcr_h;
+   30|       |	uint32_t cr;
+   31|       |	uint32_t ifls;
+   32|       |	uint32_t imsc;
+   33|       |	uint32_t ris;
+   34|       |	uint32_t mis;
+   35|       |	uint32_t icr;
+   36|       |	uint32_t dmacr;
+   37|       |};
+   38|       |
+   39|       |static inline
+   40|       |volatile struct pl011_regs *get_uart(const struct device *dev)
+   41|     12|{
+   42|     12|	return (volatile struct pl011_regs *)DEVICE_MMIO_GET(dev);
+   43|     12|}
+   44|       |
+   45|       |#define PL011_BIT_MASK(x, y) (((2 << x) - 1) << y)
+   46|       |
+   47|       |/* PL011 Uart Flags Register */
+   48|       |#define PL011_FR_CTS		BIT(0)	/* clear to send - inverted */
+   49|       |#define PL011_FR_DSR		BIT(1)	/* data set ready - inverted */
+   50|       |#define PL011_FR_DCD		BIT(2)	/* data carrier detect - inverted */
+   51|       |#define PL011_FR_BUSY		BIT(3)	/* busy transmitting data */
+   52|      3|#define PL011_FR_RXFE		BIT(4)	/* receive FIFO empty */
+   53|       |#define PL011_FR_TXFF		BIT(5)	/* transmit FIFO full */
+   54|       |#define PL011_FR_RXFF		BIT(6)	/* receive FIFO full */
+   55|       |#define PL011_FR_TXFE		BIT(7)	/* transmit FIFO empty */
+   56|       |#define PL011_FR_RI		BIT(8)	/* ring indicator - inverted */
+   57|       |
+   58|       |/* PL011 Integer baud rate register */
+   59|       |#define PL011_IBRD_BAUD_DIVINT_MASK	0xff	/* 16 bits of divider */
+   60|       |
+   61|       |/* PL011 Fractional baud rate register */
+   62|       |#define PL011_FBRD_BAUD_DIVFRAC		0x3f
+   63|       |#define PL011_FBRD_WIDTH		6u
+   64|       |
+   65|       |/* PL011 Receive status register / error clear register */
+   66|       |#define PL011_RSR_ECR_FE	BIT(0)	/* framing error */
+   67|       |#define PL011_RSR_ECR_PE	BIT(1)	/* parity error */
+   68|       |#define PL011_RSR_ECR_BE	BIT(2)	/* break error */
+   69|       |#define PL011_RSR_ECR_OE	BIT(3)	/* overrun error */
+   70|       |
+   71|       |#define PL011_RSR_ERROR_MASK	(PL011_RSR_ECR_FE | PL011_RSR_ECR_PE | \
+   72|       |		PL011_RSR_ECR_BE | PL011_RSR_ECR_OE)
+   73|       |
+   74|       |/* PL011 Line Control Register  */
+   75|       |#define PL011_LCRH_BRK		BIT(0)	/* send break */
+   76|       |#define PL011_LCRH_PEN		BIT(1)	/* enable parity */
+   77|       |#define PL011_LCRH_EPS		BIT(2)	/* select even parity */
+   78|       |#define PL011_LCRH_STP2		BIT(3)	/* select two stop bits */
+   79|       |#define PL011_LCRH_FEN		BIT(4)	/* enable FIFOs */
+   80|       |#define PL011_LCRH_WLEN_SHIFT	5	/* word length */
+   81|       |#define PL011_LCRH_WLEN_WIDTH	2
+   82|       |#define PL011_LCRH_SPS		BIT(7)	/* stick parity bit */
+   83|       |
+   84|       |#define PL011_LCRH_WLEN_SIZE(x) (x - 5)
+   85|       |
+   86|       |/*
+   87|       | * Added Oct 2026 (Ablation B v2 scaffolding audit): the pl011_init and
+   88|       | * pl011_runtime_configure_internal target bodies embedded in
+   89|       | * run_ablation_b_v2.py reference a flat PL011_LCRH_WLEN_5..8 symbol that
+   90|       | * does not exist upstream (real Zephyr computes this inline via
+   91|       | * PL011_LCRH_WLEN_SIZE(n) << PL011_LCRH_WLEN_SHIFT). These are the
+   92|       | * correctly-derived equivalents, added so that symbol resolves — every
+   93|       | * attempt by every model was failing on this before any code the model
+   94|       | * wrote was even evaluated.
+   95|       | */
+   96|       |#define PL011_LCRH_WLEN_5 (PL011_LCRH_WLEN_SIZE(5) << PL011_LCRH_WLEN_SHIFT)
+   97|       |#define PL011_LCRH_WLEN_6 (PL011_LCRH_WLEN_SIZE(6) << PL011_LCRH_WLEN_SHIFT)
+   98|       |#define PL011_LCRH_WLEN_7 (PL011_LCRH_WLEN_SIZE(7) << PL011_LCRH_WLEN_SHIFT)
+   99|       |#define PL011_LCRH_WLEN_8 (PL011_LCRH_WLEN_SIZE(8) << PL011_LCRH_WLEN_SHIFT)
+  100|       |
+  101|       |#define PL011_LCRH_FORMAT_MASK	(PL011_LCRH_PEN | PL011_LCRH_EPS | \
+  102|       |		PL011_LCRH_SPS | \
+  103|       |		PL011_BIT_MASK(PL011_LCRH_WLEN_WIDTH, PL011_LCRH_WLEN_SHIFT))
+  104|       |
+  105|       |#define PL011_LCRH_PARTIY_EVEN	(PL011_LCRH_PEN | PL011_LCRH_EPS)
+  106|       |#define PL011_LCRH_PARITY_ODD	(PL011_LCRH_PEN)
+  107|       |#define PL011_LCRH_PARITY_NONE	(0)
+  108|       |
+  109|       |/* PL011 Control Register */
+  110|      4|#define PL011_CR_UARTEN		BIT(0)	/* enable uart operations */
+  111|       |#define PL011_CR_SIREN		BIT(1)	/* enable IrDA SIR */
+  112|       |#define PL011_CR_SIRLP		BIT(2)	/* IrDA SIR low power mode */
+  113|       |#define PL011_CR_LBE		BIT(7)	/* loop back enable */
+  114|       |#define PL011_CR_TXE		BIT(8)	/* transmit enable */
+  115|      3|#define PL011_CR_RXE		BIT(9)	/* receive enable */
+  116|       |#define PL011_CR_DTR		BIT(10)	/* data transmit ready */
+  117|       |#define PL011_CR_RTS		BIT(11)	/* request to send */
+  118|       |#define PL011_CR_Out1		BIT(12)
+  119|       |#define PL011_CR_Out2		BIT(13)
+  120|       |#define PL011_CR_RTSEn		BIT(14)	/* RTS hw flow control enable */
+  121|       |#define PL011_CR_CTSEn		BIT(15)	/* CTS hw flow control enable */
+  122|       |
+  123|       |/* PL011 Control Register - vendor-specific fields */
+  124|       |#define PL011_CR_AMBIQ_CLKEN	BIT(3)	/* clock enable */
+  125|       |#define PL011_CR_AMBIQ_CLKSEL	GENMASK(6, 4) /* clock select */
+  126|       |#define PL011_CR_AMBIQ_CLKSEL_NOCLK	0
+  127|       |#define PL011_CR_AMBIQ_CLKSEL_24MHZ	1
+  128|       |#define PL011_CR_AMBIQ_CLKSEL_12MHZ	2
+  129|       |#define PL011_CR_AMBIQ_CLKSEL_6MHZ	3
+  130|       |#define PL011_CR_AMBIQ_CLKSEL_3MHZ	4
+  131|       |#define PL011_CR_AMBIQ_CLKSEL_48MHZ	5
+  132|       |#define PL011_CR_AMBIQ_CLKSEL_PLL	6
+  133|       |
+  134|       |/* PL011 Interrupt Fifo Level Select Register */
+  135|       |#define PL011_IFLS_RXIFLSEL_M	GENMASK(5, 3)
+  136|       |#define RXIFLSEL_1_2_FULL	2UL
+  137|       |#define PL011_IFLS_TXIFLSEL_M	GENMASK(2, 0)
+  138|       |#define TXIFLSEL_1_8_FULL	0UL
+  139|       |
+  140|       |/* PL011 Interrupt Mask Set/Clear Register */
+  141|       |#define PL011_IMSC_RIMIM	BIT(0)	/* RTR modem interrupt mask */
+  142|       |#define PL011_IMSC_CTSMIM	BIT(1)	/* CTS modem interrupt mask */
+  143|       |#define PL011_IMSC_DCDMIM	BIT(2)	/* DCD modem interrupt mask */
+  144|       |#define PL011_IMSC_DSRMIM	BIT(3)	/* DSR modem interrupt mask */
+  145|       |#define PL011_IMSC_RXIM		BIT(4)	/* receive interrupt mask */
+  146|       |#define PL011_IMSC_TXIM		BIT(5)	/* transmit interrupt mask */
+  147|       |#define PL011_IMSC_RTIM		BIT(6)	/* receive timeout interrupt mask */
+  148|       |#define PL011_IMSC_FEIM		BIT(7)	/* framing error interrupt mask */
+  149|       |#define PL011_IMSC_PEIM		BIT(8)	/* parity error interrupt mask */
+  150|       |#define PL011_IMSC_BEIM		BIT(9)	/* break error interrupt mask */
+  151|       |#define PL011_IMSC_OEIM		BIT(10)	/* overrun error interrupt mask */
+  152|       |
+  153|       |#define PL011_IMSC_ERROR_MASK	(PL011_IMSC_FEIM | \
+  154|       |		PL011_IMSC_PEIM | PL011_IMSC_BEIM | \
+  155|       |		PL011_IMSC_OEIM)
+  156|       |
+  157|       |#define PL011_IMSC_MASK_ALL (PL011_IMSC_OEIM | PL011_IMSC_BEIM | \
+  158|       |		PL011_IMSC_PEIM | PL011_IMSC_FEIM | \
+  159|       |		PL011_IMSC_RIMIM | PL011_IMSC_CTSMIM | \
+  160|       |		PL011_IMSC_DCDMIM | PL011_IMSC_DSRMIM | \
+  161|       |		PL011_IMSC_RXIM | PL011_IMSC_TXIM | \
+  162|       |		PL011_IMSC_RTIM)
+  163|       |
+  164|       |/* PL011 Raw Interrupt Status Register */
+  165|       |#define PL011_RIS_TXRIS		BIT(5)	/* Transmit interrupt status */
+  166|       |
+  167|       |
+  168|       |#endif /* ZEPHYR_DRIVERS_SERIAL_UART_PL011_REGISTERS_H_ */
+

@@ -1,0 +1,61 @@
+=== poll_in seed 1 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1
+INFO: Loaded 1 modules   (15 inline 8-bit counters): 15 [0x55bbd548fe88, 0x55bbd548fe97), 
+INFO: Loaded 1 PC tables (15 PCs): 15 [0x55bbd548fe98,0x55bbd548ff88), 
+INFO:        0 files found in blackbox_corpus/poll_in
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 7 ft: 7 corp: 1/1b exec/s: 0 rss: 32Mb
+#16206014	DONE   cov: 14 ft: 14 corp: 6/183b lim: 4096 exec/s: 1012875 rss: 513Mb
+###### Recommended dictionary. ######
+"\001\000\000\000" # Uses: 1351628
+###### End of recommended dictionary. ######
+Done 16206014 runs in 16 second(s)
+=== poll_in seed 2 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 2
+INFO: Loaded 1 modules   (15 inline 8-bit counters): 15 [0x55be10341e88, 0x55be10341e97), 
+INFO: Loaded 1 PC tables (15 PCs): 15 [0x55be10341e98,0x55be10341f88), 
+INFO:        5 files found in blackbox_corpus/poll_in
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 5 min: 1b max: 78b total: 182b rss: 31Mb
+#6	INITED cov: 13 ft: 13 corp: 5/182b exec/s: 0 rss: 32Mb
+#16305210	DONE   cov: 14 ft: 14 corp: 6/183b lim: 4096 exec/s: 1019075 rss: 512Mb
+###### Recommended dictionary. ######
+"\000\000\000\000" # Uses: 1361962
+###### End of recommended dictionary. ######
+Done 16305210 runs in 16 second(s)
+=== poll_in seed 3 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3
+INFO: Loaded 1 modules   (15 inline 8-bit counters): 15 [0x562ee5a7ae88, 0x562ee5a7ae97), 
+INFO: Loaded 1 PC tables (15 PCs): 15 [0x562ee5a7ae98,0x562ee5a7af88), 
+INFO:        6 files found in blackbox_corpus/poll_in
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 6 min: 1b max: 78b total: 183b rss: 31Mb
+#7	INITED cov: 14 ft: 14 corp: 6/183b exec/s: 0 rss: 32Mb
+#15972117	DONE   cov: 14 ft: 14 corp: 6/183b lim: 4096 exec/s: 998257 rss: 509Mb
+Done 15972117 runs in 16 second(s)
+=== poll_in seed 4 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4
+INFO: Loaded 1 modules   (15 inline 8-bit counters): 15 [0x55603c025e88, 0x55603c025e97), 
+INFO: Loaded 1 PC tables (15 PCs): 15 [0x55603c025e98,0x55603c025f88), 
+INFO:        6 files found in blackbox_corpus/poll_in
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 6 min: 1b max: 78b total: 183b rss: 31Mb
+#7	INITED cov: 14 ft: 14 corp: 6/183b exec/s: 0 rss: 32Mb
+#15415707	DONE   cov: 14 ft: 14 corp: 6/183b lim: 4096 exec/s: 963481 rss: 510Mb
+Done 15415707 runs in 16 second(s)
+=== poll_in seed 5 ===
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 5
+INFO: Loaded 1 modules   (15 inline 8-bit counters): 15 [0x564464a45e88, 0x564464a45e97), 
+INFO: Loaded 1 PC tables (15 PCs): 15 [0x564464a45e98,0x564464a45f88), 
+INFO:        6 files found in blackbox_corpus/poll_in
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 6 min: 1b max: 78b total: 183b rss: 31Mb
+#7	INITED cov: 14 ft: 14 corp: 6/183b exec/s: 0 rss: 32Mb
+#15990607	DONE   cov: 14 ft: 14 corp: 6/183b lim: 4096 exec/s: 999412 rss: 510Mb
+Done 15990607 runs in 16 second(s)

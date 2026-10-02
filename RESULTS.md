@@ -228,3 +228,52 @@ Five harnesses have been synthesized and brought to a final state across this pr
 
 **Verification Status**: VERIFIED — all 5 outcomes cross-checked directly against each harness's own section of this document (or, for the dispatcher, `stage6_statemachine_report.md`) and against `FAILURE_TAXONOMY.md` for any uncounted permanent failure (none found). The repair-iteration disagreement is accurately represented as unresolved, not guessed at or silently picked.
 * **Date Finalized**: 2026-10-02
+
+---
+
+## Blind Blackbox-Fuzzing Baseline (Work Plan item 3, Oct 2 2026)
+
+Expected Outcome 2b claims "measurable increase in edge and branch coverage compared to baseline blackbox fuzzing." Until now every coverage number in this project was harness-vs-harness (informed vs. the Oct 1 "blind" ablation above) — there was no true control condition with no semantic harness at all. This section produces that baseline, run directly in this session (this sandbox has a working `clang++`/libFuzzer/ASan toolchain, confirmed before starting — no Antigravity round-trip was needed), with the same rigor and the same `llvm-cov` cross-validation applied to every other Stage 6 number.
+
+### Scope note, stated explicitly before any result
+
+A literal "no harness, no domain knowledge of which function even exists" baseline — the kind used in P2IM/Fuzzware-style research (a full firmware binary executed under QEMU with generic MMIO stubbing) — is a materially larger undertaking than this item was scoped for, and is **not** what's claimed here. That belongs to the already-tracked Fuzzware head-to-head (Work Plan item 7). What *is* feasible, and what was built: a per-function harness reduced to the practical minimum of engineering judgment this project's infrastructure supports, going one step further than the Oct 1 "blind" condition. The blind condition already removed per-field MMIO modeling (whole-struct `memcpy` instead of bitextracted fields) but still kept two things that encode real domain knowledge:
+
+1. A minimum-input-size guard (`if (size < N) return 0;`) — this encodes "I know roughly how many bytes this function needs before it's worth exploring."
+2. A semantic correctness assertion on the function's output — this encodes "I know what correct behavior looks like."
+
+The new **blackbox** harnesses (`harnesses/blackbox/fuzz_pl011_{poll_in,poll_out,isr}_blackbox.cpp`) remove both: no size guard (short inputs are zero-padded, never rejected), and no correctness oracle beyond ASan/UBSan crash detection — exactly as a fuzzer with zero understanding of "correct" output would operate. One safety-driven exception is kept and flagged in the harness source itself: `pl011_isr`'s `irq_cb` is a function pointer, and raw-memcpying fuzzer bytes directly onto it would make the harness jump to an arbitrary address on most inputs — a harness memory-safety artifact, not a target-function finding. A single fixed, arbitrarily-positioned bit (byte 0, bit 0) chooses between `NULL` and one fixed dummy callback, the same mechanism the blind condition already used, not a reintroduction of per-field reasoning.
+
+**A genuine, previously-undocumented build-reproducibility bug was found and fixed while compiling these**: the build flag `-Iharnesses/include` cited in `stage6_difficulty_metrics.md`'s "Tool Verification" section as the way to rebuild the original isolated harnesses actually fails on current `main` — not just for these new harnesses, for the pre-existing `fuzz_pl011_poll_in.cpp` too (confirmed by direct reproduction: `clang++ -Iharnesses/include harnesses/fuzz_pl011_poll_in.cpp` → `error: redefinition of 'device'`). Root cause: that flag resolves to the Ablation B v2 scaffolding's own non-empty `harnesses/include/zephyr/device.h`, which collides with these harnesses' own local `struct device` definition. Fixed by adding `harnesses/include_isolated/` (an empty `zephyr/device.h`, just enough to satisfy the real driver header's `#include <zephyr/device.h>` without redefining anything) and using that path instead. `stage6_difficulty_metrics.md`'s documented command should be corrected to use this path; flagged here rather than silently worked around.
+
+### Methodology and results
+
+Same protocol as the informed/blind conditions: 5 independent seeds × 15s wall-clock for `poll_in`/`isr`; 10 independent seeds, run-until-hang, `-timeout=3`, for `poll_out` (each seed given its own corpus directory — an initial run that shared one corpus directory across seeds was caught and discarded before being accepted, since later seeds would inherit earlier seeds' discovered inputs rather than running independently). `llvm-cov` cross-validated every result, same methodology as every other Stage 6 number (`-fsanitize=fuzzer -fprofile-instr-generate -fcoverage-mapping`, `llvm-profdata merge`, `llvm-cov report`). Raw logs in `blackbox_fuzz_logs/`, coverage reports in `blackbox_llvm_cov_logs/`, corpora in `blackbox_corpus/`, pinned binaries `fuzz_poll_in_blackbox`/`fuzz_poll_out_blackbox`/`fuzz_isr_blackbox`.
+
+**Important caveat on comparing raw `cov:`/`ft:` numbers across conditions**: the blackbox harnesses are smaller/simpler C++ files than the informed/blind ones (fewer guard branches, no assertions), so each condition's binary has a *different total instrumented PC count* — raw sancov edge counts are not directly comparable across differently-sized binaries without normalizing. The `llvm-cov` source-level numbers below are the fair, apples-to-apples comparison; the raw sancov numbers are reported for completeness and internal consistency only.
+
+| Function | Condition | Raw sancov (of total PCs in that binary) | `llvm-cov` regions/lines/branches |
+| :--- | :--- | :--- | :--- |
+| `poll_in` | Informed | `cov:11/ft:12` of 17 | 100% / 100% / 100% |
+| `poll_in` | Blind | `cov:11/ft:12` of 17 (identical to informed) | 96.55% / 95.35% / 91.67% |
+| `poll_in` | **Blackbox** | `cov:14/ft:14` of 15, stable across all 5 seeds | **96.55% / 100% / 92.86%** |
+| `isr` | Informed | `cov:16/ft:17` of 24 | 100% / 100% / 100% (source-complete despite sub-100% sancov edges) |
+| `isr` | Blind | `cov:16/ft:17` of 24 (identical to informed) | 96.88% / 92.45% / 88.89% |
+| `isr` | **Blackbox** | `cov:15/ft:15` of 16, stable across all 5 seeds | **100% / 100% / 93.75%** |
+| `poll_out` | Informed | Seed-dependent; modal `cov:5/ft:6` (4/5 seeds), 1/5 fully immediate | 83.33% lines, 50.00% branches |
+| `poll_out` | **Blackbox** | `cov:4` at hang, **10/10 seeds, nearly immediate (right after `INITED`)** | 91.67% lines, 50.00% branches, 80% regions (pre-hang replay) |
+
+### The headline finding: removing the size guard changes *when* the busy-wait is found, not whether coverage drops
+
+Contrary to a naive expectation that "less domain knowledge → worse coverage," `poll_in` and `isr` show **no meaningful coverage loss** in the blackbox condition relative to informed/blind — consistent with the Oct 1 finding that these are shallow enough functions for libFuzzer's own coverage-guided search to rediscover the relevant bit patterns from scratch, with or without a semantic head start.
+
+`poll_out` tells a sharper, genuinely new story. **All 10/10 blackbox seeds hit the busy-wait hang almost immediately** (at the very first post-`INITED` execution), versus the informed condition's modal 4/5 seeds (with only 1/5 fully immediate). This was investigated directly, not just reported: the exact hanging input was pulled from `blackbox_fuzz_logs/poll_out_seed1_timeout-...` and its bytes checked by hand against `struct pl011_regs`'s real layout (`fr` sits at byte offset 24–27). The hanging input is `0x0a` followed by 25× `0xff` — 26 bytes total, so bytes 24–25 (`0xff 0xff`) land exactly inside `fr`'s offset range, setting the TXFF bit (`BIT(5)`) and triggering the hang. **Mechanistic explanation**: the informed/blind conditions both reject any input shorter than `sizeof(regs)+1` (≈77 bytes) outright, so the fuzzer "wastes" a meaningful fraction of its budget on inputs that get silently discarded before ever reaching the function at all. The blackbox condition has no such guard, so even short, cheap-to-generate inputs are accepted and explored immediately — and because a single coverage-guided search converges on the hang-triggering pattern quickly regardless of overall input length, removing the guard lets the fuzzer reach it faster and more reliably, not less. This is a genuinely useful, non-obvious finding for the paper: a purely *structural* guard (minimum useful length) that carries no register-semantic knowledge still has real fuzzing-efficiency value, separate from and in addition to the per-field semantic modeling tested by the Oct 1 ablation.
+
+### What this does and does not establish for Expected Outcome 2b
+
+- It establishes a real, run, cross-validated blackbox baseline for the first time in this project, closing the literal gap named in Gap #2 of the work plan.
+- It does **not** show a clean, uniform "informed/semantic harnesses beat blackbox fuzzing" result — two of three functions show no coverage difference, and the third shows blackbox reaching its (already fully measured) ceiling *faster*, not a coverage improvement for the informed side. The honest reading: at the shallow-function scale this project has tested so far, Stage 2/3's semantic MMIO modeling is not the dominant factor in final coverage — the same conclusion the Oct 1 informed-vs-blind ablation already reached, now reinforced by a stricter, lower-knowledge baseline rather than contradicted by it.
+- This is consistent with, not a reversal of, the project's established finding that these three functions are shallow enough for libFuzzer's coverage-guided search to largely compensate for missing semantic modeling. A deeper or more deeply-gated function (e.g. one with real init-prerequisite chains, like `pl011_init` or `kinetis_adc_calibrate`) is a more demanding test of whether semantic modeling earns its keep, and remains open for future work.
+
+**Verification Status**: VERIFIED — all three harnesses compiled and run directly in this session (not delegated), all coverage numbers independently cross-validated with `llvm-cov` using the project's own established methodology, the `poll_out` hang mechanism confirmed by hand against the real struct layout (not just reported by the fuzzer), and a real build-reproducibility bug found and fixed along the way rather than silently worked around.
+* **Date Finalized**: 2026-10-02
