@@ -83,6 +83,21 @@ volatile struct pl011_regs *get_uart(const struct device *dev)
 
 #define PL011_LCRH_WLEN_SIZE(x) (x - 5)
 
+/*
+ * Added Oct 2026 (Ablation B v2 scaffolding audit): the pl011_init and
+ * pl011_runtime_configure_internal target bodies embedded in
+ * run_ablation_b_v2.py reference a flat PL011_LCRH_WLEN_5..8 symbol that
+ * does not exist upstream (real Zephyr computes this inline via
+ * PL011_LCRH_WLEN_SIZE(n) << PL011_LCRH_WLEN_SHIFT). These are the
+ * correctly-derived equivalents, added so that symbol resolves — every
+ * attempt by every model was failing on this before any code the model
+ * wrote was even evaluated.
+ */
+#define PL011_LCRH_WLEN_5 (PL011_LCRH_WLEN_SIZE(5) << PL011_LCRH_WLEN_SHIFT)
+#define PL011_LCRH_WLEN_6 (PL011_LCRH_WLEN_SIZE(6) << PL011_LCRH_WLEN_SHIFT)
+#define PL011_LCRH_WLEN_7 (PL011_LCRH_WLEN_SIZE(7) << PL011_LCRH_WLEN_SHIFT)
+#define PL011_LCRH_WLEN_8 (PL011_LCRH_WLEN_SIZE(8) << PL011_LCRH_WLEN_SHIFT)
+
 #define PL011_LCRH_FORMAT_MASK	(PL011_LCRH_PEN | PL011_LCRH_EPS | \
 		PL011_LCRH_SPS | \
 		PL011_BIT_MASK(PL011_LCRH_WLEN_WIDTH, PL011_LCRH_WLEN_SHIFT))
