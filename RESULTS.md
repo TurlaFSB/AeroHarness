@@ -191,3 +191,40 @@ An external evaluation-dimensions checklist flagged several dimensions (difficul
 
 * **Verification Status**: VERIFIED — each linked document's underlying claims were spot-checked against reproducible tooling where possible (`lizard` re-run fresh), source code was read directly to resolve the model-attribution question (not assumed or guessed), and new content added to each file reflects this session's own real, already-committed Kinetis ADC evidence rather than invented figures.
 * **Date Finalized**: 2026-10-01
+
+---
+
+## Headline KPI, Reconciled: ≥80% Autonomous Compilation and Execution Success Rate (Oct 2 2026)
+
+The proposal's own headline Expected Outcome (2a) claims "≥80% autonomous compilation and execution success rate." Until now this has only ever been *inferable* by reading several documents side by side (and two of them, `STAGE6_HARNESS_METRICS.md` and `stage6_difficulty_metrics.md`, disagree with each other on a related sub-metric). This section computes it once, as one number, with a visible numerator and denominator, and states exactly what was and wasn't resolved in producing it.
+
+### Step 1 — the repair-iteration disagreement does not block this number
+
+`STAGE6_HARNESS_METRICS.md` and `stage6_difficulty_metrics.md` disagree on *how many repair iterations* `pl011_poll_out` (0 vs. 1) and `pl011_isr` (2 vs. 4) took to reach their final state. Re-checked directly during this session: neither harness's `.cpp` source file contains inline repair-history comments (unlike the dispatcher, whose `stage6_statemachine_report.md` documents its 4 iterations verbatim), and no raw synthesis/repair transcript exists anywhere in the repo for either harness — so this remains genuinely unresolvable from available evidence, exactly as `stage6_difficulty_metrics.md` already states. **This is explicitly flagged as still open, not silently resolved.** What matters for this section is that **both documents agree on the outcome** — all three Zephyr harnesses ultimately compiled, linked, and executed successfully — so the disagreement affects only the iteration-count sub-metric (relevant to item 2 on the work plan, the self-repair statistical-rigor item) and has no bearing on the binary success/fail determination this KPI needs. It should be resolved before any mean/median repair-iteration statistic is computed for that separate item, but it does not block this one.
+
+### Step 2 — the complete population of harnesses ever attempted
+
+Five harnesses have been synthesized and brought to a final state across this project's history. This is the complete set — confirmed by enumerating every file under `harnesses/` plus the dispatcher (`fuzz_state_machine.c`, tracked separately), and cross-checked against `FAILURE_TAXONOMY.md` for any abandoned/never-succeeded target (none found — every documented failure in that file is an intermediate repair step, not a final outcome):
+
+| # | Harness | Target | Outcome | Repair iterations | Source |
+| :-: | :--- | :--- | :--- | :--- | :--- |
+| 1 | `fuzz_pl011_poll_in.cpp` | Zephyr PL011 UART | **Success** | 2 (both documents agree) | `STAGE6_HARNESS_METRICS.md`, `stage6_difficulty_metrics.md` |
+| 2 | `fuzz_pl011_poll_out.cpp` | Zephyr PL011 UART | **Success** | 0 or 1 (disputed, see Step 1) | same |
+| 3 | `fuzz_pl011_isr.cpp` | Zephyr PL011 UART | **Success** | 2 or 4 (disputed, see Step 1) | same |
+| 4 | `fuzz_state_machine.c` (dispatcher) | Zephyr PL011 UART (4-function state machine) | **Success** | 4 (documented verbatim, undisputed) | `stage6_statemachine_report.md` |
+| 5 | `fuzz_kinetis_adc_calibrate.c` | RIOT/Kinetis K64F ADC | **Success** | 4 (documented verbatim, undisputed) | `RESULTS.md` "Second-RTOS/Target Pipeline Run" section |
+
+**Definition of "success" used here** (matching the operational definition already established in `STAGE6_HARNESS_METRICS.md`'s "Executable Startup" sub-metric, applied consistently across all five): the harness compiled, linked, and started executing/fuzzing without a startup crash or sanitizer violation. This is deliberately **not** the same as "never hangs on any input" — `poll_out`, `isr`, and `kinetis_adc_calibrate` all have documented, fuzzer-input-dependent hangs from static-mocking limitations (tracked separately in `HARDWARE_MOCKING_METRICS.md`'s Runtime Fault Rate rows: 50% for Zephyr/UART, 80% for Kinetis). A harness that starts cleanly and fuzzes, but hangs on some fraction of inputs due to a documented mocking limitation, still counts as a compilation-and-execution **success** under this definition — consistent with how the project has counted `poll_out` (which has exactly this profile) as a success throughout every prior document. This definitional choice is stated explicitly here so it is auditable, not assumed.
+
+### Step 3 — the number
+
+**5 / 5 = 100% autonomous compilation and execution success rate**, against the proposal's ≥80% target. All five harnesses ever synthesized by the project's primary pipeline (Gemini-backed, per the corrected model attribution above) reached a final compiled, linked, executing state — none were abandoned as permanent failures.
+
+**What this number does and does not claim:**
+- It **does** mean: every harness-synthesis attempt this project has made, across two different RTOSes (Zephyr, RIOT) and two different peripheral types (UART, ADC), eventually reached working compiled/executing state via the self-repair loop.
+- It does **not** mean 100% of individual fuzzer inputs execute cleanly within those harnesses — `HARDWARE_MOCKING_METRICS.md`'s separately-tracked Runtime Fault Rate (50%–80% depending on dataset) is the honest measure of that, and should be cited alongside this number whenever it's used, not instead of it.
+- It does **not** include `ABLATION_B_V2.md`'s local-model (`qwen2.5-coder:7b`/`14b`) trials. Those are a deliberately separate, intentionally resource-constrained experiment testing a different research question (does feedback *type* affect self-repair) and were never part of the primary pipeline's own harness-delivery claim — conflating the two would understate this KPI with data that was never meant to measure it. This exclusion is stated explicitly rather than left for a reader to wonder about.
+- The disputed repair-iteration sub-metric (Step 1) does not change this number — a harness counts as a success here regardless of whether it took 0, 1, 2, or 4 iterations to get there.
+
+**Verification Status**: VERIFIED — all 5 outcomes cross-checked directly against each harness's own section of this document (or, for the dispatcher, `stage6_statemachine_report.md`) and against `FAILURE_TAXONOMY.md` for any uncounted permanent failure (none found). The repair-iteration disagreement is accurately represented as unresolved, not guessed at or silently picked.
+* **Date Finalized**: 2026-10-02
