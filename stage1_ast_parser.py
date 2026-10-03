@@ -218,11 +218,102 @@ def analyze_ast(filename):
     output = {
         "constants": constants,
         "functions": functions,
+        "ordering_edges": _compute_ordering_edges(functions),
         "extraction_warnings": [d.spelling for d in tu.diagnostics if d.severity >= 3]
     }
-    
+
     with open("ast_output.json", "w") as f:
         json.dump(output, f, indent=2)
-        
+
+
+def _compute_ordering_edges(functions):
+    """
+    Work Plan item 11 (Oct 3 2026): Objective 1 claims call graphs are used to "deduce...
+    mock hardware configurations," but `ARCHITECTURE.md` already honestly documents that the
+    one place this is actually exercised end to end (the state-machine dispatcher harness,
+    `fuzz_state_machine.c`) got its `pl011_init()`-must-run-first ordering from a human
+    reading function NAMES, not from anything Stage 1 itself derived -- "the call graph had
+    no ordering constraints to use." The existing `calls` list (direct CALL_EXPR edges) is
+    real, but useless for this specific case: `pl011_init`, `pl011_poll_in`, `pl011_poll_out`
+    and `pl011_isr` never call each other at all -- their real dependency is that they all
+    touch the SAME device's hardware registers, not that one invokes another.
+
+    This infers a genuine, data-grounded ordering constraint from exactly that: for every
+    register R, if function A's only access to R is a `write` or `read-modify-write` and
+    function B's access to R is a plain `read` (never writing it), emit a `before` edge
+    A -> B, justified by "B reads a register that only A (among the analyzed functions)
+    ever writes." This is no longer naming-convention-derived -- it comes straight from the
+    `mmio_accesses` data this file already extracts (and, since the Oct 3 2026 item-12 fix,
+    now extracts far more completely).
+
+    Verified directly against `uart_pl011.c` (Oct 3 2026) -- and the actual output does NOT
+    fully match what an earlier draft of this docstring claimed, which is recorded here
+    rather than silently corrected, per this project's own "verify independently, don't
+    trust prior notes (including your own)" discipline:
+
+    - It DOES recover `pl011_init -> pl011_irq_rx_ready` and `pl011_init -> pl011_irq_tx_ready`
+      (via `cr`/`imsc`), and `pl011_isr -> pl011_irq_rx_ready`/`pl011_irq_tx_ready` (via `imsc`)
+      -- real, data-grounded config/status-handshake dependencies that the old naming-only
+      approach could not have stated with any evidence at all.
+    - It does NOT recover `pl011_init` as a prerequisite of `pl011_poll_in`, `pl011_poll_out`,
+      or `pl011_isr` directly -- which is the specific edge `fuzz_state_machine.c` actually
+      hand-codes. The reason is structural, not a tuning bug: `pl011_init`'s only overlap with
+      `cr`/`imsc` is a read-modify-write (it flips the UARTEN/interrupt-mask bits of a register
+      it also has to read first), so under this heuristic's rule it only ever counts as a
+      *writer*, never a *reader* -- and `pl011_poll_in`/`pl011_poll_out`/`pl011_isr` never touch
+      `cr` at all, so there is no shared register, write-then-read or otherwise, connecting them
+      to `pl011_init` in the extracted data. The real dependency ("UART must be enabled before
+      you poll it") is an implicit hardware *enable-flag* semantic, not a shared-register access
+      pattern -- so register-co-access analysis is the wrong tool to recover this specific edge,
+      not an edge case this implementation got wrong. This is reported as a genuine open gap,
+      not patched over by special-casing `cr`/UARTEN, which would just be a new naming guess
+      wearing this function's clothes.
+    - The predicted false positive DOES appear as predicted: `pl011_poll_out -> pl011_poll_in`
+      via `dr` (`pl011_fifo_fill -> pl011_fifo_read`/`pl011_poll_in` likewise) -- `dr` is a
+      single address that is actually two different physical registers depending on direction
+      (RX read-path vs TX write-path on real PL011 hardware), not a shared configuration/status
+      register, so "poll_out before poll_in" is not a real prerequisite at all. This function
+      has no way to generically distinguish a bidirectional data register from a real
+      state/config register from the AST alone, so its output is a set of CANDIDATE ordering
+      edges for a human (or a downstream consumer) to sanity-check, not a guaranteed-correct
+      final ordering.
+
+    Net honest claim for the paper: this closes part of the naming-convention gap (some real,
+    previously-unstated dependencies are now data-grounded) but does NOT fully replace the
+    hand-coded `pl011_init`-first assumption in the dispatcher harness, which still rests on a
+    human reading function names for that specific edge. `ARCHITECTURE.md` should keep saying
+    so rather than being updated to claim this is solved.
+    """
+    writers = {}  # register -> set of function names that write or RMW it
+    readers = {}  # register -> set of function names whose ONLY access to it is a plain read
+
+    for fn_name, fdata in functions.items():
+        for acc in fdata.get("mmio_accesses", []):
+            reg = acc["register"]
+            is_write = acc.get("access_type") in ("write", "read-modify-write")
+            if is_write:
+                writers.setdefault(reg, set()).add(fn_name)
+            else:
+                readers.setdefault(reg, set()).add(fn_name)
+
+    edges = {}  # (before, after) -> set of registers justifying the edge
+    for reg in set(writers) | set(readers):
+        for w in writers.get(reg, ()):
+            for r in readers.get(reg, ()):
+                if w == r:
+                    continue
+                # Only a genuine prerequisite if r never ALSO writes this register itself
+                # (a function that both reads and writes the same register is managing its
+                # own state, not depending on w for it).
+                if r in writers.get(reg, ()):
+                    continue
+                edges.setdefault((w, r), set()).add(reg)
+
+    return [
+        {"before": w, "after": r, "via_registers": sorted(regs)}
+        for (w, r), regs in sorted(edges.items())
+    ]
+
+
 if __name__ == "__main__":
     analyze_ast(sys.argv[1])
