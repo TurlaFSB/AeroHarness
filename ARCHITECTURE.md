@@ -5,6 +5,8 @@ This document presents the complete system architecture for **AeroHarness**, map
 > For a concise, presentation-ready visual (one figure, grid-aligned, with a legend and caption), see [`architecture.svg`](./architecture.svg), referenced from the README's Architecture section. The diagram below is the detailed technical flow, including the Stage 6/7 case-study internals and the independent cross-validation steps.
 >
 > **Independent re-audit (Oct 1 2026):** Stage 6's isolated-harness coverage numbers, the MQTT UBSan classification, the CVE-2020-10062 positive control, and the Stage 6/7 coverage measurement methodology were each independently re-verified against the repo. This surfaced and fixed stale coverage numbers, a build-flag-dependent false negative in the CVE control, and added missing `llvm-cov` source-level cross-validation. It also confirmed the Stage 7 RL-sequencing case study's honest null result stands. See `RESULTS.md` for full detail. This document has been updated to reflect those findings.
+>
+> **Diagram corrected (Oct 3 2026):** the diagram below previously fused Stage 3 and Stage 4 into a single subgraph (titled "Stage 3: Shared Front End — Stage 4: Validation Track"), with Stage 4's own content reduced to a single dotted edge label rather than a real process box — so a reader following the rendered diagram (not the prose) would only ever see 6 stage boxes, not the 7 this document claims, and the auto-laid-out edges crossed through unrelated subgraphs (confirmed by rendering it with `mermaid-cli` and inspecting the actual output, not just the source). Rebuilt with Stage 3 and Stage 4 as separate subgraphs, the Validation and Case-Study tracks as proper nested containers (so the layout engine keeps each track's stages grouped), and every cross-cutting reuse edge (call-graph/ordering-edge reuse into Stage 6, the uncertainty signal into Stage 7, and the future-work links) drawn dashed and distinct from the primary data-flow edges, matching `architecture.svg`'s existing legend convention. Re-rendered and visually verified before and after.
 
 ## System Architecture Diagram
 
@@ -21,75 +23,107 @@ flowchart TD
 
     %% Stage 1
     subgraph S1 [Stage 1: Semantic Analysis]
+        direction TB
         A1[Embedded Firmware Source\n Zephyr / RIOT OS]:::input --> A2(AST Parser\n libclang):::process
-        A2 --> A3[Filtered AST Nodes\n MMIO accesses, call-graphs]:::output
+        A2 --> A3[Filtered AST Nodes\n MMIO accesses, call-graph,\n register-dependency ordering edges]:::output
     end
 
     %% Stage 2
     subgraph S2 [Stage 2: LLM Synthesizer]
-        A3 --> B1{LLM Router / Failover}:::process
+        direction TB
+        B1{LLM Router / Failover}:::process
         B1 -- Primary --> B2(Gemini 3.6 Flash\n Zero-Shot):::llm
         B1 -- Fallback --> B3(Qwen2.5-Coder\n via Ollama):::llm
         B2 --> B4[LLM-Proposed MMIO Models\n Constant, Passthrough, Set, etc.]:::output
         B3 --> B4
     end
+    A3 --> B1
 
-    %% Stage 3 & 4
-    subgraph S34 [Stage 3: Shared Front End — Stage 4: Validation Track]
-        B4 --> C1(Static Verification Oracle\n AST-pattern structural checker):::oracle
-        A3 --> C1
+    %% Stage 3
+    subgraph S3 [Stage 3: Static Verification Oracle — Shared Front End]
+        direction TB
+        C1(Static Verification Oracle\n AST-pattern structural checker):::oracle
         C1 -- Agreement --> C2[Confirmed Models]:::output
-        C1 -- Minor mismatch --> C3[Disagreements]:::output
-        C1 -- Complex pattern --> C4[Unconfident / Uncertainty Signal]:::output
-        
-        C2 -.->|"83.3% Accuracy"| C5[(P2IM Ground Truth\n Benchmark)]:::input
+        C1 -- "Minor mismatch" --> C3[Disagreements]:::output
+        C1 -- "Complex pattern" --> C4[Unconfident /\n Uncertainty Signal]:::output
     end
+    B4 --> C1
+    A3 -. "AST cross-check" .-> C1
 
-    %% Stage 5
-    subgraph S5 [Stage 5: Deep Learning Acceleration — Validation Track]
-        C2 -.->|"Dataset"| D1(Fine-tune CodeBERT):::process
-        C2 -.->|"Dataset"| D2(Train XGBoost):::process
-        D1 -.->|"Underperformed\n Zero-Shot LLM"| D3[Result: LLM > DL]:::output
-        D2 -.->|"Underperformed\n Zero-Shot LLM"| D3
+
+    %% Validation Track (Stages 4-5)
+    subgraph VAL [VALIDATION TRACK]
+        direction TB
+
+        subgraph S4 [Stage 4: Dataset Benchmarking]
+            direction TB
+            D0(Benchmark Harness\n evaluate_accuracy_canonical.py):::process
+            D0 --> D0OUT[["83.3% [95% CI 69.4-91.7%]\naccess-level accuracy vs.\nP2IM ground truth"]]:::output
+        end
+
+        subgraph S5 [Stage 5: Deep Learning Acceleration]
+            direction TB
+            D1(Fine-tune CodeBERT):::process
+            D2(Train XGBoost):::process
+            D1 --> D3[Result: neither model beats\nmajority-class baseline;\nzero-shot LLM wins]:::output
+            D2 --> D3
+        end
+
     end
+    D0OUT -- Dataset --> D1
+    D0OUT -- Dataset --> D2
+    C2 -- "Verified models\n P2IM targets (STM32, Kinetis)" --> D0
 
-    %% Stage 6
-    subgraph S6 [Stage 6: Harness Synthesis & Self-Repair — Case-Study Track]
-        C2 --> E1(Harness Generator):::process
-        E1 --> E2[libFuzzer C++ Harness]:::output
-        E2 --> E3(Compiler)
-        E3 -- "Compilation Error\n (Max 5 Retries)" --> E4(Diagnostic Feedback):::process
-        E4 --> E1
-        E3 -- "Success" --> E5[3 Isolated Harnesses\n poll_in / poll_out / isr]:::output
-        E5 --> E6(State-Machine Dispatcher\n call-graph-guided bridge):::process
-        E6 --> E7["Dispatcher Binary\n raw sancov cov:76 ft:566"]:::output
-        E7 -.->|"llvm-cov cross-check\n (Oct 1 2026)"| E8[["Real driver coverage: ~29% lines\n/ ~35% branches — NOT 76%"]]:::oracle
-        C2 --> E9(MQTT UBSan Triage +\n CVE-2020-10062 Positive Control):::process
-        E9 --> E10[["UBSan: harness-artifact, fixed.\nCVE: reproduced at -O1 after\nfixing a dead-code-elim false\nnegative (Oct 1 2026)"]]:::output
+    %% Case-Study Track (Stages 6-7)
+    subgraph CASE [CASE-STUDY TRACK]
+        direction TB
+
+        subgraph S6 [Stage 6: Harness Synthesis & Self-Repair]
+            direction TB
+            E1(Harness Generator):::process
+            E1 --> E2[libFuzzer C++ Harness]:::output
+            E2 --> E3(Compiler):::process
+            E3 -- "Compile error\n max 5 retries" --> E4(Diagnostic Feedback):::process
+            E4 --> E1
+            E3 -- Success --> E5[3 Isolated Harnesses\n poll_in / poll_out / isr]:::output
+            E5 --> E6(State-Machine Dispatcher\n init ordering: naming-convention-\nderived, not graph-derived):::process
+            E6 --> E7["Dispatcher Binary\n raw sancov cov:76 ft:566"]:::output
+            E7 -.->|llvm-cov cross-check| E8[["Real driver coverage: ~29% lines\n/ ~35% branches — NOT 76%"]]:::oracle
+            E9(MQTT UBSan Triage +\nCVE-2020-10062 Positive Control):::process
+            E9 --> E10[["UBSan: harness artifact, fixed.\nCVE: reproduced at -O1 after\nfixing a dead-code-elim\nfalse negative"]]:::output
+        end
+
+        subgraph S7 [Stage 7: Uncertainty-Guided RL]
+            direction TB
+            F1(Coverage-Guided Fuzzing\n libFuzzer):::fuzzer
+            F2(RL Scheduler\n Q-Learning, UCB1, PPO):::rl
+            F2 -- "Selects target" --> F1
+            F1 -- "Coverage signal" --> F2
+            F2 --> F3["Scheduling ablation: significant\nvariance reduction\n(F=17.42, p<0.01)"]:::output
+            G1(RL-Guided Sequencing\n selects dispatcher API order):::rl
+            G1 -- "8-point audit +\nllvm-cov cross-validation" --> G2[["Honest null result: all algorithms\nconverge to flat 29-PC ceiling"]]:::output
+        end
+
     end
+    C2 -- "Verified models\n Zephyr PL011 (case study)" --> E1
+    C2 --> E9
+    E5 --> F1
+    E7 --> G1
 
-    %% Stage 7
-    subgraph S7 [Stage 7: Uncertainty-Guided RL — Case-Study Track]
-        E5 --> F1(Coverage-Guided Fuzzing\n libFuzzer):::fuzzer
-        C4 -- "Reward Multiplier" --> F2(RL Scheduler\n Q-Learning, UCB1, PPO):::rl
-        F2 -- "Selects Target" --> F1
-        F1 -- "Coverage Signal" --> F2
-        F2 --> F3["Scheduling Ablation: Statistically\nSignificant Variance Reduction\n(F=17.42, p&lt;0.01)"]:::output
+    %% Cross-cutting reuse (dashed, not primary data flow)
+    A3 -. "call-graph + ordering edges\nreused directly" .-> E6
+    C4 -. "reward multiplier" .-> F2
 
-        E7 --> G1(RL-Guided Sequencing\n Q-learning / UCB1 / Random select\ndispatcher API call order):::rl
-        G1 -- "8-point measurement audit +\nllvm-cov cross-validation" --> G2[["Honest null result: all algorithms\nconverge to flat 29-PC driver\ncoverage ceiling"]]:::output
-    end
-    
     %% Future Work
     subgraph S8 [What's Next: Future Trajectory]
+        direction LR
         FW1(Dynamic Symbolic Execution\n Fuzzware Integration):::future
         FW2(Deep System-Level Fuzzing):::future
         FW3(Expanded Hardware Models\n DMA, Interrupts):::future
     end
-    
-    C4 -.->|"Runtime verification"| FW1
-    F1 -.->|"Scale up"| FW2
-    E4 -.->|"Complex State"| FW3
+    C4 -. "Runtime verification" .-> FW1
+    F1 -. "Scale up" .-> FW2
+    E4 -. "Complex state" .-> FW3
 ```
 
 ---
