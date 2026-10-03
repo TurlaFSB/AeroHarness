@@ -21,7 +21,7 @@ This test proves that mapping real LLM uncertainty to target rewards produces st
   ```bash
   python3 rl_strict_ablation.py
   ```
-* **Expected Result:** The script outputs a paired t-test array showcasing UCB1 with the Real Uncertainty Multiplier achieving roughly `78.20 ± 3.97`, whilst the Random Multiplier falls to `51.00 ± 22.27`. 
+* **Expected Result:** The script outputs a paired t-test array showcasing UCB1 with the Real Uncertainty Multiplier achieving roughly `80.80 ± 4.53`, whilst the Random Multiplier falls to `73.20 ± 18.90` (F=17.42, p<0.01; these are `RESULTS.md`'s canonical figures — a documented re-run reproduced them within expected libFuzzer variance at `78.80`/`71.13`, and this section previously cited a third, non-matching pair, `78.20 ± 3.97` / `51.00 ± 22.27`, which did not match either run).
 
 ---
 
@@ -38,13 +38,17 @@ This test verifies the AST-guided LLM harnesses natively achieve state traversal
 ---
 
 ## 3. Harness Compilation (Stage 6)
-To verify that our synthesized fuzz drivers successfully link against the real firmware HAL and LibFuzzer. 
+To verify that our synthesized fuzz drivers successfully link against the real firmware HAL and LibFuzzer.
 
-* **Expected Runtime:** <10 seconds.
-* **Exact Command:**
+**Note (corrected Oct 3 2026):** the `target_*.cpp` harness files are Stage 6 *output*, not checked into the repo (`.gitignore` excludes `target_*` deliberately — they're synthesized artifacts, regenerated per-run). This section previously named files that never exist in a fresh checkout (`./targets/fuzz_pl011_poll_in.cpp`, `./include/`, `./firmware/pl011.c`) and don't match the real build script below. If you haven't yet run Stage 6 synthesis for a target, do that first (see `run.py`/`ANTIGRAVITY_TASK_ITEM2.md`-style instructions elsewhere in this repo); this section assumes at least one `targets/target_*.cpp` file already exists.
+
+* **Expected Runtime:** <10 seconds per target.
+* **Exact Command:** run the actual, checked-in build script, which compiles every currently-present generated target against the real mocks/headers under `harnesses/include`:
   ```bash
-  clang++ -g -O1 -fsanitize=fuzzer,address -I./include -c ./targets/fuzz_pl011_poll_in.cpp -o fuzz_pl011_poll_in.o
-  clang++ -g -O1 -fsanitize=fuzzer,address fuzz_pl011_poll_in.o ./firmware/pl011.c -o ./targets/fuzz_pl011_poll_in
+  ./build_targets.sh
   ```
-  *(Note: A convenience script `./build_targets.sh` automatically wraps this logic for all generated drivers).*
-* **Expected Result:** A valid ELF executable `./targets/fuzz_pl011_poll_in` is produced. Run it via `./targets/fuzz_pl011_poll_in -runs=1` to observe the libFuzzer ASan initialization hook executing successfully.
+  Its commands look like (one line per target, e.g.):
+  ```bash
+  clang++ -g -fsanitize=fuzzer,address -Iharnesses/include targets/target_poll_in_sbsa.cpp -o targets/target_poll_in_sbsa
+  ```
+* **Expected Result:** A valid ELF executable per target (e.g. `./targets/target_poll_in_sbsa`) is produced next to its source. Run one via `./targets/target_poll_in_sbsa -runs=1` to observe the libFuzzer ASan initialization hook executing successfully.

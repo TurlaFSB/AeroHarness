@@ -70,7 +70,8 @@ class BenchmarkRunner:
 
         agent = HarnessSynthesizerAgent(
             api_key=self.settings.gemini_api_key,
-            model_name=self.settings.primary_model
+            model_name=self.settings.primary_model,
+            fallback_model=self.settings.fallback_model
         )
 
         for target in self.BENCHMARK_TARGETS:

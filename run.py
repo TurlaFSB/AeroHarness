@@ -77,7 +77,8 @@ def synthesize(header: str, source: str, api: str, output: str):
     
     agent = HarnessSynthesizerAgent(
         api_key=settings.gemini_api_key,
-        model_name=settings.primary_model
+        model_name=settings.primary_model,
+        fallback_model=settings.fallback_model
     )
     orchestrator = SelfRepairOrchestrator(agent=agent)
 
@@ -129,7 +130,8 @@ def run_all(header: str, source: str, api: str, duration: int, output: str):
     console.console.print("\n[bold green][Phase 2/4][/bold green] Gemini Pro Agentic Synthesis & Hardware Mocking...")
     agent = HarnessSynthesizerAgent(
         api_key=settings.gemini_api_key,
-        model_name=settings.primary_model
+        model_name=settings.primary_model,
+        fallback_model=settings.fallback_model
     )
     orchestrator = SelfRepairOrchestrator(agent=agent)
 
