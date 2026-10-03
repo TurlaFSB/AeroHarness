@@ -63,3 +63,8 @@ cb_res/
 
 # Item 6 scaled-campaign ephemeral OS process state (meaningless once the session restarts)
 item6_scale/pids/
+# Per-iteration raw libFuzzer logs churn constantly while a campaign is running (one file
+# every 60-300s) and add no information campaign_summary.log doesn't already capture (it
+# records each iteration's tail). Keep campaign_summary.log + driver.out tracked; drop the
+# per-iteration noise.
+item6_scale/*/logs/iter_*.log
