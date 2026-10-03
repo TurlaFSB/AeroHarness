@@ -1,1 +1,3 @@
-campaign_start=2026-10-03T07:43:06Z bin=./fuzz_isr total_budget=3600s per_iter=300s timeout=5s
+campaign_start=2026-10-03T08:07:54Z bin=./fuzz_isr total_budget=480s per_iter=480s timeout=5s
+iter=1 elapsed=0s rc=0 tail=[#67108864	pulse  cov: 16 ft: 17 corp: 4/10b lim: 4096 exec/s: 1032444 rss: 606Mb #134217728	pulse  cov: 16 ft: 17 corp: 4/10b lim: 4096 exec/s: 1040447 rss: 607Mb #268435456	pulse  cov: 16 ft: 17 corp: 4/10b lim: 4096 exec/s: 1036430 rss: 607Mb #492473697	DONE   cov: 16 ft: 17 corp: 4/10b lim: 4096 exec/s: 1023853 rss: 608Mb Done 492473697 runs in 481 second(s) ]
+campaign_end=2026-10-03T08:15:56Z total_elapsed=482s total_iterations=1 corpus_size=3
