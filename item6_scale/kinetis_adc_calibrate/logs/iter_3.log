@@ -1,0 +1,36 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3709457244
+INFO: Loaded 1 modules   (26 inline 8-bit counters): 26 [0x55c70e6bdec8, 0x55c70e6bdee2), 
+INFO: Loaded 1 PC tables (26 PCs): 26 [0x55c70e6bdee8,0x55c70e6be088), 
+INFO:        2 files found in item6_scale/kinetis_adc_calibrate/corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 2 min: 51b max: 53b total: 104b rss: 31Mb
+#3	INITED cov: 8 ft: 9 corp: 2/104b exec/s: 0 rss: 32Mb
+#4	NEW    cov: 9 ft: 10 corp: 3/148b lim: 53 exec/s: 0 rss: 32Mb L: 44/53 MS: 1 EraseBytes-
+#6	REDUCE cov: 9 ft: 10 corp: 3/145b lim: 53 exec/s: 0 rss: 33Mb L: 41/53 MS: 2 ChangeBinInt-EraseBytes-
+#16	REDUCE cov: 9 ft: 11 corp: 4/198b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 5 InsertRepeatedBytes-CopyPart-CopyPart-ChangeBinInt-ShuffleBytes-
+ALARM: working on the last Unit for 3 seconds
+       and the timeout value is 3 (use -timeout=N to change)
+MS: 2 InsertByte-ChangeBinInt-; base unit: 399427d315342ead7e51c492ffdb45b8086c64cf
+0x34,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x8b,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xb0,
+4\000\000\000\000\000\000\000\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\213\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\260
+artifact_prefix='item6_scale/kinetis_adc_calibrate/logs/'; Test unit written to item6_scale/kinetis_adc_calibrate/logs/timeout-934d4a2c9158ac3c78d659e8fb93ca3c0c90de65
+Base64: NAAAAAAAAAD///////////////////////////////+L////////////////////////sA==
+==1058== ERROR: libFuzzer: timeout after 3 seconds
+    #0 0x55c70e642b75 in __sanitizer_print_stack_trace (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x10db75) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #1 0x55c70e59c68c in fuzzer::PrintStackTrace() (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x6768c) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #2 0x55c70e58268b in fuzzer::Fuzzer::AlarmCallback() (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4d68b) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #3 0x7fc91f84532f  (/lib/x86_64-linux-gnu/libc.so.6+0x4532f) (BuildId: 8e9fd827446c24067541ac5390e6f527fb5947bb)
+    #4 0x55c70e676e75 in kinetis_adc_calibrate /home/claude/aeroharness/harnesses/fuzz_kinetis_adc_calibrate.c:118:5
+    #5 0x55c70e676e75 in LLVMFuzzerTestOneInput /home/claude/aeroharness/harnesses/fuzz_kinetis_adc_calibrate.c:321:15
+    #6 0x55c70e583ce4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4ece4) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #7 0x55c70e5833d9 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4e3d9) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #8 0x55c70e584bc5 in fuzzer::Fuzzer::MutateAndTestOne() (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x4fbc5) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #9 0x55c70e585725 in fuzzer::Fuzzer::Loop(std::vector<fuzzer::SizedFile, std::allocator<fuzzer::SizedFile>>&) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x50725) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #10 0x55c70e5729ff in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x3d9ff) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #11 0x55c70e59d086 in main (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x68086) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+    #12 0x7fc91f82a1c9 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #13 0x7fc91f82a28a in __libc_start_main csu/../csu/libc-start.c:360:3
+    #14 0x55c70e5679e4 in _start (/home/claude/aeroharness/fuzz_kinetis_adc_calibrate+0x329e4) (BuildId: 8db79df099b1cd3eb8c44ff89ddb92dbad66a883)
+
+SUMMARY: libFuzzer: timeout

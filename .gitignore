@@ -60,3 +60,6 @@ cb_res/
 
 *.profdata
 *.profraw
+
+# Item 6 scaled-campaign ephemeral OS process state (meaningless once the session restarts)
+item6_scale/pids/

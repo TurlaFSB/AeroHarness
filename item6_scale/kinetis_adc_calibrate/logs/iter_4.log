@@ -1,0 +1,21 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 430831100
+INFO: Loaded 1 modules   (26 inline 8-bit counters): 26 [0x5622647dbec8, 0x5622647dbee2), 
+INFO: Loaded 1 PC tables (26 PCs): 26 [0x5622647dbee8,0x5622647dc088), 
+INFO:        4 files found in item6_scale/kinetis_adc_calibrate/corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 4 min: 41b max: 53b total: 198b rss: 32Mb
+#5	INITED cov: 9 ft: 10 corp: 4/198b exec/s: 0 rss: 32Mb
+#8	REDUCE cov: 9 ft: 10 corp: 4/195b lim: 53 exec/s: 0 rss: 32Mb L: 38/53 MS: 3 ShuffleBytes-CrossOver-EraseBytes-
+#9	NEW    cov: 9 ft: 13 corp: 5/248b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 1 ChangeBinInt-
+#10	NEW    cov: 11 ft: 15 corp: 6/301b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 1 ChangeBinInt-
+#13	NEW    cov: 11 ft: 16 corp: 7/354b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 3 CrossOver-ChangeBit-ShuffleBytes-
+#16	REDUCE cov: 11 ft: 16 corp: 7/351b lim: 53 exec/s: 0 rss: 33Mb L: 35/53 MS: 3 CopyPart-CrossOver-EraseBytes-
+#34	NEW    cov: 11 ft: 18 corp: 8/404b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 3 ChangeASCIIInt-CrossOver-ChangeASCIIInt-
+#62	REDUCE cov: 11 ft: 18 corp: 8/400b lim: 53 exec/s: 0 rss: 33Mb L: 31/53 MS: 3 InsertRepeatedBytes-ShuffleBytes-EraseBytes-
+#67	NEW    cov: 11 ft: 19 corp: 9/453b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 5 ChangeBit-CrossOver-ChangeByte-ChangeByte-ChangeBinInt-
+#74	REDUCE cov: 11 ft: 19 corp: 9/452b lim: 53 exec/s: 0 rss: 33Mb L: 30/53 MS: 2 ChangeByte-EraseBytes-
+#121	REDUCE cov: 11 ft: 19 corp: 9/449b lim: 53 exec/s: 0 rss: 33Mb L: 27/53 MS: 2 ChangeByte-EraseBytes-
+#147	REDUCE cov: 11 ft: 19 corp: 9/447b lim: 53 exec/s: 0 rss: 33Mb L: 51/53 MS: 1 EraseBytes-
+#192	REDUCE cov: 11 ft: 19 corp: 9/446b lim: 53 exec/s: 0 rss: 33Mb L: 52/53 MS: 5 CrossOver-ChangeByte-InsertByte-ChangeBinInt-ShuffleBytes-
+#203	NEW    cov: 11 ft: 20 corp: 10/499b lim: 53 exec/s: 0 rss: 33Mb L: 53/53 MS: 1 ChangeBit-

@@ -1,0 +1,33 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3005531262
+INFO: Loaded 1 modules   (8 inline 8-bit counters): 8 [0x55bba9e0fe88, 0x55bba9e0fe90), 
+INFO: Loaded 1 PC tables (8 PCs): 8 [0x55bba9e0fe90,0x55bba9e0ff10), 
+INFO:        0 files found in item6_scale/poll_out/corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 32Mb
+ALARM: working on the last Unit for 3 seconds
+       and the timeout value is 3 (use -timeout=N to change)
+MS: 1 InsertByte-; base unit: adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
+0xf1,0xa,
+\361\012
+artifact_prefix='item6_scale/poll_out/logs/'; Test unit written to item6_scale/poll_out/logs/timeout-690cf2a9c0af4e27fd90d45e33ef269cbc6e81ee
+Base64: 8Qo=
+==915== ERROR: libFuzzer: timeout after 3 seconds
+    #0 0x55bba9d93af5 in __sanitizer_print_stack_trace (/home/claude/aeroharness/fuzz_poll_out+0x10daf5) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #1 0x55bba9ced60c in fuzzer::PrintStackTrace() (/home/claude/aeroharness/fuzz_poll_out+0x6760c) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #2 0x55bba9cd360b in fuzzer::Fuzzer::AlarmCallback() (/home/claude/aeroharness/fuzz_poll_out+0x4d60b) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #3 0x7f0f3204532f  (/lib/x86_64-linux-gnu/libc.so.6+0x4532f) (BuildId: 8e9fd827446c24067541ac5390e6f527fb5947bb)
+    #4 0x55bba9dc9be9 in pl011_poll_out(device const*, unsigned char) /home/claude/aeroharness/harnesses/fuzz_pl011_poll_out.cpp:44:5
+    #5 0x55bba9dc99f2 in LLVMFuzzerTestOneInput /home/claude/aeroharness/harnesses/fuzz_pl011_poll_out.cpp:81:5
+    #6 0x55bba9cd4c64 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/home/claude/aeroharness/fuzz_poll_out+0x4ec64) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #7 0x55bba9cd4359 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*) (/home/claude/aeroharness/fuzz_poll_out+0x4e359) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #8 0x55bba9cd5b45 in fuzzer::Fuzzer::MutateAndTestOne() (/home/claude/aeroharness/fuzz_poll_out+0x4fb45) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #9 0x55bba9cd66a5 in fuzzer::Fuzzer::Loop(std::vector<fuzzer::SizedFile, std::allocator<fuzzer::SizedFile>>&) (/home/claude/aeroharness/fuzz_poll_out+0x506a5) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #10 0x55bba9cc397f in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/home/claude/aeroharness/fuzz_poll_out+0x3d97f) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #11 0x55bba9cee006 in main (/home/claude/aeroharness/fuzz_poll_out+0x68006) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+    #12 0x7f0f3202a1c9 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #13 0x7f0f3202a28a in __libc_start_main csu/../csu/libc-start.c:360:3
+    #14 0x55bba9cb8964 in _start (/home/claude/aeroharness/fuzz_poll_out+0x32964) (BuildId: 933bc0245492944b56b735427bb5802c6fa14695)
+
+SUMMARY: libFuzzer: timeout
