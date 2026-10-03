@@ -1,0 +1,32 @@
+# Item 7 -- Fuzzware head-to-head benchmark config for the bare-metal
+# PL011 UART driver target (item7_fuzzware/firmware.bin).
+#
+# Memory layout must match item7_fuzzware/src/link.ld exactly.
+#
+# Fuzzing model: mmio_pl011 is a fuzzer-controlled MMIO region (the
+# 'mmio_' name prefix is what makes Fuzzware treat it that way). Every
+# load the firmware issues against 0x40000000-0x40000FFF -- i.e. every
+# register read inside pl011_init/poll_in/poll_out/isr -- is answered
+# with a value chosen by AFL's coverage-guided mutation instead of a
+# real peripheral. This is the Fuzzware-side equivalent of what
+# AeroHarness's own dispatcher harness (fuzz_state_machine.c) does by
+# injecting fuzzed bytes into dr/fr/mis/imsc directly: same registers,
+# same driver, fuzzer-supplied values either way -- just a different
+# input channel (hardware-level MMIO vs. a host byte-stream).
+
+memory_map:
+  rom: {
+    base_addr: 0x0, size: 0x40000,
+    permissions: r-x,
+    file: './firmware.bin',
+    is_entry: True
+  }
+  ram: { base_addr: 0x20000000, size: 0x10000, permissions: rw- }
+  mmio_pl011: { base_addr: 0x40000000, size: 0x1000, permissions: rw- }
+
+# No handlers/interrupts/exit_at configured: this firmware's main loop
+# (app_main in main.c) calls init/poll_out/poll_in/isr unconditionally and
+# never returns, matching real firmware's infinite main loop. Each AFL
+# testcase execution is bounded by AFL's own per-run timeout, not by an
+# explicit exit point -- the same way Fuzzware runs its P2IM example
+# targets, which also have infinite main loops.

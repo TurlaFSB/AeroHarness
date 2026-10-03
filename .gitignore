@@ -68,3 +68,18 @@ item6_scale/pids/
 # records each iteration's tail). Keep campaign_summary.log + driver.out tracked; drop the
 # per-iteration noise.
 item6_scale/*/logs/iter_*.log
+
+# Item 7 Fuzzware campaign: build outputs and the full AFL/Fuzzware project
+# tree (queue/traces/mmio_states/config_snippets/per-session backups) are
+# large, ephemeral working state with internal session/backup bookkeeping
+# of its own (see FAILURE_TAXONOMY.md) and carry no information beyond what
+# is already curated into item7_fuzzware/evidence/ and cited in RESULTS.md.
+# Drop all generated campaign output; keep source/build-script/config and
+# the curated evidence directory.
+item7_fuzzware/*.elf
+item7_fuzzware/*.bin
+item7_fuzzware/*.o
+item7_fuzzware/*.map
+item7_fuzzware/config/*.bin
+item7_fuzzware/config/run1/
+item7_fuzzware/config/run1_old/
