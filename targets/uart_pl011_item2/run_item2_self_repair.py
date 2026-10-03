@@ -214,15 +214,62 @@ def run_one_target(t, agent, offline: bool) -> dict:
     return record
 
 
+# Statuses that represent a genuine, final result for a target -- once a target has one
+# of these recorded, it must never be silently re-attempted (each target gets exactly one
+# real attempt, by design; see "Do not re-run" in ANTIGRAVITY_TASK_ITEM2.md).
+# ALL_KEYS_EXHAUSTED is deliberately NOT included here: it means the target never actually
+# got a real attempt (success/total_iterations are null), so it must be retried once quota
+# is available again, not treated as done.
+_TERMINAL_STATUSES = {"SUCCESS", "FAILED_TO_CONVERGE"}
+
+
+def _load_existing_report(report_path: Path) -> dict:
+    """
+    Returns {target_name: record} for whatever's already in item2_report.json, or {} if the
+    file doesn't exist / can't be parsed.
+
+    NOTE (Oct 3 2026): added after discovering `main()` previously had NO merge step at all --
+    it unconditionally overwrote item2_report.json with ONLY the current invocation's
+    `results` list. Combined with the documented `--only <remaining targets>` resume workflow,
+    this meant every resume after an ALL_KEYS_EXHAUSTED stop silently discarded every earlier
+    target's real record from the report (confirmed: a real resume run that only re-attempted
+    1 target produced a report containing exactly that 1 record, with the prior run's 3
+    SUCCESS + 2 FAILED_TO_CONVERGE + 1 ALL_KEYS_EXHAUSTED records gone). The only reason those
+    6 records weren't permanently lost is that they'd already been pasted into a chat report
+    and recovered from there by hand -- not something this project can rely on going forward.
+    Fixed by loading any existing report first and merging into it (see main()) instead of
+    blindly overwriting.
+    """
+    if not report_path.exists():
+        return {}
+    try:
+        existing = json.loads(report_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"WARNING: could not parse existing {report_path} ({e!r}); "
+              f"treating as empty rather than risk overwriting it blindly. "
+              f"If this is unexpected, stop and inspect the file by hand.", file=sys.stderr)
+        return {}
+    return {r["target"]: r for r in existing if "target" in r}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", nargs="*", default=None, help="run only these target names")
     parser.add_argument("--max-targets", type=int, default=None, help="stop after N targets")
+    parser.add_argument(
+        "--force", nargs="*", default=[],
+        help="target names to re-attempt even if they already have a terminal "
+             "(SUCCESS/FAILED_TO_CONVERGE) record -- use only deliberately, never by default; "
+             "each target is meant to get exactly one real attempt."
+    )
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     offline = not any(os.getenv(f"GEMINI_API_KEY_{i}") for i in range(1, 5))
     agent = build_agent(offline)
+
+    report_path = OUTPUT_DIR / "item2_report.json"
+    existing_by_name = _load_existing_report(report_path)
 
     targets = TARGETS
     if args.only:
@@ -230,20 +277,42 @@ def main():
     if args.max_targets:
         targets = targets[: args.max_targets]
 
-    results = []
+    skipped = []
+    targets_to_run = []
     for t in targets:
+        prior = existing_by_name.get(t.name)
+        if prior and prior.get("status") in _TERMINAL_STATUSES and t.name not in args.force:
+            skipped.append((t.name, prior["status"]))
+            continue
+        targets_to_run.append(t)
+
+    if skipped:
+        print(f"Skipping {len(skipped)} target(s) that already have a terminal result "
+              f"(pass --force <name> to deliberately re-attempt one): "
+              + ", ".join(f"{name} ({status})" for name, status in skipped), file=sys.stderr)
+
+    for t in targets_to_run:
         print(f"\n=== {t.name} (CCN {t.ccn}) ===", file=sys.stderr)
         record = run_one_target(t, agent, offline)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
-        results.append(record)
+        existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
         if record["status"] == "ALL_KEYS_EXHAUSTED":
             print("All keys exhausted -- stopping run here. Resume later with fresh "
-                  "daily quota by re-running with --only <remaining targets>.", file=sys.stderr)
+                  "daily quota by re-running with --only <remaining targets> (or no --only "
+                  "at all -- targets with a terminal result are now skipped automatically).",
+                  file=sys.stderr)
             break
 
-    report_path = OUTPUT_DIR / "item2_report.json"
-    report_path.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
-    print(f"\nWrote {report_path} ({len(results)} target(s) attempted)", file=sys.stderr)
+    # Write back in TARGETS' canonical order so the report's target ordering stays stable
+    # across runs, with any names not in TARGETS (shouldn't happen, but don't silently drop
+    # them) appended at the end.
+    canonical_order = [t.name for t in TARGETS]
+    ordered_results = [existing_by_name[name] for name in canonical_order if name in existing_by_name]
+    ordered_results += [v for k, v in existing_by_name.items() if k not in canonical_order]
+
+    report_path.write_text(json.dumps(ordered_results, indent=2, default=str), encoding="utf-8")
+    print(f"\nWrote {report_path} ({len(ordered_results)} target(s) total, "
+          f"{len(targets_to_run)} attempted this run)", file=sys.stderr)
 
 
 if __name__ == "__main__":
