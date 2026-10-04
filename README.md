@@ -88,4 +88,4 @@ python3 run_llvm_cov.py             # Stage 7 sequencing case study: consolidate
 * **QuartetFuzz** (Sheng et al., "Quality-Assured Fuzz Harness Generation via the Four Principles Framework," arXiv:2605.21824, 2026) — our Stage 6 self-repair loop design is informed by this paper's generate-check-fix approach. [arxiv.org/abs/2605.21824](https://arxiv.org/abs/2605.21824)
 * **P2IM** (Feng et al., USENIX Security 2020) — the benchmark dataset used in Stage 4. [usenix.org/conference/usenixsecurity20/presentation/feng](https://www.usenix.org/conference/usenixsecurity20/presentation/feng)
 
-**Correction (Oct 4 2026, superseding an incorrect same-day correction):** this section briefly flagged the QuartetFuzz citation above as unverifiable and removed it, based on a web search that failed to surface the paper (it's very recent — submitted May 2026 — and didn't come up under a name-only search). The user supplied the direct arXiv link; the paper, authors, and system name all check out. The citation is restored above with a working link. Leaving this note rather than deleting the trail, consistent with how corrections are handled elsewhere in this repo.
+
