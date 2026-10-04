@@ -300,9 +300,38 @@ def write_log(path, content):
     with open(path, 'w') as f:
         f.write(content)
 
-def evaluate_harness(harness_code, dir_path, target_func):
-    cpp_file = os.path.join(dir_path, "harness.cpp")
-    
+def evaluate_harness(harness_code, dir_path, target_func, attempt=None):
+    # Provenance fix (Oct 4 2026): every retry in the oracle-present loop used
+    # to write to the same fixed "harness.cpp" path, so each new attempt
+    # silently overwrote the previous one -- once a trial finished, only the
+    # LAST attempt's code and error text survived on disk; every intermediate
+    # failing attempt (and its real compiler/runtime error, which was never
+    # printed to console either) was unrecoverable. This made any after-the-
+    # fact audit of "did the loop really fix a real error" impossible for
+    # already-completed trials. Fixed by writing each attempt to its own
+    # numbered file when an attempt number is given (the retry loop below now
+    # passes one), while still keeping a stable "harness.cpp"/"result.json" at
+    # the trial dir's root pointing at the latest attempt, for any tooling
+    # that expects the old fixed filename.
+    suffix = f"_attempt{attempt}" if attempt is not None else ""
+    cpp_file = os.path.join(dir_path, f"harness{suffix}.cpp")
+    meta_file = os.path.join(dir_path, f"harness{suffix}_result.json")
+    stable_cpp_file = os.path.join(dir_path, "harness.cpp")
+    stable_meta_file = os.path.join(dir_path, "harness_result.json")
+
+    def _finish(success, fail_type, err_text):
+        meta = {
+            "attempt": attempt,
+            "success": success,
+            "fail_type": fail_type,
+            "error_text": err_text,
+        }
+        with open(meta_file, "w") as f:
+            json.dump(meta, f, indent=2)
+        with open(stable_meta_file, "w") as f:
+            json.dump(meta, f, indent=2)
+        return success, fail_type, err_text
+
     # Extract source from TARGETS
     prompt = TARGETS[target_func]
     import re
@@ -311,28 +340,32 @@ def evaluate_harness(harness_code, dir_path, target_func):
         target_source = match.group(1)
     else:
         target_source = ""
-        
+
     # Check for redefinition (if LLM defined it anyway)
     # A genuine compile error will occur because we append it anyway
     full_code = harness_code + "\n\n// === APPENDED TARGET FUNCTION ===\n" + target_source
-    
+
     write_log(cpp_file, full_code)
-    
+    write_log(stable_cpp_file, full_code)
+
     # 4. Source Integrity (now we check if the LLM included its own copy BEFORE our append, by checking original harness_code)
     if target_func not in harness_code:
-        return False, "Target function missing from generated code (Trivial)", "Target function missing"
-        
+        return _finish(False, "Target function missing from generated code (Trivial)", "Target function missing")
+
     # 1. Compile (portable: plain clang++, OS-native absolute include paths, no wsl wrapper)
     repo_root = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+    # cwd is dir_path below, so the source filename must be given relative to
+    # dir_path (not dir_path-prefixed again) -- see the existing comment a few
+    # lines down about the exact same double-prefixing bug in the run step.
     res_compile = subprocess.run(
         [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline",
          "-I" + os.path.join(repo_root, "harnesses", "include"),
          "-I" + repo_root,
-         "harness.cpp", "-o", "fuzz_bin"],
+         f"harness{suffix}.cpp", "-o", "fuzz_bin"],
         cwd=dir_path, capture_output=True, text=True
     )
     if res_compile.returncode != 0:
-        return False, "Compiler Error", res_compile.stderr
+        return _finish(False, "Compiler Error", res_compile.stdout + res_compile.stderr)
 
     # Bug fix (Oct 2026, Ablation B v2 full-sweep crash): this used to be
     # os.path.join(dir_path, "fuzz_bin"), i.e. an already-dir_path-prefixed
@@ -365,9 +398,9 @@ def evaluate_harness(harness_code, dir_path, target_func):
     
     if ret_code != 0 and ret_code != 77:
         if "AddressSanitizer" in out_stderr or "UndefinedBehaviorSanitizer" in out_stderr or "LeakSanitizer" in out_stderr:
-            return False, "Sanitizer Error", out_stderr
+            return _finish(False, "Sanitizer Error", out_stderr)
         if not is_timeout and "Done" not in out_stderr:
-            return False, "Runtime Crash", out_stderr
+            return _finish(False, "Runtime Crash", out_stderr)
             
     # Check edges
     edges = 0
@@ -386,13 +419,13 @@ def evaluate_harness(harness_code, dir_path, target_func):
         # or coverage exceeded the 3-edge threshold before the hang.
         hang_in_target = target_func in out_stderr
         if not hang_in_target and edges <= 3:
-            return False, "Timeout outside target func with Trivial Coverage", out_stderr
-        return True, "Success (Timeout in target / adequate coverage)", out_stderr
-        
+            return _finish(False, "Timeout outside target func with Trivial Coverage", out_stderr)
+        return _finish(True, "Success (Timeout in target / adequate coverage)", out_stderr)
+
     if edges <= 3:
-        return False, "Trivial Coverage (<=3 edges)", out_stderr
-        
-    return True, "Success", out_stderr
+        return _finish(False, "Trivial Coverage (<=3 edges)", out_stderr)
+
+    return _finish(True, "Success", out_stderr)
 
 def run_experiment():
     print(f"=== Ablation G (Work Plan item 8): Compiler-Oracle-Presence ===")
@@ -439,7 +472,7 @@ def run_experiment():
                 print("    API Failed.")
                 continue
 
-            oracle_absent_success, fail_type, err_out = evaluate_harness(code, trial_dir, target)
+            oracle_absent_success, fail_type, err_out = evaluate_harness(code, trial_dir, target, attempt=1)
 
             if oracle_absent_success:
                 # Oracle-present trivially agrees (attempt 1 is its first attempt
@@ -475,7 +508,7 @@ def run_experiment():
                 oracle_present_attempts = retry
                 retry_code = call_ollama(cur_prompt, seed + retry)
                 if not retry_code: continue
-                s, ft, eo = evaluate_harness(retry_code, loop_dir, target)
+                s, ft, eo = evaluate_harness(retry_code, loop_dir, target, attempt=retry)
                 if s:
                     oracle_present_success = True
                     break
