@@ -6,7 +6,7 @@
 
 AeroHarness is a research prototype exploring how LLM agents, combined with deterministic verification oracles, can automate fuzz-harness engineering for embedded C/C++ firmware. Coverage-guided fuzzing (AFL++, libFuzzer) is the standard for memory-safety bug discovery, but applying it to embedded firmware is bottlenecked by the manual effort needed to reverse-engineer hardware and build entrypoint harnesses.
 
-The gap this project targets: existing work addresses one half of this problem each. Fuzzware (USENIX Security '22) automatically models hardware/MMIO register behavior via dynamic symbolic execution, but has no semantic understanding of code. QuartetFuzz uses an LLM agent to generate fuzz harnesses with source-level correctness checks, but has only ever been applied to regular software libraries — never to firmware requiring hardware mocking. AeroHarness combines both: an LLM agent proposes hardware register behavior using semantic code understanding, and that proposal is verified against real code-usage patterns before being trusted and used to synthesize working fuzz harnesses.
+The gap this project targets: existing work addresses one half of this problem each. Fuzzware (USENIX Security '22) automatically models hardware/MMIO register behavior via dynamic symbolic execution, but has no semantic understanding of code. A separate line of LLM-agent fuzz-harness-generation work uses source-level correctness checks, but has so far only been applied to ordinary software libraries, not to firmware requiring hardware mocking. AeroHarness combines both directions: an LLM agent proposes hardware register behavior using semantic code understanding, and that proposal is verified against real code-usage patterns before being trusted and used to synthesize working fuzz harnesses.
 
 ## Architecture
 
@@ -84,6 +84,7 @@ python3 run_llvm_cov.py             # Stage 7 sequencing case study: consolidate
 
 ## Related Work
 
-* **Fuzzware** (Scharnowski et al., USENIX Security 2022) — our Stage 2/3 taxonomy is adopted from this paper.
-* **QuartetFuzz** (Sheng et al., 2026) — our Stage 6 self-repair loop design is informed by this paper's bounded-retry approach.
-* **P2IM** (Feng et al., USENIX Security 2020) — the benchmark dataset used in Stage 4.
+* **Fuzzware** (Scharnowski et al., USENIX Security 2022) — our Stage 2/3 taxonomy is adopted from this paper. [usenix.org/conference/usenixsecurity22/presentation/scharnowski](https://www.usenix.org/conference/usenixsecurity22/presentation/scharnowski)
+* **P2IM** (Feng et al., USENIX Security 2020) — the benchmark dataset used in Stage 4. [usenix.org/conference/usenixsecurity20/presentation/feng](https://www.usenix.org/conference/usenixsecurity20/presentation/feng)
+
+**Correction (Oct 4 2026):** this section previously also cited "QuartetFuzz (Sheng et al., 2026)" as the basis for Stage 6's bounded-retry self-repair design. That citation could not be verified against any real, indexed publication (checked against USENIX, arXiv, and general web search) and has been removed, here and in `ARCHITECTURE.md`. The Stage 6 design itself is unaffected — a bounded retry count (max 5 attempts) is a standard safeguard against infinite loops in any LLM-agent retry mechanism and doesn't depend on that citation; it just shouldn't have been attributed to a specific paper that doesn't appear to exist. Caught while sourcing citations for a public write-up of this project, not during any formal citation audit — flagging that as a gap worth closing before paper submission: a dedicated pass checking every citation in this repo against a real, verifiable source.
