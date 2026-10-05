@@ -73,46 +73,92 @@ feedback.** This is consistent with — not a new finding independent of — `AB
 own prior result: that experiment's one real success (14B, `poll_out`) also landed on the
 same target, and `isr`/`runtime_configure_internal` were specifically selected in that
 experiment's design for having the highest cyclomatic complexity (CCN 17 each) of any
-function in the driver file. Two independent experiments now show the same complexity-gated
-pattern, which is stronger evidence than either alone.
+function in the driver file. Two independent experiments now show the same pattern. That the split tracks
+cyclomatic complexity is a hypothesis, not a result: it has not been separated from
+prompt/scaffold effects (see the 14B section), and per-target error tallies are still needed.
 
-### Spot-check verification (source-level, not just statistical)
+### Spot-check verification (source-level) — corrected Oct 5 2026
 
-Two of the 10 rescued trials were independently audited at the source-code level — not just
-trusted from the stored JSON record — to confirm the loop's real-feedback mechanism actually
-fixed a real, specific compile error rather than the final attempt happening to compile by
-chance:
+Two of the 10 rescued 7B trials (`pl011_poll_in` trial 3, rescued on attempt 4;
+`pl011_poll_out` trial 1, rescued on attempt 3) were audited at the source level. **What this
+check does and does not establish:** the pre-fix script overwrote each attempt's files and never
+saved the compiler error text, so for these 7B trials only the final (successful) harness
+exists. The compiler error that attempt 1 actually failed with is unrecoverable.
 
-* **`pl011_poll_in`, trial 3 (succeeded on attempt 4):** the attempt-1 harness referenced
-  `get_uart(dev)` and the macro `PL011_FR_RXFE` in the appended target function body, but
-  defined neither anywhere in the harness — a genuine undefined-symbol compile error. The
-  attempt-4 harness adds exactly those two missing definitions (a real `get_uart` function,
-  a `#define PL011_FR_RXFE 0x10`) and is otherwise materially unchanged. A precise, traceable
-  fix matching the fed-back compiler error, not a lucky rewrite.
-* **`pl011_poll_out`, trial 1 (succeeded on attempt 3):** the attempt-1 harness declared a
-  `struct device` field of type `const struct device_config *` without `device_config` ever
-  being defined anywhere — an incomplete-type compile error — and separately used the
-  undefined macro `PL011_FR_TXFF`. The attempt-3 harness replaces the undefined type with a
-  plain `void *config` and defines `PL011_FR_TXFF` via its own `BIT` macro. Same pattern:
-  specific, targeted fix.
+An earlier version of this section stated specific attempt-1 errors ("undefined `get_uart` and
+`PL011_FR_RXFE`", an "incomplete-type error"). Those were inferences from reading the code, not
+observed compiler output, and the first one is wrong: the attempt-1 `poll_in` harness included
+`<zephyr/drivers/serial/uart_pl011_registers.h>`, and that header already defines
+`struct pl011_regs`, `get_uart`, `PL011_FR_RXFE` and `PL011_FR_TXFF`, so those symbols were not
+undefined. The 14B run (below), which has real per-attempt error text, shows the dominant
+failure is the model redefining structs the included headers already provide
+(`error: redefinition of 'pl011_regs'`); the 7B attempt-1 `poll_in` harness has exactly that
+pattern (it includes the header, then declares its own `struct pl011_regs`), so that is the
+likely real error, but it remains an inference for 7B.
 
-Both final harnesses were independently re-compiled from the extracted source (not just read)
-with the exact command `evaluate_harness()` uses and confirmed to compile cleanly (exit code
-0). Both are substantively real fuzz targets, not degenerate no-ops: `poll_in`'s harness
-copies fuzzer input directly into the mock register struct and exercises the branch on `fr`;
-`poll_out`'s harness loops over every input byte calling the target function. This rules out
-the main alternative explanation for a positive "rescue" result — that `evaluate_harness()`
-itself is flaky/non-deterministic and some fraction of the 10 discordant pairs are false
-positives rather than genuine repairs.
+What was verified directly: both final harnesses were re-compiled from the extracted source with
+the exact command `evaluate_harness()` uses and compile cleanly (exit code 0), and both are
+non-degenerate fuzz targets (`poll_in`'s harness feeds fuzzer bytes into the mock register
+struct; `poll_out`'s loops over every input byte calling the target function). That rules out
+`evaluate_harness()` being flaky as the source of the 10 discordant pairs. It does not show
+which compiler error each rescue fixed.
 
-## Results — `qwen2.5-coder:14b`
+## Results — `qwen2.5-coder:14b` (statistics verified Oct 5 2026; interpretation pending)
 
-**In progress.** Running on Antigravity's machine as of Oct 4 2026, CPU-only (GPU path hit a
-CUDA crash, confirmed avoided by forcing `CUDA_VISIBLE_DEVICES=-1`), which makes it
-substantially slower than the 7B run — early pace estimate puts full completion around
-12-15 hours from start. Will be appended here once complete, with the same per-target
-breakdown and a source-level spot-check of at least 2 rescued trials before being accepted,
-same bar as the 7B leg above.
+Full 100-trial run completed on Antigravity's machine, CPU-only (a CUDA crash forced
+`CUDA_VISIBLE_DEVICES=-1`; a partial-offload test was 3x slower than CPU, so CPU was kept),
+about 14 hours. Run at commit `54eef536c` (the provenance-fix version), so every trial has
+per-attempt files and real error text. The statistics below were re-derived by Claude from the
+raw per-trial JSON, not taken from the run's summary.
+
+| | Oracle-absent (one-shot) | Oracle-present (loop) |
+|---|---|---|
+| Success rate | 4.0% (4/100) | 5.0% (5/100) |
+
+Concordant-success 4, concordant-fail 95, loop-rescued (b) 1, hurt by loop (c) 0. McNemar's
+exact p = 1.0 (one discordant pair; not significant).
+
+| Target | Oracle-absent | Oracle-present | Rescued |
+|---|---|---|---|
+| `pl011_poll_in` | 2/20 | 3/20 | 1 (trial 16, attempt 2) |
+| `pl011_poll_out` | 2/20 | 2/20 | 0 |
+| `pl011_isr` | 0/20 | 0/20 | 0 |
+| `pl011_runtime_configure_internal` | 0/20 | 0/20 | 0 |
+| `pl011_init` | 0/20 | 0/20 | 0 |
+
+**Comparison with 7B.** One-shot success is identical (4/100 vs 4/100). The difference is
+entirely in what the loop does: 7B rescued 10 of its 96 attempt-1 failures, 14B rescued 1 of 96
+(Fisher's exact, two-sided, p = 0.0096). So the larger model is not worse at one-shot
+generation here; the compile-error-feedback loop simply converts almost none of its failures.
+This should not be reported as "bigger models repair worse" without the diagnostics below,
+because the failure mode appears to be at least partly a scaffold artifact:
+
+* **Dominant failure.** 96 of 96 attempt-1 failures are compile errors (no truncation: 0 of 100
+  harnesses had unbalanced braces; no API errors). Among them, 52 have
+  `redefinition of 'pl011_regs'` as the first line of the error text; the other 44 begin with
+  a warning or a different line, so first-line counting understates the real share and a full
+  per-error tally is still needed.
+* **Likely cause: contradictory prompt.** Each target prompt says "you must mock the MMIO
+  registers using a static struct" while also pointing the model at real headers that already
+  define `struct pl011_regs`, `struct device` and `get_uart`. A model that follows both
+  instructions redefines symbols the header provides and fails to compile. This is the same
+  class of scaffolding defect as the ones fixed in the B v2 audit (an empty `device.h`, a
+  header-path mismatch), and would depress both models' floors independently of capability.
+* **The retry prompt does not include the previous code.** Each retry is the original prompt
+  plus the latest error text, so the model regenerates from scratch with a hint rather than
+  patching its own code. The error text is passed in full (not truncated).
+* The one verified rescue (`poll_in` trial 16) is a clean example of the loop working as
+  intended: attempt 1 failed with three redefinition errors (`pl011_regs`, `device`,
+  `get_uart`, each with the compiler's "previous definition is here" note); attempt 2 dropped
+  the redefinitions and relied on the headers; the harness compiles (re-checked by hand, exit
+  code 0) and reached `cov: 5` over about 1.4M executions.
+* **Reproducibility note.** The 7B run used the GPU; the 14B run used a different backend
+  (reported as Vulkan, CPU-only) on the same machine. Model digests and quantization are
+  recorded: 7B `dae161e27b0e` and 14B `9ec8897f747e`, both Q4_K_M, 32768 context.
+
+Pending before this leg is treated as final: a full per-error-type tally across all attempts
+(not first lines only), whether failed trials repeat the same error across attempts 2-5, and a
+decision on whether the contradictory prompt should be fixed and both models re-run.
 
 ## Provenance fix (Oct 4 2026)
 
