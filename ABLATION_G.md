@@ -245,3 +245,46 @@ the types no header provides (`pl011_data`, `pl011_config`) are named as must-de
 tells the model more about the build than v1 did, so it measures repair and generation *given a
 fully specified build contract*; it will be reported as such, alongside v1 as-run, never as a
 replacement for v1.
+
+### Prompt v3 smoke test (7B, 5 trials per target, Oct 5 2026) and decision
+
+Executed on `qwen2.5-coder:7b` at commit `ac98ae6dd` (CUDA, 25/29 layers). Tallies were produced
+by a script reading the 25 result JSONs; no reconstructed code in this report. Attempt-5 error
+text was truncated by the executing agent, and the result JSONs of successes carry no coverage
+or exec count, so the strength of the 3 successes was not measured.
+
+| Prompt (7B) | Attempt 1 | Eventual (<=5 attempts) | n |
+|---|---|---|---|
+| v1 (as run) | 4/100 | 14/100 | 100 |
+| v2 smoke | 0/25 | 0/25 | 25 |
+| v3 smoke | 1/25 | 3/25 | 25 |
+
+Per target (v3): `poll_out` 1/5, `runtime_configure_internal` 2/5 (rescued at attempts 3 and 5),
+`poll_in`, `isr`, `init` 0/5. With n=25 and 3 successes these are anecdotes, not rates.
+
+What v3 fixed: all 25 harnesses began with the required include block; attempt-1 failures with a
+`redefinition of` error fell to 4/24 (all `get_uart`).
+
+What it did not fix (dominant remaining failures):
+
+* Target function used before declaration (28 attempt-1 lines, every target). The prompt already
+  instructs "forward-declare it ABOVE that point", so this is an ignored explicit instruction,
+  not an under-specified scaffold.
+* `struct pl011_data` / `struct pl011_config` forward-declared or omitted despite the
+  must-define rule (185 "incomplete type" lines over attempts 2-5, `isr` and `init`).
+* Invented `K_SPINLOCK_INIT` / `K_SPINLOCK_INITIALIZER` (18 lines); the shim `kernel.h`
+  provides `k_spinlock_t` and `K_SPINLOCK` only.
+* `get_uart` still redefined in 6 never-succeeding trials at attempt 5, plus `void*`/qualifier
+  mismatches in the model's own variants.
+* In 7 never-succeeding trials the error buckets at attempt 5 equal those at attempt 1: the
+  retry prompt carries only the latest error text, not the previous code.
+
+Decision: no further prompt iteration and no full v3 run. Once the scaffold ambiguity was
+removed and the build contract stated in full, the 7B model still reached 1/25 at attempt 1 and
+3/25 eventually; its remaining failures are instruction-following and generation failures, which
+is the capability the ablation measures. Repeating the smoke test with more scaffolding (a
+filled-in skeleton) would change the task from "write a harness" to "fill in a fuzz body" and is
+out of scope. Reporting plan: v1 (7B, 14B) is the headline result; v2/v3 smoke tests are reported
+as a scaffold-sensitivity finding (Table 16 is hypersensitive to prompt scaffolding for small
+models, and both models sit near the floor under every prompt tried). The 14B was not re-run
+under v2/v3.
