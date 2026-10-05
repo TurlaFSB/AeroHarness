@@ -155,12 +155,15 @@ because the failure mode appears to be at least partly a scaffold artifact:
   undeclared helpers such as `pl011_irq_rx_ready` in the `isr` target's source. So fixing the
   prompt may not by itself lift the three 0/20 targets; that needs a smoke test, not an
   assumption.
-* **Likely cause: contradictory prompt.** Each target prompt says "you must mock the MMIO
-  registers using a static struct" while also pointing the model at real headers that already
-  define `struct pl011_regs`, `struct device` and `get_uart`. A model that follows both
-  instructions redefines symbols the header provides and fails to compile. This is the same
-  class of scaffolding defect as the ones fixed in the B v2 audit (an empty `device.h`, a
-  header-path mismatch), and would depress both models' floors independently of capability.
+* **Likely cause: ambiguous, under-specified prompt (refined after reading it again).** The v1
+  prompt says "mock the MMIO registers using a static struct", which models read as "define
+  `struct pl011_regs`", although the included header already defines it. It never says that
+  `get_uart()` is provided by the header, so models re-implement it. It does say, mid-paragraph,
+  "Do NOT redefine `struct device`", and models redefined `device` anyway (70 error lines), so
+  part of the failure is plain instruction-following, not only ambiguity. This is the same class
+  of scaffolding defect as those fixed in the B v2 audit, and would depress both models' floors
+  independently of capability. (An earlier version of this note called the prompt
+  "contradictory"; that overstated it.)
 * **The retry prompt does not include the previous code.** Each retry is the original prompt
   plus the latest error text, so the model regenerates from scratch with a hint rather than
   patching its own code. The error text is passed in full (not truncated).
@@ -180,10 +183,9 @@ because the failure mode appears to be at least partly a scaffold artifact:
   errors present in 96/96 attempt-1 failures. Model digests and quantization: 7B
   `dae161e27b0e` and 14B `9ec8897f747e`, both Q4_K_M, 32768 context.
 
-**Reading of the combined evidence.** The Ablation G prompt instructs the model to mock the
-registers with a static struct, while the build already provides `struct pl011_regs`,
-`struct device` and `get_uart`; the models comply with the instruction and the compiler rejects
-the result. Both legs' absolute success rates, the 7B rescue count, and the 14B-vs-7B contrast
+**Reading of the combined evidence.** The Ablation G v1 prompt is ambiguous about which symbols the
+build already provides (`struct pl011_regs`, `get_uart`) and the models also ignore its explicit
+rule about `struct device`; the compiler rejects the result. Both legs' absolute success rates, the 7B rescue count, and the 14B-vs-7B contrast
 are therefore measurements of a scaffold with a known defect, not clean measurements of
 repair capability. The Fisher comparison above is a fact about this scaffold only. Pending: a
 decision on correcting the prompt and re-running both models (smoke test first), and keeping
@@ -203,3 +205,15 @@ the full error text) while keeping a stable `harness.cpp`/`harness_result.json` 
 pointing at the latest attempt. The 14B run (and any future re-run) will have full
 attempt-by-attempt provenance; the 7B run's already-completed trials do not, and that gap is
 not recoverable for them.
+
+## Prompt v2 (Oct 5 2026)
+
+`run_ablation_g.py --prompt-version v2` keeps v1 frozen (default) and applies exactly four
+prompt changes, documented in the script (`PROMPT_V2_NOTE`): (1) "static struct" becomes "a
+static INSTANCE of the existing `struct pl011_regs`"; (2) states that `get_uart()` is provided
+by the header; (3) repeats the do-not-redefine rule for `struct pl011_regs`, `struct device`,
+`get_uart` and the `PL011_*` macros in a final explicit block; (4) tells the model to include
+`<errno.h>` if it uses errno constants. Target source, success criteria, temperature, retry
+design (previous code still omitted) and trial counts are unchanged. v2 results and logs are
+written to `*_promptv2*` files so v1 data is never overwritten. v2 results will be reported
+as a separate experiment next to v1, not as a replacement for it.

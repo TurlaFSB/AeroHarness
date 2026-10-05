@@ -258,17 +258,51 @@ _parser = argparse.ArgumentParser()
 _parser.add_argument("--model", default="qwen2.5-coder:14b", help="Exact ollama model tag, e.g. qwen2.5-coder:7b")
 _parser.add_argument("--trials", type=int, default=20, help="Trials per target (default 20, matching B v2's own recommended n=20-30/target/model for real statistical power)")
 _parser.add_argument("--target", default=None, choices=list(TARGETS.keys()), help="Run only this one target instead of all 5 (for smoke-testing a scaffolding change cheaply)")
+_parser.add_argument("--prompt-version", default="v1", choices=["v1", "v2"], help="v1 = original prompts (frozen, reproduces the Oct 4-5 2026 runs). v2 = v1 plus a scaffold-collision fix (see PROMPT_V2_NOTE below); results and logs go to separate v2-suffixed files so v1 data is never overwritten")
 _parser.add_argument("--analyze-only", action="store_true", help="Skip running trials; just (re)compute the McNemar analysis from the existing results file and print it")
 _args, _ = _parser.parse_known_args()
 
 OLLAMA_MODEL = _args.model
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 N_TRIALS = _args.trials
+# --- Prompt v2 (Oct 5 2026) -------------------------------------------------
+# PROMPT_V2_NOTE: the v1 run (7b and 14b) showed that 96/96 of 14b's attempt-1
+# failures contained a `redefinition of` error: 'pl011_regs' (168 error lines),
+# 'get_uart' (72) and 'device' (70). Causes found by reading the v1 prompt:
+#   (1) "mock the MMIO registers using a static struct" is ambiguous -- models
+#       read it as "define a struct pl011_regs", but the included header
+#       already defines it;
+#   (2) the prompt never says that get_uart() is already provided by the
+#       header, so models re-implement it;
+#   (3) the prompt DOES say not to redefine `struct device`, and models still
+#       did (70 error lines), so v2 repeats the rule in a final, explicit
+#       block rather than relying on one mid-paragraph sentence;
+#   (4) the appended target source may use errno constants (ENOTSUP) that no
+#       header in the build provides unless <errno.h> is included.
+# v2 changes ONLY these four things. Target source, success criteria,
+# temperature, retry-prompt design (original prompt + latest error, previous
+# code NOT included) and trial counts are identical to v1.
+_V2_OLD_SENTENCE = "You must mock the MMIO registers using a static struct and include an LLVMFuzzerTestOneInput function."
+_V2_NEW_SENTENCE = ("You must mock the MMIO registers by declaring a static INSTANCE of the existing `struct pl011_regs` "
+                    "(the struct type is already defined by the header; do not define the type yourself) "
+                    "and include an LLVMFuzzerTestOneInput function.")
+_V2_BLOCK = """
+IMPORTANT -- these already exist once you include the headers named above, so defining any of them again is a compile error (`redefinition of ...`):
+- `struct pl011_regs` (from uart_pl011_registers.h) -- declare an instance of it, never `struct pl011_regs {...}`;
+- `get_uart(const struct device *dev)` (from uart_pl011_registers.h) -- call it, never define it; it returns `dev->mmio_base` cast to `volatile struct pl011_regs *`;
+- `struct device` (from <zephyr/device.h>), and the `PL011_*` register-bit macros (from uart_pl011_registers.h).
+Your code must therefore contain no definition of `struct pl011_regs`, `struct device`, or `get_uart`. If the target function uses errno constants such as `ENOTSUP`, add `#include <errno.h>`."""
+if _args.prompt_version == "v2":
+    for _k in list(TARGETS):
+        assert _V2_OLD_SENTENCE in TARGETS[_k], _k
+        TARGETS[_k] = TARGETS[_k].replace(_V2_OLD_SENTENCE, _V2_NEW_SENTENCE).rstrip() + "\n" + _V2_BLOCK
 if _args.target:
     TARGETS = {_args.target: TARGETS[_args.target]}
 _MODEL_SLUG = OLLAMA_MODEL.replace(":", "_").replace("/", "_")
 if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
+if _args.prompt_version == "v2":
+    _MODEL_SLUG += "_promptv2"
 RESULTS_FILE = f"ablation_g_results_{_MODEL_SLUG}.json"
 
 CLANG = shutil.which("clang++")
