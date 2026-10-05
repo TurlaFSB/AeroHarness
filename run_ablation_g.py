@@ -258,7 +258,7 @@ _parser = argparse.ArgumentParser()
 _parser.add_argument("--model", default="qwen2.5-coder:14b", help="Exact ollama model tag, e.g. qwen2.5-coder:7b")
 _parser.add_argument("--trials", type=int, default=20, help="Trials per target (default 20, matching B v2's own recommended n=20-30/target/model for real statistical power)")
 _parser.add_argument("--target", default=None, choices=list(TARGETS.keys()), help="Run only this one target instead of all 5 (for smoke-testing a scaffolding change cheaply)")
-_parser.add_argument("--prompt-version", default="v1", choices=["v1", "v2"], help="v1 = original prompts (frozen, reproduces the Oct 4-5 2026 runs). v2 = v1 plus a scaffold-collision fix (see PROMPT_V2_NOTE below); results and logs go to separate v2-suffixed files so v1 data is never overwritten")
+_parser.add_argument("--prompt-version", default="v1", choices=["v1", "v2", "v3"], help="v1 = original prompts (frozen, reproduces the Oct 4-5 2026 runs). v2 = v1 plus a redefinition-collision fix (smoke-tested only, see PROMPT_V2_NOTE). v3 = v2 plus a mandatory include/definition contract (see PROMPT_V3_NOTE). Results and logs go to separate version-suffixed files so earlier data is never overwritten")
 _parser.add_argument("--analyze-only", action="store_true", help="Skip running trials; just (re)compute the McNemar analysis from the existing results file and print it")
 _args, _ = _parser.parse_known_args()
 
@@ -292,17 +292,55 @@ IMPORTANT -- these already exist once you include the headers named above, so de
 - `get_uart(const struct device *dev)` (from uart_pl011_registers.h) -- call it, never define it; it returns `dev->mmio_base` cast to `volatile struct pl011_regs *`;
 - `struct device` (from <zephyr/device.h>), and the `PL011_*` register-bit macros (from uart_pl011_registers.h).
 Your code must therefore contain no definition of `struct pl011_regs`, `struct device`, or `get_uart`. If the target function uses errno constants such as `ENOTSUP`, add `#include <errno.h>`."""
+# --- Prompt v3 (Oct 5 2026) -------------------------------------------------
+# PROMPT_V3_NOTE: the v2 smoke test (7b, 5 trials/target, 25 trials) removed
+# redefinition errors from attempt 1 (0 of the attempt-1 failures, vs 96/96 in
+# v1 on 14b) but produced 0/25 attempt-1 and 0/25 eventual successes: told not
+# to define `struct pl011_regs`/`struct device`, the model dropped the headers
+# altogether (the v1/v2 text only says it "can" #include them) and forward-
+# declared the types, giving `member access into incomplete type` errors; on
+# retries it then added definitions back, reintroducing the redefinitions.
+# A hand-written reference harness for each of the five targets compiles, exits
+# 0 and reaches cov 6-19 under this exact build (see
+# verify_reference_harnesses.py), so the scaffold is solvable. v3 therefore
+# turns the optional include into a mandatory, verbatim include list per target
+# and lists the types the model must define itself (pl011_data/pl011_config,
+# which no header provides). Nothing else changes relative to v2.
+_V3_BASE_INCLUDES = ["<stdint.h>", "<stddef.h>", "<string.h>", "<errno.h>", "<zephyr/device.h>", "<zephyr/drivers/serial/uart_pl011_registers.h>"]
+_V3_EXTRA_INCLUDES = {
+    "pl011_isr": ["<zephyr/kernel.h>"],
+    "pl011_runtime_configure_internal": ["<zephyr/drivers/uart.h>"],
+}
+_V3_OWN_TYPES = {
+    "pl011_poll_in": "none (this target needs only `struct pl011_regs`, `struct device` and the mock register instance)",
+    "pl011_poll_out": "none (this target needs only `struct pl011_regs`, `struct device` and the mock register instance)",
+    "pl011_isr": "`struct pl011_data` (fields `irq_cb`, `irq_cb_data` and `irq_cb_lock` of type `k_spinlock_t`)",
+    "pl011_runtime_configure_internal": "none, but you must forward-declare and mock `pl011_set_baudrate` and `pl011_set_flow_control` as described above",
+    "pl011_init": "`struct pl011_config` (field `sys_clk`) and `struct pl011_data` (fields `sbsa`, `baud_rate`), defined with only the fields the target function reads, and a mock of `pl011_set_baudrate`",
+}
+def _v3_block(target):
+    inc = "\n".join("#include " + i for i in _V3_BASE_INCLUDES + _V3_EXTRA_INCLUDES.get(target, []))
+    return f"""
+REQUIRED BUILD CONTRACT (the build is fixed; deviating from it makes compilation fail):
+1. Your file MUST begin with exactly these #include lines (anything else you need goes after them):
+{inc}
+2. Because of those headers, the following already exist and you MUST NOT define them yourself -- any definition is a `redefinition of ...` compile error: `struct device`, `struct pl011_regs`, `get_uart()` (it returns `dev->mmio_base` cast to `volatile struct pl011_regs *`), and the `PL011_*` macros. Declare an INSTANCE instead (for example `static struct pl011_regs mock_regs;`), build a `struct device` object with `mmio_base = &mock_regs`, and pass its address to the target function.
+3. Types no header provides, which you MUST define yourself: {_V3_OWN_TYPES[target]}."""
 if _args.prompt_version == "v2":
     for _k in list(TARGETS):
         assert _V2_OLD_SENTENCE in TARGETS[_k], _k
         TARGETS[_k] = TARGETS[_k].replace(_V2_OLD_SENTENCE, _V2_NEW_SENTENCE).rstrip() + "\n" + _V2_BLOCK
+elif _args.prompt_version == "v3":
+    for _k in list(TARGETS):
+        assert _V2_OLD_SENTENCE in TARGETS[_k], _k
+        TARGETS[_k] = TARGETS[_k].replace(_V2_OLD_SENTENCE, _V2_NEW_SENTENCE).rstrip() + "\n" + _v3_block(_k)
 if _args.target:
     TARGETS = {_args.target: TARGETS[_args.target]}
 _MODEL_SLUG = OLLAMA_MODEL.replace(":", "_").replace("/", "_")
 if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
-if _args.prompt_version == "v2":
-    _MODEL_SLUG += "_promptv2"
+if _args.prompt_version != "v1":
+    _MODEL_SLUG += "_prompt" + _args.prompt_version
 RESULTS_FILE = f"ablation_g_results_{_MODEL_SLUG}.json"
 
 CLANG = shutil.which("clang++")

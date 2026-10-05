@@ -217,3 +217,31 @@ by the header; (3) repeats the do-not-redefine rule for `struct pl011_regs`, `st
 design (previous code still omitted) and trial counts are unchanged. v2 results and logs are
 written to `*_promptv2*` files so v1 data is never overwritten. v2 results will be reported
 as a separate experiment next to v1, not as a replacement for it.
+
+### Prompt v2 smoke test (7B, 5 trials per target, Oct 5 2026) and prompt v3
+
+Reported by the executing agent, not yet independently re-derived; the agent's own analysis
+was labelled a "snapshot from the first 10 completed trials" while tabulating 25, so the
+numbers below should be treated as provisional until the v3 smoke test is analysed with
+explicit file counts. The agent also disclosed that code it pasted in an earlier report
+(the tail of one 14B harness) had been reconstructed from memory after tool output was
+truncated; error texts and tallies came from scripts and are unaffected, and no committed
+statement here relies on the reconstructed code.
+
+* v2 success: 0/25 at attempt 1 and 0/25 eventually. Redefinition errors at attempt 1: 0
+  (v1 14B: 96/96), so the v2 text did what it was meant to.
+* New failure: told not to define the types, the model stopped including the headers at all
+  (the v1/v2 text only says it "can" include them) and forward-declared `struct device`,
+  `struct pl011_regs`, `struct pl011_data`, giving `member access into incomplete type` errors.
+  On retries it added definitions back, so 2 never-succeeding trials again showed
+  `redefinition of` at attempt 5.
+* Scaffold solvability: `verify_reference_harnesses.py` builds one hand-written harness per
+  target under the exact build flags. All five compile, exit 0 and reach `cov` 6-19 in a
+  1-second run, so the headers and build can support success.
+
+`--prompt-version v3` (v2 plus a build contract): the file must begin with a stated list of
+`#include` lines per target, the already-provided symbols are listed as must-not-define, and
+the types no header provides (`pl011_data`, `pl011_config`) are named as must-define. This
+tells the model more about the build than v1 did, so it measures repair and generation *given a
+fully specified build contract*; it will be reported as such, alongside v1 as-run, never as a
+replacement for v1.
