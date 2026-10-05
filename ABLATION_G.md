@@ -105,9 +105,8 @@ which compiler error each rescue fixed.
 
 ## Results — `qwen2.5-coder:14b` (statistics verified Oct 5 2026; interpretation pending)
 
-Full 100-trial run completed on Antigravity's machine, CPU-only (a CUDA crash forced
-`CUDA_VISIBLE_DEVICES=-1`; a partial-offload test was 3x slower than CPU, so CPU was kept),
-about 14 hours. Run at commit `54eef536c` (the provenance-fix version), so every trial has
+Full 100-trial run completed on Antigravity's machine (backend: see the reproducibility note
+below), about 14 hours. Run at commit `54eef536c` (the provenance-fix version), so every trial has
 per-attempt files and real error text. The statistics below were re-derived by Claude from the
 raw per-trial JSON, not taken from the run's summary.
 
@@ -134,10 +133,28 @@ This should not be reported as "bigger models repair worse" without the diagnost
 because the failure mode appears to be at least partly a scaffold artifact:
 
 * **Dominant failure.** 96 of 96 attempt-1 failures are compile errors (no truncation: 0 of 100
-  harnesses had unbalanced braces; no API errors). Among them, 52 have
-  `redefinition of 'pl011_regs'` as the first line of the error text; the other 44 begin with
-  a warning or a different line, so first-line counting understates the real share and a full
-  per-error tally is still needed.
+  harnesses had unbalanced braces; no API errors). A full tally of every `error:` line (not
+  just the first line) shows that **all 96 of 96 attempt-1 failures contain at least one
+  `redefinition of` error**. Attempt-1 error-line counts: `redefinition of 'pl011_regs'` 168,
+  `'get_uart'` 72, `'device'` 70; everything else is minor (`call to 'memcpy' is ambiguous` 8,
+  `static declaration of 'pl011_poll_in' follows non-static declaration` 5, `no matching
+  function for call to 'free'` 4, `unknown type name 'pl011_data'/'pl011_config'` 3 each, and
+  a handful of one- and two-off messages). The pattern is the same on every target.
+* **The loop does not escape it.** Across attempts 2-5 (96 trials x up to 4 retries) the same
+  three redefinitions still dominate: `pl011_regs` 657, `get_uart` 284, `device` 261. Of the 95
+  trials that never succeeded, 91 still contain `redefinition of 'pl011_regs'` at attempt 5,
+  and in 53 the set of error types at attempt 5 is identical to attempt 1. Example
+  (`pl011_isr` trial 1): the attempt-5 harness `#include`s `<zephyr/device.h>` and
+  `<zephyr/drivers/serial/uart_pl011_registers.h>` and then redefines `struct pl011_regs`,
+  `struct device` and `get_uart` itself, exactly as in attempt 1.
+* **A second layer exists behind the first.** Where the redefinition does disappear, other
+  scaffold-level errors surface: `use of undeclared identifier 'ENOTSUP'` (15 error lines, all
+  `runtime_configure_internal`; the harness never includes `<errno.h>`), `out-of-line
+  definition of 'pl011_set_baudrate' does not match any declaration`, `unknown type name
+  'pl011_config'/'pl011_data'` and incomplete-type uses of `struct device` (`init`), and
+  undeclared helpers such as `pl011_irq_rx_ready` in the `isr` target's source. So fixing the
+  prompt may not by itself lift the three 0/20 targets; that needs a smoke test, not an
+  assumption.
 * **Likely cause: contradictory prompt.** Each target prompt says "you must mock the MMIO
   registers using a static struct" while also pointing the model at real headers that already
   define `struct pl011_regs`, `struct device` and `get_uart`. A model that follows both
@@ -152,13 +169,25 @@ because the failure mode appears to be at least partly a scaffold artifact:
   `get_uart`, each with the compiler's "previous definition is here" note); attempt 2 dropped
   the redefinitions and relied on the headers; the harness compiles (re-checked by hand, exit
   code 0) and reached `cov: 5` over about 1.4M executions.
-* **Reproducibility note.** The 7B run used the GPU; the 14B run used a different backend
-  (reported as Vulkan, CPU-only) on the same machine. Model digests and quantization are
-  recorded: 7B `dae161e27b0e` and 14B `9ec8897f747e`, both Q4_K_M, 32768 context.
+* **Reproducibility note (backend, corrected).** An earlier note here and in the run's own
+  report described the 14B run as "CPU-only". The Ollama server log shows otherwise:
+  `CUDA_VISIBLE_DEVICES=-1` disabled CUDA, but Ollama fell back to its Vulkan backend on the
+  same discrete GPU (`library=Vulkan ... NVIDIA GeForce RTX 4050 Laptop GPU`, 5.8 GiB total).
+  14B: `offloaded 20/49 layers to GPU`. 7B (same server log): `offloaded 26/29 layers to GPU`.
+  So both runs used partial Vulkan offload, with different layer splits. Sampling is
+  temperature 0.7, so neither run was bit-reproducible anyway; the offload split is recorded
+  for completeness and is not believed to explain the result, which is dominated by compile
+  errors present in 96/96 attempt-1 failures. Model digests and quantization: 7B
+  `dae161e27b0e` and 14B `9ec8897f747e`, both Q4_K_M, 32768 context.
 
-Pending before this leg is treated as final: a full per-error-type tally across all attempts
-(not first lines only), whether failed trials repeat the same error across attempts 2-5, and a
-decision on whether the contradictory prompt should be fixed and both models re-run.
+**Reading of the combined evidence.** The Ablation G prompt instructs the model to mock the
+registers with a static struct, while the build already provides `struct pl011_regs`,
+`struct device` and `get_uart`; the models comply with the instruction and the compiler rejects
+the result. Both legs' absolute success rates, the 7B rescue count, and the 14B-vs-7B contrast
+are therefore measurements of a scaffold with a known defect, not clean measurements of
+repair capability. The Fisher comparison above is a fact about this scaffold only. Pending: a
+decision on correcting the prompt and re-running both models (smoke test first), and keeping
+the retry prompt design as is unless changed deliberately and reported as a separate change.
 
 ## Provenance fix (Oct 4 2026)
 
