@@ -47,6 +47,14 @@ class Settings(BaseModel):
     openrouter_model: str = "deepseek/deepseek-chat"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     
+    # OpenCode Configuration (Auto-discovered on Ubuntu & Windows)
+    opencode_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("OPENCODE_API_KEY"))
+    opencode_bin: Optional[str] = Field(default_factory=lambda: os.getenv("OPENCODE_BIN"))
+    opencode_base_url: str = "https://opencode.ai/zen/v1"
+    opencode_model: str = "opencode/nemotron-3.5-lightning-free"
+    opencode_auth_file: Optional[str] = None
+    enable_opencode: bool = True
+    
     # Compiler & Fuzzer Settings
     compiler_cmd: str = "clang++"
     c_compiler_cmd: str = "clang"
@@ -104,6 +112,26 @@ class Settings(BaseModel):
         # Fallback check
         self.use_wsl = False
 
+    def detect_opencode_environment(self) -> None:
+        """Auto-discovers OpenCode API credentials and CLI binary from Ubuntu or Windows."""
+        if not self.enable_opencode:
+            return
+        try:
+            from src.synthesizer.opencode_discovery import discover_opencode
+            disc = discover_opencode()
+            if not self.opencode_api_key and disc.get("api_key"):
+                self.opencode_api_key = disc["api_key"]
+            if not self.opencode_bin and disc.get("binary_path"):
+                self.opencode_bin = disc["binary_path"]
+            if not self.opencode_auth_file and disc.get("auth_file"):
+                self.opencode_auth_file = disc["auth_file"]
+            if disc.get("base_url"):
+                self.opencode_base_url = disc["base_url"]
+            if disc.get("model") and not os.getenv("OPENCODE_MODEL"):
+                self.opencode_model = disc["model"]
+        except Exception:
+            pass
+
 
 _settings_instance: Optional[Settings] = None
 
@@ -113,5 +141,6 @@ def get_settings() -> Settings:
     if _settings_instance is None:
         _settings_instance = Settings()
         _settings_instance.detect_compiler_environment()
+        _settings_instance.detect_opencode_environment()
         _settings_instance.output_dir.mkdir(parents=True, exist_ok=True)
     return _settings_instance

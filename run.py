@@ -75,6 +75,11 @@ def synthesize(header: str, source: str, api: str, output: str):
 
     console.console.print(f"[bold cyan]Initiating Agentic Synthesis & Self-Repair for target:[/bold cyan] [bold yellow]{api}[/bold yellow]")
     
+    if settings.opencode_bin or settings.opencode_api_key:
+        src_label = f"auth: {Path(settings.opencode_auth_file).name}" if settings.opencode_auth_file else "key"
+        bin_label = f"cli: {Path(settings.opencode_bin).name}" if settings.opencode_bin else "http"
+        console.console.print(f"[bold cyan]OpenCode Auto-Detected:[/bold cyan] [green]{src_label}, {bin_label}[/green] ({settings.opencode_model})")
+
     agent = HarnessSynthesizerAgent(
         api_key=settings.gemini_api_key,
         model_name=settings.primary_model,
@@ -82,6 +87,11 @@ def synthesize(header: str, source: str, api: str, output: str):
         openrouter_api_key=settings.openrouter_api_key,
         openrouter_model=settings.openrouter_model,
         openrouter_base_url=settings.openrouter_base_url,
+        opencode_api_key=settings.opencode_api_key,
+        opencode_bin=settings.opencode_bin,
+        opencode_model=settings.opencode_model,
+        opencode_base_url=settings.opencode_base_url,
+        enable_opencode=settings.enable_opencode,
         max_output_tokens=settings.max_output_tokens,
         enable_cache=settings.enable_llm_cache,
     )
@@ -132,7 +142,13 @@ def run_all(header: str, source: str, api: str, duration: int, output: str):
     console.display_extracted_apis(context, risk_scores)
 
     # 2. Agentic Synthesis & Self-Repair
-    console.console.print("\n[bold green][Phase 2/4][/bold green] Gemini Pro Agentic Synthesis & Hardware Mocking...")
+    backend_label = "OpenCode Agentic Synthesis" if (settings.opencode_bin or settings.opencode_api_key) else "Agentic Synthesis"
+    console.console.print(f"\n[bold green][Phase 2/4][/bold green] {backend_label} & Hardware Mocking...")
+    if settings.opencode_bin or settings.opencode_api_key:
+        src_label = f"auth: {Path(settings.opencode_auth_file).name}" if settings.opencode_auth_file else "key"
+        bin_label = f"cli: {Path(settings.opencode_bin).name}" if settings.opencode_bin else "http"
+        console.console.print(f"[bold cyan]OpenCode Auto-Detected:[/bold cyan] [green]{src_label}, {bin_label}[/green] ({settings.opencode_model})")
+
     agent = HarnessSynthesizerAgent(
         api_key=settings.gemini_api_key,
         model_name=settings.primary_model,
@@ -140,6 +156,11 @@ def run_all(header: str, source: str, api: str, duration: int, output: str):
         openrouter_api_key=settings.openrouter_api_key,
         openrouter_model=settings.openrouter_model,
         openrouter_base_url=settings.openrouter_base_url,
+        opencode_api_key=settings.opencode_api_key,
+        opencode_bin=settings.opencode_bin,
+        opencode_model=settings.opencode_model,
+        opencode_base_url=settings.opencode_base_url,
+        enable_opencode=settings.enable_opencode,
         max_output_tokens=settings.max_output_tokens,
         enable_cache=settings.enable_llm_cache,
     )

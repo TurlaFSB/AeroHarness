@@ -39,11 +39,36 @@ class HarnessSynthesizerAgent:
         openrouter_api_key: Optional[str] = None,
         openrouter_model: Optional[str] = None,
         openrouter_base_url: str = "https://openrouter.ai/api/v1",
+        opencode_api_key: Optional[str] = None,
+        opencode_bin: Optional[str] = None,
+        opencode_model: Optional[str] = None,
+        opencode_base_url: str = "https://opencode.ai/zen/v1",
+        enable_opencode: bool = False,
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.openrouter_api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
         self.openrouter_model = openrouter_model or "deepseek/deepseek-chat"
         self.openrouter_base_url = openrouter_base_url
+        self.enable_opencode = enable_opencode
+        self.opencode_api_key = opencode_api_key or os.getenv("OPENCODE_API_KEY")
+        self.opencode_bin = opencode_bin or os.getenv("OPENCODE_BIN")
+        self.opencode_model = opencode_model or "opencode/nemotron-3.5-lightning-free"
+        self.opencode_base_url = opencode_base_url
+        
+        # Auto-discover OpenCode from Ubuntu / Linux / Windows if not explicitly passed
+        if self.enable_opencode and (not self.opencode_api_key or not self.opencode_bin):
+            try:
+                from src.synthesizer.opencode_discovery import discover_opencode
+                disc = discover_opencode()
+                if not self.opencode_api_key and disc.get("api_key"):
+                    self.opencode_api_key = disc["api_key"]
+                if not self.opencode_bin and disc.get("binary_path"):
+                    self.opencode_bin = disc["binary_path"]
+                if not opencode_model and disc.get("model"):
+                    self.opencode_model = disc["model"]
+            except Exception:
+                pass
+
         self.model_name = model_name
         self.fallback_model = fallback_model
         self.enable_cache = enable_cache
@@ -128,6 +153,77 @@ class HarnessSynthesizerAgent:
         except Exception:
             pass
 
+    def _generate_opencode_http(self, model: str, prompt: str, system_prompt: str, temperature: float) -> Optional[str]:
+        """Dispatches an OpenAI-compatible request to OpenCode Zen API endpoint."""
+        if not self.opencode_api_key:
+            return None
+        try:
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {self.opencode_api_key}",
+                "Content-Type": "application/json",
+            }
+            clean_model = model.replace("opencode/", "")
+            payload = {
+                "model": clean_model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": temperature,
+            }
+            if self.max_output_tokens:
+                payload["max_tokens"] = self.max_output_tokens
+
+            with httpx.Client(timeout=60.0) as http_client:
+                resp = http_client.post(f"{self.opencode_base_url}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            self.last_error = f"OpenCode HTTP API failed ({model}): {e!r}"
+            return None
+
+    def _generate_opencode_cli(self, model: str, prompt: str, system_prompt: str) -> Optional[str]:
+        """Invokes the local OpenCode CLI runner in headless JSON mode."""
+        if not self.opencode_bin or not Path(self.opencode_bin).exists():
+            return None
+        try:
+            import subprocess
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            cmd = [
+                str(self.opencode_bin),
+                "run",
+                "--pure",
+                "--dir", temp_dir,
+                "--format", "json",
+                "-m", model,
+                full_prompt
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+            if proc.returncode != 0:
+                self.last_error = f"OpenCode CLI exited with code {proc.returncode}"
+                return None
+            
+            texts = []
+            for line in proc.stdout.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                    if event.get("type") == "text" and "part" in event:
+                        texts.append(event["part"].get("text", ""))
+                except Exception:
+                    pass
+            full_text = "".join(texts).strip()
+            return full_text if full_text else None
+        except Exception as e:
+            self.last_error = f"OpenCode CLI execution error: {e!r}"
+            return None
+
     def _generate_openrouter(self, model: str, prompt: str, system_prompt: str, temperature: float) -> Optional[str]:
         """Dispatches an OpenAI-compatible request to OpenRouter (e.g. DeepSeek V3 / V4 Flash)."""
         if not self.openrouter_api_key:
@@ -161,15 +257,33 @@ class HarnessSynthesizerAgent:
             return None
 
     def _generate_content(self, prompt: str, system_prompt: str, temperature: float, context: str):
-        """Tries `self.model_name` first, then `self.fallback_model` (only if it's a
-        different string), retrying a transient 503 in place a couple of times before
-        moving on. Supports both Gemini and OpenRouter (e.g. DeepSeek V3/V4 Flash).
-        Utilizes local disk caching and max_output_tokens to minimize API spend."""
+        """Tries OpenCode, then OpenRouter, then Gemini models, retrying transient
+        503s and utilizing persistent disk caching and max_output_tokens."""
+        cache_key = hashlib.sha256(f"{self.model_name}:{system_prompt}:{prompt}:{temperature}".encode("utf-8")).hexdigest()
         if self.enable_cache:
-            cache_key = hashlib.sha256(f"{self.model_name}:{system_prompt}:{prompt}:{temperature}".encode("utf-8")).hexdigest()
             if cache_key in self._cache:
                 cached_data = self._cache[cache_key]
                 return cached_data["text"], f"{cached_data.get('model', self.model_name)} (cached)"
+
+        # 1. OpenCode Engine (Ubuntu / Windows auto-discovered)
+        if self.enable_opencode and (self.opencode_api_key or self.opencode_bin):
+            opencode_m = self.opencode_model or "opencode/nemotron-3.5-lightning-free"
+            # Try HTTP first if API key is present
+            if self.opencode_api_key:
+                resp_text = self._generate_opencode_http(opencode_m, prompt, system_prompt, temperature)
+                if resp_text is not None:
+                    if self.enable_cache:
+                        self._cache[cache_key] = {"text": resp_text, "model": f"opencode-http:{opencode_m}"}
+                        self._save_cache()
+                    return resp_text, f"opencode-http:{opencode_m}"
+            # Fall back to OpenCode CLI runner
+            if self.opencode_bin:
+                resp_text = self._generate_opencode_cli(opencode_m, prompt, system_prompt)
+                if resp_text is not None:
+                    if self.enable_cache:
+                        self._cache[cache_key] = {"text": resp_text, "model": f"opencode-cli:{opencode_m}"}
+                        self._save_cache()
+                    return resp_text, f"opencode-cli:{opencode_m}"
 
         models_to_try = [self.model_name]
         if self.fallback_model and self.fallback_model != self.model_name:
@@ -240,7 +354,12 @@ class HarnessSynthesizerAgent:
         )
         system_prompt = PromptFactory.get_system_prompt()
 
-        if self.client:
+        can_call_llm = (
+            self.client is not None
+            or bool(self.openrouter_api_key)
+            or (self.enable_opencode and (bool(self.opencode_api_key) or bool(self.opencode_bin)))
+        )
+        if can_call_llm:
             response_text, model_used = self._generate_content(
                 prompt, system_prompt, temperature=0.2, context="synthesize_initial_harness"
             )
@@ -284,7 +403,12 @@ class HarnessSynthesizerAgent:
             diagnostics=diagnostics
         )
 
-        if self.client:
+        can_call_llm = (
+            self.client is not None
+            or bool(self.openrouter_api_key)
+            or (self.enable_opencode and (bool(self.opencode_api_key) or bool(self.opencode_bin)))
+        )
+        if can_call_llm:
             system_prompt = PromptFactory.get_system_prompt()
             response_text, model_used = self._generate_content(
                 repair_prompt, system_prompt, temperature=0.1, context="repair_harness"
