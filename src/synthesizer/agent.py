@@ -132,13 +132,20 @@ class HarnessSynthesizerAgent:
     # spike as a hard failure. Only retries on a real 503 (ServerError with .code == 503);
     # a 404 (bad model name) or 429 (quota) will not resolve by waiting a few seconds, so
     # those still fail fast onto the next model/key exactly as before.
+    _SERVER_BUSY_RETRY_DELAYS_SEC = [10, 30]
+
+    # A usable harness response must contain the libFuzzer entry point. Anything else
+    # (a chat greeting, an error message, an empty reply) is never cached or accepted.
+    _HARNESS_MARKER = "LLVMFuzzerTestOneInput"
+
     def _load_cache(self) -> Dict[str, Any]:
         """Loads cached responses from disk."""
         if not self.enable_cache:
             return {}
         try:
             if self._cache_file.exists():
-                return json.loads(self._cache_file.read_text(encoding="utf-8"))
+                raw = json.loads(self._cache_file.read_text(encoding="utf-8"))
+                return {k: v for k, v in raw.items() if self._HARNESS_MARKER in str(v.get("text", ""))}
         except Exception:
             pass
         return {}
@@ -149,6 +156,7 @@ class HarnessSynthesizerAgent:
             return
         try:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
+            self._cache = {k: v for k, v in self._cache.items() if self._HARNESS_MARKER in str(v.get("text", ""))}
             self._cache_file.write_text(json.dumps(self._cache, indent=2), encoding="utf-8")
         except Exception:
             pass
@@ -271,13 +279,19 @@ class HarnessSynthesizerAgent:
             # Try HTTP first if API key is present
             if self.opencode_api_key:
                 resp_text = self._generate_opencode_http(opencode_m, prompt, system_prompt, temperature)
+                if resp_text is not None and self._HARNESS_MARKER not in resp_text:
+                    self.last_error = f"OpenCode HTTP reply for {opencode_m} contained no harness code"
+                    resp_text = None
                 if resp_text is not None:
                     if self.enable_cache:
                         self._cache[cache_key] = {"text": resp_text, "model": f"opencode-http:{opencode_m}"}
                         self._save_cache()
                     return resp_text, f"opencode-http:{opencode_m}"
             # Fall back to OpenCode CLI runner
-            if self.opencode_bin:
+            # The CLI route is off by default: opencode.CMD on Windows truncates multi-line
+            # arguments, so the model only saw the first line of the prompt. Set
+            # OPENCODE_ALLOW_CLI=1 to opt in.
+            if self.opencode_bin and os.getenv("OPENCODE_ALLOW_CLI") == "1":
                 resp_text = self._generate_opencode_cli(opencode_m, prompt, system_prompt)
                 if resp_text is not None:
                     if self.enable_cache:
