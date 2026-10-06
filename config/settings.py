@@ -38,6 +38,14 @@ class Settings(BaseModel):
     primary_model: str = "gemini-3.7-flash"
     fallback_model: str = "gemini-3.6-flash"
     temperature: float = 0.2
+    max_output_tokens: int = 1500
+    enable_llm_cache: bool = True
+    cache_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parent.parent / ".cache")
+
+    # OpenRouter / DeepSeek Configuration
+    openrouter_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY"))
+    openrouter_model: str = "deepseek/deepseek-chat"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     
     # Compiler & Fuzzer Settings
     compiler_cmd: str = "clang++"

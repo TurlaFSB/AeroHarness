@@ -138,6 +138,8 @@ class SelfRepairOrchestrator:
         last_comp_res: Optional[CompilationResult] = None
         last_smoke_res: Optional[SmokeTestResult] = None
 
+        consecutive_timeouts = 0
+
         for iteration in range(1, self.max_iterations + 1):
             harness_src_path.write_text(candidate.code, encoding="utf-8")
 
@@ -162,13 +164,39 @@ class SelfRepairOrchestrator:
                 )
                 if iteration >= self.max_iterations:
                     break
-                candidate = self.agent.repair_harness(
-                    candidate=candidate,
-                    error_type="COMPILATION_ERROR",
-                    error_message=comp_res.stderr,
-                    diagnostics=diag_dicts,
-                )
-                continue
+
+                # Cost-reduction optimization: Attempt deterministic rule-based fix first to save LLM tokens
+                deterministic_fixed = self.agent._apply_deterministic_fix(candidate.code, comp_res.stderr)
+                if deterministic_fixed != candidate.code:
+                    harness_src_path.write_text(deterministic_fixed, encoding="utf-8")
+                    test_comp = self.compiler.compile_harness(
+                        harness_src_path=harness_src_path,
+                        target_c_files=target_c_files,
+                        include_dirs=include_dirs,
+                        output_binary_path=out_binary_path,
+                    )
+                    if test_comp.success:
+                        candidate.code = deterministic_fixed
+                        candidate.model_used = "deterministic-rule-fixer"
+                        last_comp_res = test_comp
+                        # Successfully patched compile error without spending LLM tokens!
+                    else:
+                        harness_src_path.write_text(candidate.code, encoding="utf-8")
+                        candidate = self.agent.repair_harness(
+                            candidate=candidate,
+                            error_type="COMPILATION_ERROR",
+                            error_message=comp_res.stderr,
+                            diagnostics=diag_dicts,
+                        )
+                        continue
+                else:
+                    candidate = self.agent.repair_harness(
+                        candidate=candidate,
+                        error_type="COMPILATION_ERROR",
+                        error_message=comp_res.stderr,
+                        diagnostics=diag_dicts,
+                    )
+                    continue
 
             smoke_res = self.smoke_oracle.run_smoke_test(
                 out_binary_path, runs=self.settings.smoke_test_runs
@@ -176,21 +204,30 @@ class SelfRepairOrchestrator:
             last_smoke_res = smoke_res
 
             if not smoke_res.passed:
+                crash_reason = smoke_res.crash_reason or smoke_res.stderr
                 history.append(
                     RepairIteration(
                         iteration=iteration,
                         stage="SMOKE_TEST_ORACLE",
                         passed=False,
                         diagnostics=[],
-                        raw_error=smoke_res.crash_reason or smoke_res.stderr,
+                        raw_error=crash_reason,
                     )
                 )
+                if "timed out" in crash_reason.lower() or "timeout" in crash_reason.lower():
+                    consecutive_timeouts += 1
+                    if consecutive_timeouts >= 2:
+                        # Hardware spinlock / infinite loop hazard: fail fast instead of wasting LLM turns
+                        break
+                else:
+                    consecutive_timeouts = 0
+
                 if iteration >= self.max_iterations:
                     break
                 candidate = self.agent.repair_harness(
                     candidate=candidate,
                     error_type="RUNTIME_SMOKE_CRASH",
-                    error_message=smoke_res.crash_reason or smoke_res.stderr,
+                    error_message=crash_reason,
                     diagnostics=[],
                 )
                 continue

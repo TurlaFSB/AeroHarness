@@ -40,7 +40,7 @@ def test_reproducible_pov_generation(tmp_path):
         crash_report=sample_report,
         target_api_name="protocol_process_frame",
         header_filename="protocol_parser.h",
-        output_dir=Path("D:/aeroharness/output")
+        output_dir=tmp_path
     )
 
     assert pov.file_path is not None

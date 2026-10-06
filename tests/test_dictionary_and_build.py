@@ -6,10 +6,13 @@ from src.analyzer.dict_generator import DictionaryGenerator
 from src.analyzer.build_db import BuildDatabase
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_dictionary_generation(tmp_path):
     gen = DictionaryGenerator()
-    header_file = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.h")
-    c_file = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.c")
+    header_file = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.h"
+    c_file = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.c"
     out_dict = tmp_path / "target.dict"
 
     fuzz_dict = gen.generate_dictionary_from_files([header_file, c_file], out_dict)
@@ -23,7 +26,7 @@ def test_dictionary_generation(tmp_path):
 
 def test_build_db_inference():
     db = BuildDatabase()
-    project_root = Path("D:/aeroharness/targets/freertos_tcp")
+    project_root = PROJECT_ROOT / "targets/freertos_tcp"
     incs = db.infer_project_includes(project_root)
 
     inc_names = [d.name for d in incs]

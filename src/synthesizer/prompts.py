@@ -80,7 +80,14 @@ Strict Harness Engineering Rules:
 
         if header_context.magic_constants:
             prompt_lines.append("\n**Header Magic Constants:**")
-            for k, v in header_context.magic_constants.items():
+            raw_decl = target_api.raw_declaration or ""
+            target_parts = [p.lower() for p in target_api.name.split("_") if len(p) > 2]
+            relevant_constants = {
+                k: v for k, v in header_context.magic_constants.items()
+                if k in raw_decl or any(part in k.lower() for part in target_parts)
+            }
+            items_to_show = relevant_constants if relevant_constants else dict(list(header_context.magic_constants.items())[:15])
+            for k, v in items_to_show.items():
                 prompt_lines.append(f"- {k} = {v}")
 
         if risk_score and risk_score.memory_operations:

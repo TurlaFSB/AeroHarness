@@ -53,7 +53,12 @@ def analyze_access(parents):
 
 def main():
     print("Initializing simplified static-AST oracle")
-    clang.cindex.Config.set_library_file('/usr/lib/llvm-18/lib/libclang.so')
+    import os
+    for path in ['/usr/lib/llvm-18/lib/libclang.so.1', '/usr/lib/x86_64-linux-gnu/libclang-18.so.1', '/usr/lib/llvm-16/lib/libclang.so.1']:
+        if os.path.exists(path):
+            clang.cindex.Config.set_library_file(path)
+            break
+    clang.cindex.Config.set_compatibility_check(False)
     index = clang.cindex.Index.create()
     
     with open("llm_proposals.json") as f:
@@ -70,7 +75,9 @@ def main():
             confirmed += 1
             continue
             
-        source_file = data["source"]
+        source_file = data.get("source", "uart_pl011.c")
+        if not os.path.exists(source_file) and os.path.exists("uart_pl011.c"):
+            source_file = "uart_pl011.c"
         if source_file not in tus:
             tus[source_file] = index.parse(source_file, args=[
                 '-x', 'c',

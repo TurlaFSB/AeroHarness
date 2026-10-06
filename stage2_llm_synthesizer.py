@@ -23,7 +23,8 @@ def generate_gemini(prompt, api_key):
                 },
                 "required": ["model", "reasoning"]
             },
-            "temperature": 0.1
+            "temperature": 0.1,
+            "maxOutputTokens": 150
         }
     }
     
@@ -159,6 +160,22 @@ Propose the most appropriate model and provide explicit reasoning grounded ONLY 
                     "backend": "none"
                 }
                 print(f"  -> Skipped: not_applicable_write_only", flush=True)
+                continue
+
+            # Cost-reduction optimization: Check if this register in this function was already classified
+            func_reg_prefix = f"{func_name}::{reg}::"
+            matching_existing = next((v for k, v in results.items() if k.startswith(func_reg_prefix) and v.get("model") not in ("failed_api_error", "not_applicable_write_only")), None)
+            if matching_existing:
+                results[key] = {
+                    "function": func_name,
+                    "register": reg,
+                    "line": line,
+                    "model": matching_existing["model"],
+                    "reasoning": f"Reused from line {matching_existing['line']} (same function/register semantic scope)",
+                    "context": context,
+                    "backend": f"{matching_existing.get('backend', active_backend)}_reused"
+                }
+                print(f"  -> Reused: {matching_existing['model']} (from line {matching_existing['line']})", flush=True)
                 continue
             
             prompt = prompt_template.format(

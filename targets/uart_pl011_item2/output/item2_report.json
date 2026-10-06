@@ -1,0 +1,824 @@
+[
+  {
+    "target": "pwr_on_arm_pl011",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pwr_on_arm_pl011/fuzz_pwr_on_arm_pl011.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pwr_on_arm_pl011/fuzz_pwr_on_arm_pl011_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "clk_enable_arm_pl011",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/clk_enable_arm_pl011/fuzz_clk_enable_arm_pl011.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/clk_enable_arm_pl011/fuzz_clk_enable_arm_pl011_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_enable",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_enable/fuzz_pl011_enable.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_enable/fuzz_pl011_enable_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_disable",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_disable/fuzz_pl011_disable.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_disable/fuzz_pl011_disable_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_tx_complete",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_tx_complete/fuzz_pl011_irq_tx_complete.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_tx_complete/fuzz_pl011_irq_tx_complete_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_rx_enable",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_rx_enable/fuzz_pl011_irq_rx_enable.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_rx_enable/fuzz_pl011_irq_rx_enable_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_err_disable",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_err_disable/fuzz_pl011_irq_err_disable.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_err_disable/fuzz_pl011_irq_err_disable_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_callback_set",
+    "ccn": 1,
+    "offline_smoke_test": true,
+    "status": "FAILED_TO_CONVERGE",
+    "success": false,
+    "first_attempt_success": false,
+    "total_iterations": 5,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+    "binary_path": null,
+    "failure_reason": "Exceeded maximum repair iterations without producing a harness that compiles and links cleanly.",
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_irq_callback_set'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h",
+            "line": 14,
+            "column": 6,
+            "level": "note",
+            "message": "candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:41:5: error: no matching function for call to 'pl011_irq_callback_set'\n   41 |     pl011_irq_callback_set(&dev_obj, 0, data);\n      |     ^~~~~~~~~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:14:6: note: candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument\n   14 | void pl011_irq_callback_set(const struct device *dev, uart_irq_callback_user_data_t cb, void *cb_data);\n      |      ^                                                                                  ~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 2,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_irq_callback_set'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h",
+            "line": 14,
+            "column": 6,
+            "level": "note",
+            "message": "candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:41:5: error: no matching function for call to 'pl011_irq_callback_set'\n   41 |     pl011_irq_callback_set(&dev_obj, 0, data);\n      |     ^~~~~~~~~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:14:6: note: candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument\n   14 | void pl011_irq_callback_set(const struct device *dev, uart_irq_callback_user_data_t cb, void *cb_data);\n      |      ^                                                                                  ~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 3,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_irq_callback_set'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h",
+            "line": 14,
+            "column": 6,
+            "level": "note",
+            "message": "candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:41:5: error: no matching function for call to 'pl011_irq_callback_set'\n   41 |     pl011_irq_callback_set(&dev_obj, 0, data);\n      |     ^~~~~~~~~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:14:6: note: candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument\n   14 | void pl011_irq_callback_set(const struct device *dev, uart_irq_callback_user_data_t cb, void *cb_data);\n      |      ^                                                                                  ~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 4,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_irq_callback_set'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h",
+            "line": 14,
+            "column": 6,
+            "level": "note",
+            "message": "candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:41:5: error: no matching function for call to 'pl011_irq_callback_set'\n   41 |     pl011_irq_callback_set(&dev_obj, 0, data);\n      |     ^~~~~~~~~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:14:6: note: candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument\n   14 | void pl011_irq_callback_set(const struct device *dev, uart_irq_callback_user_data_t cb, void *cb_data);\n      |      ^                                                                                  ~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 5,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_irq_callback_set'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h",
+            "line": 14,
+            "column": 6,
+            "level": "note",
+            "message": "candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_callback_set/fuzz_pl011_irq_callback_set.cpp:41:5: error: no matching function for call to 'pl011_irq_callback_set'\n   41 |     pl011_irq_callback_set(&dev_obj, 0, data);\n      |     ^~~~~~~~~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:14:6: note: candidate function not viable: no known conversion from 'const uint8_t *' (aka 'const unsigned char *') to 'void *' for 3rd argument\n   14 | void pl011_irq_callback_set(const struct device *dev, uart_irq_callback_user_data_t cb, void *cb_data);\n      |      ^                                                                                  ~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_irq_callback_set.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      }
+    ]
+  },
+  {
+    "target": "pl011_set_flow_control",
+    "ccn": 3,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_set_flow_control/fuzz_pl011_set_flow_control.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_set_flow_control/fuzz_pl011_set_flow_control_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_set_baudrate",
+    "ccn": 3,
+    "offline_smoke_test": true,
+    "status": "FAILED_TO_CONVERGE",
+    "success": false,
+    "first_attempt_success": false,
+    "total_iterations": 5,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_set_baudrate/fuzz_pl011_set_baudrate.cpp",
+    "binary_path": null,
+    "failure_reason": "Harness compiled on the final iteration but failed the smoke-test oracle (/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_set_baudrate.c:28:17: runtime error: division by zero).",
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SMOKE_TEST_ORACLE",
+        "passed": false,
+        "diagnostics": [],
+        "raw_error": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_set_baudrate.c:28:17: runtime error: division by zero"
+      },
+      {
+        "iteration": 2,
+        "stage": "SMOKE_TEST_ORACLE",
+        "passed": false,
+        "diagnostics": [],
+        "raw_error": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_set_baudrate.c:28:17: runtime error: division by zero"
+      },
+      {
+        "iteration": 3,
+        "stage": "SMOKE_TEST_ORACLE",
+        "passed": false,
+        "diagnostics": [],
+        "raw_error": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_set_baudrate.c:28:17: runtime error: division by zero"
+      },
+      {
+        "iteration": 4,
+        "stage": "SMOKE_TEST_ORACLE",
+        "passed": false,
+        "diagnostics": [],
+        "raw_error": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_set_baudrate.c:28:17: runtime error: division by zero"
+      },
+      {
+        "iteration": 5,
+        "stage": "SMOKE_TEST_ORACLE",
+        "passed": false,
+        "diagnostics": [],
+        "raw_error": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_set_baudrate.c:28:17: runtime error: division by zero"
+      }
+    ]
+  },
+  {
+    "target": "pl011_fifo_fill",
+    "ccn": 3,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_fill/fuzz_pl011_fifo_fill.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_fill/fuzz_pl011_fifo_fill_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_fifo_read",
+    "ccn": 3,
+    "offline_smoke_test": true,
+    "status": "FAILED_TO_CONVERGE",
+    "success": false,
+    "first_attempt_success": false,
+    "total_iterations": 5,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+    "binary_path": null,
+    "failure_reason": "Exceeded maximum repair iterations without producing a harness that compiles and links cleanly.",
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_fifo_read'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h",
+            "line": 14,
+            "column": 5,
+            "level": "note",
+            "message": "candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:41:5: error: no matching function for call to 'pl011_fifo_read'\n   41 |     pl011_fifo_read(&dev_obj, data, size);\n      |     ^~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:14:5: note: candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier\n   14 | int pl011_fifo_read(const struct device *dev, uint8_t *rx_data, const int len);\n      |     ^                                         ~~~~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 2,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_fifo_read'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h",
+            "line": 14,
+            "column": 5,
+            "level": "note",
+            "message": "candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:41:5: error: no matching function for call to 'pl011_fifo_read'\n   41 |     pl011_fifo_read(&dev_obj, data, size);\n      |     ^~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:14:5: note: candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier\n   14 | int pl011_fifo_read(const struct device *dev, uint8_t *rx_data, const int len);\n      |     ^                                         ~~~~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 3,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_fifo_read'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h",
+            "line": 14,
+            "column": 5,
+            "level": "note",
+            "message": "candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:41:5: error: no matching function for call to 'pl011_fifo_read'\n   41 |     pl011_fifo_read(&dev_obj, data, size);\n      |     ^~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:14:5: note: candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier\n   14 | int pl011_fifo_read(const struct device *dev, uint8_t *rx_data, const int len);\n      |     ^                                         ~~~~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 4,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_fifo_read'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h",
+            "line": 14,
+            "column": 5,
+            "level": "note",
+            "message": "candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:41:5: error: no matching function for call to 'pl011_fifo_read'\n   41 |     pl011_fifo_read(&dev_obj, data, size);\n      |     ^~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:14:5: note: candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier\n   14 | int pl011_fifo_read(const struct device *dev, uint8_t *rx_data, const int len);\n      |     ^                                         ~~~~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      },
+      {
+        "iteration": 5,
+        "stage": "COMPILATION_ORACLE",
+        "passed": false,
+        "diagnostics": [
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 19,
+            "column": 56,
+            "level": "warning",
+            "message": "unused parameter 'val' [-Wunused-parameter]"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp",
+            "line": 41,
+            "column": 5,
+            "level": "error",
+            "message": "no matching function for call to 'pl011_fifo_read'"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h",
+            "line": 14,
+            "column": 5,
+            "level": "note",
+            "message": "candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier"
+          },
+          {
+            "file": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h",
+            "line": 40,
+            "column": 59,
+            "level": "warning",
+            "message": "unused parameter 'dev' [-Wunused-parameter]"
+          }
+        ],
+        "raw_error": "clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:7:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:19:56: warning: unused parameter 'val' [-Wunused-parameter]\n   19 | extern \"C\" void hw_write_reg32(uint32_t addr, uint32_t val) {\n      |                                                        ^\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_fifo_read/fuzz_pl011_fifo_read.cpp:41:5: error: no matching function for call to 'pl011_fifo_read'\n   41 |     pl011_fifo_read(&dev_obj, data, size);\n      |     ^~~~~~~~~~~~~~~\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:14:5: note: candidate function not viable: 2nd argument ('const uint8_t *' (aka 'const unsigned char *')) would lose const qualifier\n   14 | int pl011_fifo_read(const struct device *dev, uint8_t *rx_data, const int len);\n      |     ^                                         ~~~~~~~~~~~~~~~~\n2 warnings and 1 error generated.\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.c:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/pl011_fifo_read.h:12:\nIn file included from /home/fox/Documents/AeroHarness/targets/uart_pl011_item2/common_stubs.h:76:\n/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/../../zephyr-src/drivers/serial/uart_pl011_registers.h:40:59: warning: unused parameter 'dev' [-Wunused-parameter]\n   40 | volatile struct pl011_regs *get_uart(const struct device *dev)\n      |                                                           ^\n1 warning generated.\n"
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_is_pending",
+    "ccn": 3,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_is_pending/fuzz_pl011_irq_is_pending.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_is_pending/fuzz_pl011_irq_is_pending_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_is_readable",
+    "ccn": 4,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_is_readable/fuzz_pl011_is_readable.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_is_readable/fuzz_pl011_is_readable_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_rx_ready",
+    "ccn": 4,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_rx_ready/fuzz_pl011_irq_rx_ready.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_rx_ready/fuzz_pl011_irq_rx_ready_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_err_check",
+    "ccn": 5,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_err_check/fuzz_pl011_err_check.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_err_check/fuzz_pl011_err_check_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_tx_ready",
+    "ccn": 5,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_tx_ready/fuzz_pl011_irq_tx_ready.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_tx_ready/fuzz_pl011_irq_tx_ready_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  },
+  {
+    "target": "pl011_irq_tx_enable",
+    "ccn": 6,
+    "offline_smoke_test": true,
+    "status": "SUCCESS",
+    "success": true,
+    "first_attempt_success": true,
+    "total_iterations": 1,
+    "harness_file_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_tx_enable/fuzz_pl011_irq_tx_enable.cpp",
+    "binary_path": "/home/fox/Documents/AeroHarness/targets/uart_pl011_item2/output/pl011_irq_tx_enable/fuzz_pl011_irq_tx_enable_bin",
+    "failure_reason": null,
+    "history": [
+      {
+        "iteration": 1,
+        "stage": "SUCCESS",
+        "passed": true,
+        "diagnostics": [],
+        "raw_error": ""
+      }
+    ]
+  }
+]

@@ -2,9 +2,12 @@
 Gemini Pro Harness Synthesizer Agent for AeroHarness
 Generates C++ libFuzzer harnesses and handles multi-turn self-repair conversations.
 """
+import hashlib
+import json
 import os
 import re
 import time
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
@@ -23,28 +26,29 @@ class SynthesisCandidate(BaseModel):
 
 
 class HarnessSynthesizerAgent:
-    """Agent that calls Gemini Pro to synthesize and repair fuzz harnesses."""
+    """Agent that calls Gemini to synthesize and repair fuzz harnesses."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         model_name: str = "gemini-1.5-pro",
-        fallback_model: str = "gemini-2.0-flash"
+        fallback_model: str = "gemini-2.0-flash",
+        enable_cache: bool = True,
+        max_output_tokens: Optional[int] = 1500,
+        cache_dir: Optional[Path] = None,
+        openrouter_api_key: Optional[str] = None,
+        openrouter_base_url: str = "https://openrouter.ai/api/v1",
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.openrouter_api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
+        self.openrouter_base_url = openrouter_base_url
         self.model_name = model_name
-        # NOTE (Oct 2 2026): `fallback_model` used to be accepted and stored here but
-        # never actually used anywhere else in the class -- the only "fallback" that
-        # happened on any API exception was the deterministic offline generator, not a
-        # second attempt against a different Gemini model. That was left unfixed at
-        # first because there was no second distinct Gemini model confirmed to work (see
-        # config/settings.py's history). Now there is: a live diagnostic
-        # (targets/uart_pl011_item2/diagnose_model.py) confirmed gemini-3.8-flash AND
-        # gemini-3.7-flash both return real SUCCESS responses. `_generate_content` below
-        # now genuinely tries `model_name` first and `fallback_model` second (only when
-        # they differ) before giving up to the deterministic generator -- real model
-        # diversity, not dead config.
         self.fallback_model = fallback_model
+        self.enable_cache = enable_cache
+        self.max_output_tokens = max_output_tokens
+        self._cache_dir = cache_dir or (Path(__file__).resolve().parent.parent.parent / ".cache")
+        self._cache_file = self._cache_dir / "llm_cache.json"
+        self._cache: Dict[str, Any] = self._load_cache()
         self.client = None
         # NOTE (Oct 2 2026, Work Plan item 2): the except blocks below have always
         # silently discarded the real exception before falling back to the
@@ -101,37 +105,111 @@ class HarnessSynthesizerAgent:
     # spike as a hard failure. Only retries on a real 503 (ServerError with .code == 503);
     # a 404 (bad model name) or 429 (quota) will not resolve by waiting a few seconds, so
     # those still fail fast onto the next model/key exactly as before.
-    _SERVER_BUSY_RETRY_DELAYS_SEC = [10, 30]
+    def _load_cache(self) -> Dict[str, Any]:
+        """Loads cached responses from disk."""
+        if not self.enable_cache:
+            return {}
+        try:
+            if self._cache_file.exists():
+                return json.loads(self._cache_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return {}
+
+    def _save_cache(self) -> None:
+        """Persists cached responses to disk."""
+        if not self.enable_cache:
+            return
+        try:
+            self._cache_dir.mkdir(parents=True, exist_ok=True)
+            self._cache_file.write_text(json.dumps(self._cache, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    def _generate_openrouter(self, model: str, prompt: str, system_prompt: str, temperature: float) -> Optional[str]:
+        """Dispatches an OpenAI-compatible request to OpenRouter (e.g. DeepSeek V3 / V4 Flash)."""
+        if not self.openrouter_api_key:
+            return None
+        try:
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {self.openrouter_api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/TurlaFSB/AeroHarness",
+                "X-Title": "AeroHarness",
+            }
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": temperature,
+            }
+            if self.max_output_tokens:
+                payload["max_tokens"] = self.max_output_tokens
+
+            with httpx.Client(timeout=120.0) as http_client:
+                resp = http_client.post(f"{self.openrouter_base_url}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            self.last_error = f"OpenRouter API call failed ({model}): {e!r}"
+            return None
 
     def _generate_content(self, prompt: str, system_prompt: str, temperature: float, context: str):
         """Tries `self.model_name` first, then `self.fallback_model` (only if it's a
         different string), retrying a transient 503 in place a couple of times before
-        moving on. Returns (response_text, model_used) on success, or (None, None) if
-        every attempt across every model failed -- in which case self.last_error holds
-        EVERY attempt's failure text (not just the last one), so a caller/report can see
-        whether e.g. the primary model also 503'd or failed for some different reason
-        than the fallback did. Added Oct 2 2026 once a second real working model
-        (gemini-3.7-flash, alongside gemini-3.8-flash) was confirmed live -- see the
-        __init__ note on fallback_model."""
+        moving on. Supports both Gemini and OpenRouter (e.g. DeepSeek V3/V4 Flash).
+        Utilizes local disk caching and max_output_tokens to minimize API spend."""
+        if self.enable_cache:
+            cache_key = hashlib.sha256(f"{self.model_name}:{system_prompt}:{prompt}:{temperature}".encode("utf-8")).hexdigest()
+            if cache_key in self._cache:
+                cached_data = self._cache[cache_key]
+                return cached_data["text"], f"{cached_data.get('model', self.model_name)} (cached)"
+
         models_to_try = [self.model_name]
         if self.fallback_model and self.fallback_model != self.model_name:
             models_to_try.append(self.fallback_model)
 
         attempt_errors: List[str] = []
         for model in models_to_try:
+            # 1. OpenRouter Provider (DeepSeek / OpenRouter models)
+            if model.startswith("deepseek/") or model.startswith("openrouter/") or (self.openrouter_api_key and not self.client):
+                resp_text = self._generate_openrouter(model, prompt, system_prompt, temperature)
+                if resp_text is not None:
+                    if self.enable_cache:
+                        self._cache[cache_key] = {"text": resp_text, "model": model}
+                        self._save_cache()
+                    return resp_text, model
+                attempt_errors.append(f"{context} ({model}): {self.last_error}")
+                continue
+
+            # 2. Google Gemini Provider
+            if not self.client:
+                continue
+
             delays = [0] + self._SERVER_BUSY_RETRY_DELAYS_SEC
             for attempt_num, delay in enumerate(delays):
                 if delay:
                     time.sleep(delay)
                 try:
+                    config_dict = {
+                        "system_instruction": system_prompt,
+                        "temperature": temperature
+                    }
+                    if self.max_output_tokens:
+                        config_dict["max_output_tokens"] = self.max_output_tokens
+
                     response = self.client.models.generate_content(
                         model=model,
                         contents=prompt,
-                        config={
-                            "system_instruction": system_prompt,
-                            "temperature": temperature
-                        }
+                        config=config_dict
                     )
+                    if self.enable_cache and response.text:
+                        self._cache[cache_key] = {"text": response.text, "model": model}
+                        self._save_cache()
                     return response.text, model
                 except Exception as e:
                     attempt_errors.append(f"{context} ({model}, attempt {attempt_num + 1}): {e!r}")
@@ -278,7 +356,21 @@ class HarnessSynthesizerAgent:
         # preparing Work Plan item 2's uart_pl011.c targets (see FAILURE_TAXONOMY.md).
         # Fixed conservatively: declare `ctx` only when we can name a real match, and
         # never reference a function we have no evidence exists for this target.
-        if target_api.context_struct:
+        has_pl011 = any("pl011" in s.name for s in header_context.structs)
+        has_device = any("device" in p.type_str for p in target_api.parameters)
+
+        if has_device and has_pl011:
+            lines.extend([
+                '    struct pl011_data dev_data;',
+                '    memset(&dev_data, 0, sizeof(dev_data));',
+                '    struct pl011_regs dev_regs;',
+                '    memset(&dev_regs, 0, sizeof(dev_regs));',
+                '    mock_regs_ptr = &dev_regs;',
+                '    struct device dev_obj;',
+                '    memset(&dev_obj, 0, sizeof(dev_obj));',
+                '    dev_obj.data = &dev_data;\n'
+            ])
+        elif target_api.context_struct:
             lines.extend([
                 f'    {target_api.context_struct} ctx;',
                 '    memset(&ctx, 0, sizeof(ctx));\n'
@@ -288,7 +380,9 @@ class HarnessSynthesizerAgent:
         args = []
         for param in target_api.parameters:
             if param.is_struct and param.is_pointer:
-                if target_api.context_struct:
+                if has_device and "device" in param.type_str and has_pl011:
+                    args.append("&dev_obj")
+                elif target_api.context_struct:
                     args.append("&ctx")
                 else:
                     # No detected context parameter to point at -- a null pointer of
@@ -316,10 +410,26 @@ class HarnessSynthesizerAgent:
         return "\n".join(lines)
 
     def _apply_deterministic_fix(self, code: str, error_message: str) -> str:
-        """Applies targeted heuristics for offline auto-repair."""
+        """Applies targeted heuristics for offline auto-repair and pre-repair cost reduction."""
         fixed = code
-        if "fuzzer/FuzzedDataProvider.h" not in fixed:
+        err_lower = error_message.lower()
+
+        # 1. Missing standard/fuzzing includes
+        if "fuzzer/FuzzedDataProvider.h" not in fixed and ("fuzzeddataprovider" in err_lower or "fuzzed_data" in err_lower):
             fixed = "#include <fuzzer/FuzzedDataProvider.h>\n" + fixed
-        if "string.h" not in fixed:
+        if "string.h" not in fixed and ("memset" in err_lower or "memcpy" in err_lower or "memcmp" in err_lower or "strlen" in err_lower):
             fixed = "#include <string.h>\n" + fixed
+        if "stdint.h" not in fixed and ("uint8_t" in err_lower or "uint32_t" in err_lower or "uint16_t" in err_lower or "uint64_t" in err_lower):
+            fixed = "#include <stdint.h>\n" + fixed
+        if "errno.h" not in fixed and ("enotsup" in err_lower or "einval" in err_lower or "errno" in err_lower):
+            fixed = "#include <errno.h>\n" + fixed
+        if "stdlib.h" not in fixed and ("malloc" in err_lower or "free" in err_lower or "abort" in err_lower or "exit" in err_lower):
+            fixed = "#include <stdlib.h>\n" + fixed
+        if "stddef.h" not in fixed and ("size_t" in err_lower or "null" in err_lower):
+            fixed = "#include <stddef.h>\n" + fixed
+
+        # 2. Fix redundant struct redefinitions (e.g. struct pl011_regs already provided by header)
+        if "redefinition of" in err_lower and "pl011_regs" in err_lower:
+            fixed = re.sub(r'struct\s+pl011_regs\s*\{[^}]*\}\s*;?', '', fixed)
+
         return fixed
