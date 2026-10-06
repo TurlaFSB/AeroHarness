@@ -51,7 +51,7 @@ class Settings(BaseModel):
     opencode_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("OPENCODE_API_KEY"))
     opencode_bin: Optional[str] = Field(default_factory=lambda: os.getenv("OPENCODE_BIN"))
     opencode_base_url: str = "https://opencode.ai/zen/v1"
-    opencode_model: str = "opencode/nemotron-3.5-lightning-free"
+    opencode_model: str = "opencode/fledge-alpha-free"
     opencode_auth_file: Optional[str] = None
     enable_opencode: bool = True
     

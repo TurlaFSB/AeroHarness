@@ -52,7 +52,7 @@ class HarnessSynthesizerAgent:
         self.enable_opencode = enable_opencode
         self.opencode_api_key = opencode_api_key or os.getenv("OPENCODE_API_KEY")
         self.opencode_bin = opencode_bin or os.getenv("OPENCODE_BIN")
-        self.opencode_model = opencode_model or "opencode/nemotron-3.5-lightning-free"
+        self.opencode_model = opencode_model or "opencode/fledge-alpha-free"
         self.opencode_base_url = opencode_base_url
         
         # Auto-discover OpenCode from Ubuntu / Linux / Windows if not explicitly passed

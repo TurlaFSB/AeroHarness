@@ -113,7 +113,7 @@ def discover_opencode() -> Dict[str, Any]:
             continue
 
     base_url = os.environ.get("OPENCODE_BASE_URL", "https://opencode.ai/zen/v1")
-    model = os.environ.get("OPENCODE_MODEL", "opencode/nemotron-3.5-lightning-free")
+    model = os.environ.get("OPENCODE_MODEL", "opencode/fledge-alpha-free")
 
     return {
         "api_key": api_key,
