@@ -37,10 +37,12 @@ class HarnessSynthesizerAgent:
         max_output_tokens: Optional[int] = 1500,
         cache_dir: Optional[Path] = None,
         openrouter_api_key: Optional[str] = None,
+        openrouter_model: Optional[str] = None,
         openrouter_base_url: str = "https://openrouter.ai/api/v1",
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.openrouter_api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
+        self.openrouter_model = openrouter_model or "deepseek/deepseek-chat"
         self.openrouter_base_url = openrouter_base_url
         self.model_name = model_name
         self.fallback_model = fallback_model

@@ -78,7 +78,12 @@ def synthesize(header: str, source: str, api: str, output: str):
     agent = HarnessSynthesizerAgent(
         api_key=settings.gemini_api_key,
         model_name=settings.primary_model,
-        fallback_model=settings.fallback_model
+        fallback_model=settings.fallback_model,
+        openrouter_api_key=settings.openrouter_api_key,
+        openrouter_model=settings.openrouter_model,
+        openrouter_base_url=settings.openrouter_base_url,
+        max_output_tokens=settings.max_output_tokens,
+        enable_cache=settings.enable_llm_cache,
     )
     orchestrator = SelfRepairOrchestrator(agent=agent)
 
@@ -131,7 +136,12 @@ def run_all(header: str, source: str, api: str, duration: int, output: str):
     agent = HarnessSynthesizerAgent(
         api_key=settings.gemini_api_key,
         model_name=settings.primary_model,
-        fallback_model=settings.fallback_model
+        fallback_model=settings.fallback_model,
+        openrouter_api_key=settings.openrouter_api_key,
+        openrouter_model=settings.openrouter_model,
+        openrouter_base_url=settings.openrouter_base_url,
+        max_output_tokens=settings.max_output_tokens,
+        enable_cache=settings.enable_llm_cache,
     )
     orchestrator = SelfRepairOrchestrator(agent=agent)
 

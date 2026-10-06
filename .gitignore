@@ -83,3 +83,7 @@ item7_fuzzware/*.map
 item7_fuzzware/config/*.bin
 item7_fuzzware/config/run1/
 item7_fuzzware/config/run1_old/
+
+# Generated output and cache
+output/
+.cache/
