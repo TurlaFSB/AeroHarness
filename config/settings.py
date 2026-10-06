@@ -101,7 +101,7 @@ class Settings(BaseModel):
                 ["wsl", "which", "clang++"],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=30
             )
             if res.returncode == 0 and res.stdout.strip():
                 self.use_wsl = True
