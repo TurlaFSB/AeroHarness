@@ -444,6 +444,15 @@ def call_openrouter(prompt, seed):
             }) + "\n")
         text = choice["message"].get("content") or ""
         text = text.replace('```cpp', '').replace('```', '').strip()
+        # Some providers leak DeepSeek tool-call control tokens (<｜DSML｜ ...>)
+        # after the code. They are transport noise, not model-written C++, and
+        # break the compile; cut the reply at the first one and say so.
+        _dsml = text.find("<｜DSML｜")
+        if _dsml == -1:
+            _dsml = text.find("</｜DSML｜")
+        if _dsml != -1:
+            print(f"    (provider leaked DSML control tokens at char {_dsml}; truncated)")
+            text = text[:_dsml].rstrip()
         if not text:
             print(f"    (empty reply from model; finish_reason={finish}, completion_tokens={tout}, reasoning_tokens={rtoks})")
             return None
