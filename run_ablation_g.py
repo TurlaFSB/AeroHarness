@@ -266,6 +266,7 @@ _parser.add_argument("--budget-usd", type=float, default=1.0, help="openrouter o
 _parser.add_argument("--price-in", type=float, default=0.30, help="openrouter only: USD per 1M input tokens, used for the budget guard when the response carries no cost. Default 0.30 (DeepSeek V4.1 Flash peak price, a conservative upper bound)")
 _parser.add_argument("--price-out", type=float, default=1.20, help="openrouter only: USD per 1M output tokens (see --price-in). Default 1.20")
 _parser.add_argument("--max-tokens", type=int, default=4096, help="openrouter only: max output tokens per call (reasoning tokens count toward it). Default 4096")
+_parser.add_argument("--reasoning", default="off", choices=["off", "default"], help="openrouter only: 'off' (default) asks the provider to disable hidden reasoning so the whole token budget goes to the harness code, matching the non-thinking local baselines; 'default' leaves the model's own behaviour. Pilot of Oct 14 2026: with reasoning on and max_tokens 4096, all 25 replies were empty (budget spent on reasoning).")
 _parser.add_argument("--attempt1-only", action="store_true", help="Make only the first attempt per trial (no repair retries) and report the attempt-1 success rate. Results go to a separate _a1only file.")
 _args, _ = _parser.parse_known_args()
 
@@ -382,6 +383,7 @@ class BudgetExceeded(Exception):
 
 _SPENT_USD = 0.0
 _CALLS_MADE = 0
+_API_FAILED = [0]  # calls that returned no usable code; NOT counted as model failures in the rates below
 
 def call_openrouter(prompt, seed):
     """One chat-completion call through OpenRouter. The key is read from the
@@ -405,6 +407,8 @@ def call_openrouter(prompt, seed):
         "max_tokens": _args.max_tokens,
         "usage": {"include": True},
     }
+    if _args.reasoning == "off":
+        body["reasoning"] = {"enabled": False}
     if _args.provider:
         body["provider"] = {"order": [_args.provider], "allow_fallbacks": False}
     try:
@@ -424,6 +428,9 @@ def call_openrouter(prompt, seed):
             cost = tin * _args.price_in / 1e6 + tout * _args.price_out / 1e6
         _SPENT_USD += float(cost)
         _CALLS_MADE += 1
+        choice = data["choices"][0]
+        finish = choice.get("finish_reason")
+        rtoks = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
         with open(f"ablation_g_calls_{_MODEL_SLUG}.jsonl", "a") as f:
             f.write(json.dumps({
                 "time": datetime.now().isoformat(),
@@ -431,12 +438,14 @@ def call_openrouter(prompt, seed):
                 "served_model": data.get("model"),
                 "provider": data.get("provider"),
                 "prompt_tokens": tin, "completion_tokens": tout,
+                "reasoning_tokens": rtoks, "finish_reason": finish,
+                "reasoning_mode": _args.reasoning,
                 "cost_usd": float(cost), "spent_total_usd": round(_SPENT_USD, 6),
             }) + "\n")
-        text = data["choices"][0]["message"].get("content") or ""
+        text = choice["message"].get("content") or ""
         text = text.replace('```cpp', '').replace('```', '').strip()
         if not text:
-            print("    (empty reply from model)")
+            print(f"    (empty reply from model; finish_reason={finish}, completion_tokens={tout}, reasoning_tokens={rtoks})")
             return None
         return text
     except BudgetExceeded:
@@ -624,6 +633,7 @@ def run_experiment():
             code = call_model(prompt, seed)
             if not code:
                 print("    API Failed.")
+                _API_FAILED[0] += 1
                 continue
 
             oracle_absent_success, fail_type, err_out = evaluate_harness(code, trial_dir, target, attempt=1)
@@ -790,6 +800,9 @@ def report_attempt1_only(results=None):
     print("  Reference: local qwen2.5-coder:7b scored 4% attempt-1 on the full v1 run (n=100).")
     if _args.backend == "openrouter":
         print(f"  Spend this session: ${_SPENT_USD:.4f} over {_CALLS_MADE} calls (budget ${_args.budget_usd:.2f})")
+        print(f"  Calls with no usable code (API/empty replies, excluded from the rate above): {_API_FAILED[0]}")
+        if tot_n == 0 and _API_FAILED[0]:
+            print("  WARNING: no harness was produced at all -- this run measured nothing about the model. Check finish_reason/reasoning_tokens above.")
 
 
 if __name__ == "__main__":
