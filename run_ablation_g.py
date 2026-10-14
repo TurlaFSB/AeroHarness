@@ -349,6 +349,10 @@ if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
 if _args.prompt_version != "v1":
     _MODEL_SLUG += "_prompt" + _args.prompt_version
+if _args.backend == "openrouter" and _args.provider:
+    # a provider-pinned run is a different condition: keep its results, ledger
+    # and logs apart from the unpinned run so neither is resumed or overwritten
+    _MODEL_SLUG += "_prov-" + "".join(c if c.isalnum() else "-" for c in _args.provider)
 if _args.attempt1_only:
     _MODEL_SLUG += "_a1only"
 RESULTS_FILE = f"ablation_g_results_{_MODEL_SLUG}.json"
