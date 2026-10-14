@@ -260,6 +260,13 @@ _parser.add_argument("--trials", type=int, default=20, help="Trials per target (
 _parser.add_argument("--target", default=None, choices=list(TARGETS.keys()), help="Run only this one target instead of all 5 (for smoke-testing a scaffolding change cheaply)")
 _parser.add_argument("--prompt-version", default="v1", choices=["v1", "v2", "v3"], help="v1 = original prompts (frozen, reproduces the Oct 4-5 2026 runs). v2 = v1 plus a redefinition-collision fix (smoke-tested only, see PROMPT_V2_NOTE). v3 = v2 plus a mandatory include/definition contract (see PROMPT_V3_NOTE). Results and logs go to separate version-suffixed files so earlier data is never overwritten")
 _parser.add_argument("--analyze-only", action="store_true", help="Skip running trials; just (re)compute the McNemar analysis from the existing results file and print it")
+_parser.add_argument("--backend", default="ollama", choices=["ollama", "openrouter"], help="ollama (default, local model, unchanged) or openrouter (cloud model; needs OPENROUTER_API_KEY in the environment). With openrouter, --model is the OpenRouter model ID, e.g. deepseek/deepseek-v4.1-flash-20260910")
+_parser.add_argument("--provider", default=None, help="openrouter only: pin ONE upstream provider by name and disable fallbacks, so the serving host is fixed and recorded. Omit to let OpenRouter route.")
+_parser.add_argument("--budget-usd", type=float, default=1.0, help="openrouter only: hard spending ceiling for this run in USD; the run stops cleanly (progress saved, resumable) before a call that would start past it. Default 1.0")
+_parser.add_argument("--price-in", type=float, default=0.30, help="openrouter only: USD per 1M input tokens, used for the budget guard when the response carries no cost. Default 0.30 (DeepSeek V4.1 Flash peak price, a conservative upper bound)")
+_parser.add_argument("--price-out", type=float, default=1.20, help="openrouter only: USD per 1M output tokens (see --price-in). Default 1.20")
+_parser.add_argument("--max-tokens", type=int, default=4096, help="openrouter only: max output tokens per call (reasoning tokens count toward it). Default 4096")
+_parser.add_argument("--attempt1-only", action="store_true", help="Make only the first attempt per trial (no repair retries) and report the attempt-1 success rate. Results go to a separate _a1only file.")
 _args, _ = _parser.parse_known_args()
 
 OLLAMA_MODEL = _args.model
@@ -341,6 +348,8 @@ if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
 if _args.prompt_version != "v1":
     _MODEL_SLUG += "_prompt" + _args.prompt_version
+if _args.attempt1_only:
+    _MODEL_SLUG += "_a1only"
 RESULTS_FILE = f"ablation_g_results_{_MODEL_SLUG}.json"
 
 CLANG = shutil.which("clang++")
@@ -367,6 +376,79 @@ def call_ollama(prompt, seed):
     except Exception as e:
         print(f"Ollama API Error: {e}")
     return None
+
+class BudgetExceeded(Exception):
+    pass
+
+_SPENT_USD = 0.0
+_CALLS_MADE = 0
+
+def call_openrouter(prompt, seed):
+    """One chat-completion call through OpenRouter. The key is read from the
+    environment and never printed or written. Every call is appended to a
+    JSONL ledger (model, serving provider, tokens, cost) so a result can be
+    traced to the exact model and host that produced it."""
+    global _SPENT_USD, _CALLS_MADE
+    if _SPENT_USD >= _args.budget_usd:
+        raise BudgetExceeded(f"spent ${_SPENT_USD:.4f} of ${_args.budget_usd:.2f}")
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        sys.exit("OPENROUTER_API_KEY is not set in this terminal. Set it (export OPENROUTER_API_KEY=...) and re-run.")
+    body = {
+        "model": OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": "You are a firmware fuzzing expert. Return ONLY valid C++ code for a libFuzzer harness. No markdown formatting."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.7,
+        "seed": seed,
+        "max_tokens": _args.max_tokens,
+        "usage": {"include": True},
+    }
+    if _args.provider:
+        body["provider"] = {"order": [_args.provider], "allow_fallbacks": False}
+    try:
+        import requests
+        resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
+                             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                             json=body, timeout=180)
+        if resp.status_code != 200:
+            print(f"OpenRouter HTTP {resp.status_code}: {resp.text[:300]}")
+            return None
+        data = resp.json()
+        usage = data.get("usage") or {}
+        tin = usage.get("prompt_tokens") or 0
+        tout = usage.get("completion_tokens") or 0
+        cost = usage.get("cost")
+        if cost is None:
+            cost = tin * _args.price_in / 1e6 + tout * _args.price_out / 1e6
+        _SPENT_USD += float(cost)
+        _CALLS_MADE += 1
+        with open(f"ablation_g_calls_{_MODEL_SLUG}.jsonl", "a") as f:
+            f.write(json.dumps({
+                "time": datetime.now().isoformat(),
+                "requested_model": OLLAMA_MODEL,
+                "served_model": data.get("model"),
+                "provider": data.get("provider"),
+                "prompt_tokens": tin, "completion_tokens": tout,
+                "cost_usd": float(cost), "spent_total_usd": round(_SPENT_USD, 6),
+            }) + "\n")
+        text = data["choices"][0]["message"].get("content") or ""
+        text = text.replace('```cpp', '').replace('```', '').strip()
+        if not text:
+            print("    (empty reply from model)")
+            return None
+        return text
+    except BudgetExceeded:
+        raise
+    except Exception as e:
+        print(f"OpenRouter API Error: {e}")
+        return None
+
+def call_model(prompt, seed):
+    if _args.backend == "openrouter":
+        return call_openrouter(prompt, seed)
+    return call_ollama(prompt, seed)
 
 def write_log(path, content):
     with open(path, 'w') as f:
@@ -539,12 +621,25 @@ def run_experiment():
 
             # Attempt 1 -- this IS the "oracle absent" condition: generated
             # once, compiled/run only to RECORD the outcome, never fed back.
-            code = call_ollama(prompt, seed)
+            code = call_model(prompt, seed)
             if not code:
                 print("    API Failed.")
                 continue
 
             oracle_absent_success, fail_type, err_out = evaluate_harness(code, trial_dir, target, attempt=1)
+
+            if _args.attempt1_only:
+                print(f"    -> Attempt 1 {'Success' if oracle_absent_success else 'Failed (' + str(fail_type) + ')'} (attempt-1-only mode, no retries)")
+                results[target].append({
+                    "trial": trial,
+                    "oracle_absent_success": bool(oracle_absent_success),
+                    "oracle_present_success": None,
+                    "oracle_present_attempts": 1,
+                    "fail_type_attempt1": None if oracle_absent_success else fail_type
+                })
+                with open(RESULTS_FILE, "w") as f:
+                    json.dump(results, f, indent=2)
+                continue
 
             if oracle_absent_success:
                 # Oracle-present trivially agrees (attempt 1 is its first attempt
@@ -578,7 +673,7 @@ def run_experiment():
 
             for retry in range(2, 6):
                 oracle_present_attempts = retry
-                retry_code = call_ollama(cur_prompt, seed + retry)
+                retry_code = call_model(cur_prompt, seed + retry)
                 if not retry_code: continue
                 s, ft, eo = evaluate_harness(retry_code, loop_dir, target, attempt=retry)
                 if s:
@@ -601,6 +696,9 @@ def run_experiment():
                 json.dump(results, f, indent=2)
 
     print("\nExperiment Complete.")
+    if _args.attempt1_only:
+        report_attempt1_only(results)
+        return
     analyze_results(results)
 
 
@@ -665,8 +763,45 @@ def analyze_results(results=None):
             print("  -> Not statistically significant at alpha=0.05.")
 
 
+def _wilson(k, n, z=1.96):
+    if n == 0:
+        return (0.0, 0.0)
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (max(0.0, c - h), min(1.0, c + h))
+
+def report_attempt1_only(results=None):
+    if results is None:
+        with open(RESULTS_FILE) as f:
+            results = json.load(f)
+    tot_k = tot_n = 0
+    print("\n=== Attempt-1 success (no retries) ===")
+    for target, rows in results.items():
+        k = sum(1 for r in rows if r["oracle_absent_success"])
+        n = len(rows)
+        tot_k += k
+        tot_n += n
+        print(f"  {target}: {k}/{n}")
+    lo, hi = _wilson(tot_k, tot_n)
+    rate = (tot_k / tot_n) if tot_n else 0.0
+    print(f"  OVERALL: {tot_k}/{tot_n} = {rate:.1%}  (Wilson 95% CI {lo:.1%}-{hi:.1%})")
+    print("  Reference: local qwen2.5-coder:7b scored 4% attempt-1 on the full v1 run (n=100).")
+    if _args.backend == "openrouter":
+        print(f"  Spend this session: ${_SPENT_USD:.4f} over {_CALLS_MADE} calls (budget ${_args.budget_usd:.2f})")
+
+
 if __name__ == "__main__":
     if _args.analyze_only:
-        analyze_results()
+        if _args.attempt1_only:
+            report_attempt1_only()
+        else:
+            analyze_results()
         sys.exit(0)
-    run_experiment()
+    try:
+        run_experiment()
+    except BudgetExceeded as e:
+        print(f"\nSTOPPED: budget guard reached ({e}). Progress is saved; re-run the same command to resume with a higher --budget-usd if you want to continue.")
+        if _args.attempt1_only:
+            report_attempt1_only()
