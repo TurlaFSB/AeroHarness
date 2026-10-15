@@ -104,7 +104,8 @@
 
 import math
 
-import os, sys, time, json, subprocess, shutil, argparse, platform
+import os
+import re, sys, time, json, subprocess, shutil, argparse, platform
 from datetime import datetime
 
 TARGETS = {
@@ -308,11 +309,33 @@ Include all necessary standard headers. Do NOT use `FuzzedDataProvider.h` — it
 # the original script's single hardcoded "ablation_b_v2_results.json" name
 # didn't guard against that.)
 
+# Oct 15 2026 changes (before any results existed for this ablation):
+#  1. Cloud backend: --backend openrouter (+ --provider/--budget-usd/--max-tokens/--reasoning),
+#     same mechanics as run_ablation_g.py (spend guard, JSONL call ledger, DSML cut, provider
+#     pin; results/ledger/log files carry the provider in their names).
+#  2. Retry-loop fix: the first retry used to receive the bare original prompt (the attempt-1
+#     error was computed but never passed in), so both arms got a free blind resample and Arm A's
+#     lint never saw the attempt-1 harness. Retry 2 now carries the attempt-1 feedback, as in
+#     Ablation G's loop.
+#  3. Lint filter: clang-tidy only runs its analyzers on code that compiles; on a harness with a
+#     compile error it re-prints the compiler error and nothing else. Only warnings located in
+#     harness.cpp are now passed as lint feedback, so Arm A differs from Arm B only when
+#     clang-tidy has something the compiler error does not already say; otherwise Arm A falls
+#     back to compiler-only for that round. `arm_a_lint_used_on_any_retry` therefore measures how
+#     often lint had any effect at all, which bounds what this ablation can show.
+
 _parser = argparse.ArgumentParser()
 _parser.add_argument("--model", default="qwen2.5-coder:14b", help="Exact ollama model tag, e.g. qwen2.5-coder:7b")
 _parser.add_argument("--trials", type=int, default=20, help="Trials per target (default 20, matching B v2's own recommended n=20-30/target/model for real statistical power)")
 _parser.add_argument("--target", default=None, choices=list(TARGETS.keys()), help="Run only this one target instead of all 5 (for smoke-testing a scaffolding change cheaply)")
 _parser.add_argument("--analyze-only", action="store_true", help="Skip running trials; just (re)compute the McNemar analysis from the existing results file and print it")
+_parser.add_argument("--backend", default="ollama", choices=["ollama", "openrouter"], help="ollama (default, local model, unchanged) or openrouter (cloud model; needs OPENROUTER_API_KEY in the environment)")
+_parser.add_argument("--provider", default=None, help="openrouter only: pin ONE upstream provider by name and disable fallbacks")
+_parser.add_argument("--budget-usd", type=float, default=1.0, help="openrouter only: hard spending ceiling in USD; the run stops cleanly (progress saved, resumable) before a call that would start past it")
+_parser.add_argument("--price-in", type=float, default=0.30, help="openrouter only: USD per 1M input tokens, used only when a response carries no cost")
+_parser.add_argument("--price-out", type=float, default=1.20, help="openrouter only: USD per 1M output tokens (see --price-in)")
+_parser.add_argument("--max-tokens", type=int, default=4096, help="openrouter only: max output tokens per call")
+_parser.add_argument("--reasoning", default="off", choices=["off", "default"], help="openrouter only: 'off' asks the provider to disable hidden reasoning")
 _args, _ = _parser.parse_known_args()
 
 OLLAMA_MODEL = _args.model
@@ -321,6 +344,8 @@ N_TRIALS = _args.trials
 if _args.target:
     TARGETS = {_args.target: TARGETS[_args.target]}
 _MODEL_SLUG = OLLAMA_MODEL.replace(":", "_").replace("/", "_")
+if _args.backend == "openrouter" and _args.provider:
+    _MODEL_SLUG += "_prov-" + "".join(c if c.isalnum() else "-" for c in _args.provider)
 if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
 RESULTS_FILE = f"ablation_e_lint_results_{_MODEL_SLUG}.json"
@@ -352,6 +377,98 @@ def call_ollama(prompt, seed):
     except Exception as e:
         print(f"Ollama API Error: {e}")
     return None
+
+class BudgetExceeded(Exception):
+    pass
+
+_SPENT_USD = 0.0
+_CALLS_MADE = 0
+_API_FAILED = [0]  # calls that returned no usable code; counted separately, never as model failures
+
+
+def call_openrouter(prompt, seed):
+    """One chat-completion call through OpenRouter (same mechanics as run_ablation_g.py).
+    The key is read from the environment and never printed or written. Every call is
+    appended to a JSONL ledger (model, serving provider, tokens, cost)."""
+    global _SPENT_USD, _CALLS_MADE
+    if _SPENT_USD >= _args.budget_usd:
+        raise BudgetExceeded(f"spent ${_SPENT_USD:.4f} of ${_args.budget_usd:.2f}")
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        sys.exit("OPENROUTER_API_KEY is not set in this terminal. Set it and re-run.")
+    body = {
+        "model": OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": "You are a firmware fuzzing expert. Return ONLY valid C++ code for a libFuzzer harness. No markdown formatting."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.7,
+        "seed": seed,
+        "max_tokens": _args.max_tokens,
+        "usage": {"include": True},
+    }
+    if _args.reasoning == "off":
+        body["reasoning"] = {"enabled": False}
+    if _args.provider:
+        body["provider"] = {"order": [_args.provider], "allow_fallbacks": False}
+    base = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    try:
+        import requests
+        resp = requests.post(base + "/chat/completions",
+                             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                             json=body, timeout=180)
+        if resp.status_code != 200:
+            print(f"OpenRouter HTTP {resp.status_code}: {resp.text[:300]}")
+            return None
+        data = resp.json()
+        usage = data.get("usage") or {}
+        tin = usage.get("prompt_tokens") or 0
+        tout = usage.get("completion_tokens") or 0
+        cost = usage.get("cost")
+        if cost is None:
+            cost = tin * _args.price_in / 1e6 + tout * _args.price_out / 1e6
+        _SPENT_USD += float(cost)
+        _CALLS_MADE += 1
+        choice = data["choices"][0]
+        finish = choice.get("finish_reason")
+        rtoks = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
+        with open(f"ablation_e_lint_calls_{_MODEL_SLUG}.jsonl", "a") as f:
+            f.write(json.dumps({
+                "time": datetime.now().isoformat(),
+                "requested_model": OLLAMA_MODEL,
+                "served_model": data.get("model"),
+                "provider": data.get("provider"),
+                "prompt_tokens": tin, "completion_tokens": tout,
+                "reasoning_tokens": rtoks, "finish_reason": finish,
+                "reasoning_mode": _args.reasoning,
+                "cost_usd": float(cost), "spent_total_usd": round(_SPENT_USD, 6),
+            }) + "\n")
+        text = choice["message"].get("content") or ""
+        text = text.replace('```cpp', '').replace('```', '').strip()
+        # Some providers leak DeepSeek tool-call control tokens after the code;
+        # they are transport noise, not model-written C++. Cut at the first one.
+        _dsml = text.find("<\uff5cDSML\uff5c")
+        if _dsml == -1:
+            _dsml = text.find("</\uff5cDSML\uff5c")
+        if _dsml != -1:
+            print(f"    (provider leaked DSML control tokens at char {_dsml}; truncated)")
+            text = text[:_dsml].rstrip()
+        if not text:
+            print(f"    (empty reply from model; finish_reason={finish}, completion_tokens={tout}, reasoning_tokens={rtoks})")
+            return None
+        return text
+    except BudgetExceeded:
+        raise
+    except Exception as e:
+        print(f"OpenRouter API Error: {e}")
+        return None
+
+
+def call_model(prompt, seed):
+    if _args.backend == "openrouter":
+        return call_openrouter(prompt, seed)
+    return call_ollama(prompt, seed)
+
 
 def write_log(path, content):
     with open(path, 'w') as f:
@@ -487,19 +604,72 @@ def run_clang_tidy(dir_path):
         return 0, f"clang-tidy invocation failed: {e}", False
 
     output = res.stdout + res.stderr
-    # clang-tidy prints "N warnings generated" and/or "N errors generated"
-    # on a summary line; also count "warning:"/"error:" lines directly as a
-    # cross-check in case the summary line format changes across versions.
-    warning_lines = [l for l in output.split('\n') if ': warning:' in l or ': error:' in l]
-    warning_count = len(warning_lines)
 
     if "clang-tidy" in output.lower() and ("error reading" in output.lower() or "unable to handle compilation" in output.lower()):
         return 0, output, False
 
-    return warning_count, output, True
+    # Oct 15 2026 fix: keep ONLY real static-analysis warnings located in the
+    # harness itself. Previously every ": error:" line was counted and pasted
+    # into the prompt too, but on a harness that fails to compile clang-tidy
+    # simply re-prints the compiler's own errors, so Arm A's "lint" feedback
+    # was mostly a second copy of Arm B's feedback plus warnings from repo
+    # headers. Now the lint text is empty (and Arm A falls back to
+    # compiler-only for that round, exactly like Arm B) unless clang-tidy found
+    # something the compiler error does not already say.
+    kept, warning_count = _filter_tidy_warnings(output)
+    return warning_count, kept, True
 
 
-def _retry_loop(prompt, seed, loop_dir, target, use_lint):
+_DIAG_RE = re.compile(r"^(\S+?):(\d+):(\d+): (warning|error|note): ")
+
+
+def _filter_tidy_warnings(output):
+    """Return (text, count): the clang-tidy diagnostic blocks of kind 'warning'
+    whose location is harness.cpp (with their attached notes and code context),
+    and how many such warnings there are. Error blocks, warnings in other files
+    and summary lines ("N warnings generated.", "Suppressed ...") are dropped."""
+    blocks, cur, cur_keep = [], [], False
+    for line in output.split("\n"):
+        m = _DIAG_RE.match(line)
+        if m:
+            kind = m.group(4)
+            if kind == "note":
+                if cur:
+                    cur.append(line)      # attach the note to the current block
+                continue
+            if cur and cur_keep:
+                blocks.append("\n".join(cur))
+            cur = [line]
+            cur_keep = (kind == "warning" and os.path.basename(m.group(1)) == "harness.cpp")
+        elif cur:
+            if re.match(r"^\d+ (warnings?|errors?) generated|^Suppressed |^Use -header-filter|^Error while processing", line):
+                continue
+            cur.append(line)
+    if cur and cur_keep:
+        blocks.append("\n".join(cur))
+    return "\n".join(blocks), len(blocks)
+
+
+def _feedback_text(err, lint_dir, use_lint):
+    """Prompt suffix for one retry round: the real compiler/runtime error, plus (Arm A
+    only) clang-tidy warnings on the failed harness in lint_dir when it finds any.
+    Returns (suffix, lint_was_added)."""
+    fb = f"\n\nYour previous code failed with the following error:\n```\n{err}\n```"
+    lint_added = False
+    if use_lint:
+        warn_count, tidy_output, tidy_ok = run_clang_tidy(lint_dir)
+        if tidy_ok and warn_count > 0:
+            lint_added = True
+            fb += (
+                f"\n\nAdditionally, static analysis (clang-tidy) reported "
+                f"{warn_count} warning(s):\n```\n{tidy_output}\n```"
+            )
+        # tidy_ok=False (harness too broken to parse) or no warnings: falls back to
+        # compiler-only feedback for this round, same as the other arm.
+    return fb, lint_added
+
+
+def _retry_loop(prompt, seed, loop_dir, target, use_lint, first_err, first_dir):
     """Shared retry mechanics for both arms: up to 4 more attempts (5 total,
     attempt 1 already having failed), feeding back the real compiler error
     plus, when use_lint=True and clang-tidy can parse the failed harness,
@@ -507,34 +677,29 @@ def _retry_loop(prompt, seed, loop_dir, target, use_lint):
     (success, total_attempts, lint_used_on_any_retry)."""
     success = False
     attempts = 1
-    cur_prompt = prompt
     lint_used = False
+    # Oct 15 2026 fix: the first retry used to be sent the bare original prompt (the
+    # attempt-1 error was computed but never passed in), so both arms silently got a
+    # free blind resample and Arm A's lint was never applied to the attempt-1 harness.
+    # Now retry 2 carries the attempt-1 feedback, matching Ablation G's loop.
+    fb, lint_added = _feedback_text(first_err, first_dir, use_lint)
+    lint_used = lint_added
+    cur_prompt = prompt + fb + "\nPlease try again. Output ONLY C++."
 
     for retry in range(2, 6):
         attempts = retry
-        retry_code = call_ollama(cur_prompt, seed + retry)
+        retry_code = call_model(cur_prompt, seed + retry)
         if not retry_code:
+            _API_FAILED[0] += 1
             continue
         s, ft, eo = evaluate_harness(retry_code, loop_dir, target)
         if s:
             success = True
             break
 
-        feedback = f"\n\nYour previous code failed with the following error:\n```\n{eo}\n```"
-        if use_lint:
-            # Lint the harness.cpp that evaluate_harness() just wrote into
-            # loop_dir for this failed attempt.
-            warn_count, tidy_output, tidy_ok = run_clang_tidy(loop_dir)
-            if tidy_ok and warn_count > 0:
-                lint_used = True
-                feedback += (
-                    f"\n\nAdditionally, static analysis (clang-tidy) reported "
-                    f"{warn_count} warning(s):\n```\n{tidy_output}\n```"
-                )
-            # tidy_ok=False (harness too broken to parse) or warn_count=0:
-            # falls back to compiler-only feedback for this round, same as
-            # the other arm -- not treated as a hidden difference.
-        cur_prompt = prompt + feedback + "\nPlease try again. Output ONLY C++."
+        fb, lint_added = _feedback_text(eo, loop_dir, use_lint)
+        lint_used = lint_used or lint_added
+        cur_prompt = prompt + fb + "\nPlease try again. Output ONLY C++."
 
     return success, attempts, lint_used
 
@@ -580,9 +745,10 @@ def run_experiment():
             # Attempt 1 is shared by both arms -- generated once; if it
             # already succeeds, both arms trivially agree (concordant
             # success) and no retries/branching are needed.
-            code = call_ollama(prompt, seed)
+            code = call_model(prompt, seed)
             if not code:
                 print("    API Failed.")
+                _API_FAILED[0] += 1
                 continue
 
             attempt1_success, fail_type, err_out = evaluate_harness(code, trial_dir, target)
@@ -609,21 +775,20 @@ def run_experiment():
             os.makedirs(arm_a_dir, exist_ok=True)
             os.makedirs(arm_b_dir, exist_ok=True)
 
-            cur_prompt_a = prompt + f"\n\nYour previous code failed with the following error:\n```\n{err_out}\n```\nPlease try again. Output ONLY C++."
-            cur_prompt_b = cur_prompt_a
-
             # Arm A: lint + compiler feedback. Offset seed base so the two
             # arms' retry sequences don't draw identical generations off the
             # same seed stream.
             arm_a_success, arm_a_attempts, arm_a_lint_used = _retry_loop(
-                prompt, seed, arm_a_dir, target, use_lint=True
+                prompt, seed, arm_a_dir, target, use_lint=True,
+                first_err=err_out, first_dir=trial_dir
             )
             # Arm B: compiler-only feedback -- the existing, already-proven
             # real-feedback condition (identical mechanism to Ablation B
             # v2's Arm A / item 8's oracle-present loop), unmodified. Offset
             # seed so it doesn't share Arm A's exact generations.
             arm_b_success, arm_b_attempts, _ = _retry_loop(
-                prompt, seed + 100, arm_b_dir, target, use_lint=False
+                prompt, seed + 100, arm_b_dir, target, use_lint=False,
+                first_err=err_out, first_dir=trial_dir
             )
 
             print(f"      Arm A (lint+compiler): {'SUCCESS' if arm_a_success else 'FAIL'} in {arm_a_attempts} total attempts (lint used on a retry: {arm_a_lint_used})")
@@ -710,4 +875,10 @@ if __name__ == "__main__":
     if _args.analyze_only:
         analyze_results()
         sys.exit(0)
-    run_experiment()
+    try:
+        run_experiment()
+    except BudgetExceeded as e:
+        print(f"\nSTOPPED: budget guard reached ({e}). Progress is saved; re-run the same command to resume with a higher --budget-usd if you want to continue.")
+        analyze_results()
+    if _args.backend == "openrouter":
+        print(f"Spend this session: ${_SPENT_USD:.4f} over {_CALLS_MADE} calls (budget ${_args.budget_usd:.2f}); calls with no usable code (excluded from rates): {_API_FAILED[0]}")
