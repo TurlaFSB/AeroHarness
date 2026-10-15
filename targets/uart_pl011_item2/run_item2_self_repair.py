@@ -110,6 +110,28 @@ PL011_DATA_STRUCT = StructDefinition(
 )
 
 
+# Scaffold-convention note (added Oct 15 2026). The first real DeepSeek run (no note) failed
+# 11 of 14 non-converged targets with ASan SEGVs at tiny addresses (0x04..0x38 = offsets of
+# struct pl011_regs fields from NULL): the model is never shown common_stubs.h, so it cannot
+# know DEVICE_MMIO_GET(dev) is the global `mock_regs_ptr` and that it must be pointed at a
+# register block it owns. This note states ONLY that scaffold convention (facts about the
+# test environment, identical for all 18 targets); it says nothing about any target's logic.
+# Enabled with --convention-note and reported as a separate variant, never mixed with the
+# no-note run.
+ITEM2_CONVENTION_NOTE = (
+    "The target header includes common_stubs.h, which ALREADY provides (do NOT redefine any of "
+    "these): struct device {void *data; const void *config;}, struct uart_config, struct "
+    "k_spinlock, struct pl011_data, struct pl011_regs, get_uart(dev) and BIT(). "
+    "DEVICE_MMIO_GET(dev) expands to the global `mock_regs_ptr` (declared "
+    "`extern volatile void *mock_regs_ptr;` in common_stubs.h and DEFINED in the target's own .c "
+    "file -- do not define it). get_uart(dev) therefore returns whatever mock_regs_ptr points to, "
+    "and it is NULL until you set it. Before EVERY call to the target you must point it at a "
+    "struct pl011_regs that you own and fill from the fuzzer input, e.g. "
+    "`static struct pl011_regs regs; ... mock_regs_ptr = &regs;`. Build a struct device whose "
+    ".data points at a zero-initialised struct pl011_data you own (.config may be NULL)."
+)
+
+
 def build_header_context(h_path: Path, extractor: CASTExtractor, macros: dict) -> ExtractedHeaderContext:
     """Real function-signature extraction via the (bug-fixed) CASTExtractor, with
     hand-written struct/magic-constant context supplied on top -- see module docstring
@@ -158,7 +180,8 @@ def build_agent(offline: bool):
     )
 
 
-def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None) -> dict:
+def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None,
+                   mmio_note: str = None) -> dict:
     h_path = ITEM2_DIR / f"{t.name}.h"
     c_path = ITEM2_DIR / f"{t.name}.c"
     out_dir = (out_root or OUTPUT_DIR) / t.name
@@ -192,6 +215,7 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
             include_dirs=[ITEM2_DIR, INCLUDE_ISOLATED_DIR],
             output_dir=out_dir,
             externally_linked=True,
+            mmio_convention_note=mmio_note,
         )
         record.update({
             "status": "SUCCESS" if outcome.success else "FAILED_TO_CONVERGE",
@@ -300,6 +324,9 @@ def main():
                              "the run records BACKEND_FAILED and stops cleanly when it is reached")
     parser.add_argument("--max-tokens", type=int, default=4096,
                         help="openrouter only: max output tokens per call (default 4096)")
+    parser.add_argument("--convention-note", action="store_true",
+                        help="openrouter only: add the scaffold-convention note (mock_regs_ptr etc.) to the "
+                             "synthesis prompt. Results go to a separate '_convnote' folder.")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -315,6 +342,8 @@ def main():
         if args.provider:
             slug += "_prov-" + "".join(c if c.isalnum() else "-" for c in args.provider)
         # separate files/dirs: OpenRouter data must never mix with the Gemini-key data
+        if args.convention_note:
+            slug += "_convnote"
         out_root = OUTPUT_DIR / f"openrouter_{slug}"
         out_root.mkdir(parents=True, exist_ok=True)
         os.environ["OPENROUTER_BUDGET_USD"] = str(args.budget_usd)
@@ -327,7 +356,8 @@ def main():
         )
         offline = False
         run_meta = {"backend": "openrouter", "model": args.model, "provider_pinned": args.provider,
-                    "reasoning": os.environ["OPENROUTER_REASONING"], "max_tokens": args.max_tokens}
+                    "reasoning": os.environ["OPENROUTER_REASONING"], "max_tokens": args.max_tokens,
+                    "prompt_variant": "convention_note" if args.convention_note else "no_note"}
         print(f"OPENROUTER mode: model={args.model} provider={args.provider or 'unpinned'} "
               f"budget=${args.budget_usd:.2f} ledger={os.environ['OPENROUTER_LEDGER']}", file=sys.stderr)
         report_path = out_root / "item2_report.json"
@@ -359,7 +389,8 @@ def main():
 
     for t in targets_to_run:
         print(f"\n=== {t.name} (CCN {t.ccn}) ===", file=sys.stderr)
-        record = run_one_target(t, agent, offline, out_root=out_root, run_meta=run_meta)
+        record = run_one_target(t, agent, offline, out_root=out_root, run_meta=run_meta,
+                                mmio_note=ITEM2_CONVENTION_NOTE if args.convention_note else None)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
         existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
         if record["status"] == "BACKEND_FAILED":
