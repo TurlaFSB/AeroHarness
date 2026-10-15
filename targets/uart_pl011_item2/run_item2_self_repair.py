@@ -51,6 +51,7 @@ from src.synthesizer.agent import HarnessSynthesizerAgent  # noqa: E402
 from config.settings import get_settings  # noqa: E402
 from item2_target_bodies import TARGETS  # noqa: E402
 from rotating_agent import AllKeysExhaustedError, RotatingHarnessSynthesizerAgent  # noqa: E402
+from single_backend_agent import BackendFailedError, SingleBackendHarnessSynthesizerAgent  # noqa: E402
 
 ITEM2_DIR = Path(__file__).parent
 INCLUDE_ISOLATED_DIR = REPO_ROOT / "harnesses" / "include_isolated"
@@ -157,10 +158,11 @@ def build_agent(offline: bool):
     )
 
 
-def run_one_target(t, agent, offline: bool) -> dict:
+def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None) -> dict:
     h_path = ITEM2_DIR / f"{t.name}.h"
     c_path = ITEM2_DIR / f"{t.name}.c"
-    out_dir = OUTPUT_DIR / t.name
+    out_dir = (out_root or OUTPUT_DIR) / t.name
+    calls_before = getattr(agent, "calls", None)
 
     extractor = CASTExtractor()
     ctx = build_header_context(h_path, extractor, t.macros)
@@ -177,6 +179,8 @@ def run_one_target(t, agent, offline: bool) -> dict:
         "ccn": t.ccn,
         "offline_smoke_test": offline,
     }
+    if run_meta:
+        record.update(run_meta)
 
     try:
         outcome = orchestrator.run_synthesis_and_repair(
@@ -198,6 +202,28 @@ def run_one_target(t, agent, offline: bool) -> dict:
             "binary_path": outcome.binary_path,
             "failure_reason": outcome.failure_reason,
             "history": [h.model_dump() for h in outcome.history],
+        })
+        # Stricter statistics (added Oct 15 2026). `first_attempt_success` above counts a
+        # harness whose iteration-1 compile failed but was then patched by the
+        # deterministic rule-fixer inside the same iteration; the strict fields separate
+        # "compiled untouched" from "needed a rule fix" and count real LLM repair calls.
+        hist = [h.model_dump() for h in outcome.history]
+        rule_fix_iters = sorted({
+            hist[i]["iteration"] for i in range(len(hist) - 1)
+            if hist[i]["stage"] == "COMPILATION_ORACLE" and not hist[i]["passed"]
+            and hist[i + 1]["iteration"] == hist[i]["iteration"]
+        })
+        record["first_attempt_success_strict"] = bool(outcome.success and len(hist) == 1)
+        record["rule_fix_iterations"] = rule_fix_iters
+        if calls_before is not None:
+            record["llm_calls_this_target"] = agent.calls - calls_before
+    except BackendFailedError as e:
+        record.update({
+            "status": "BACKEND_FAILED",
+            "success": None,
+            "first_attempt_success": None,
+            "total_iterations": None,
+            "error": str(e),
         })
     except AllKeysExhaustedError as e:
         record.update({
@@ -262,13 +288,53 @@ def main():
              "(SUCCESS/FAILED_TO_CONVERGE) record -- use only deliberately, never by default; "
              "each target is meant to get exactly one real attempt."
     )
+    parser.add_argument("--backend", default="gemini", choices=["gemini", "openrouter"],
+                        help="gemini (default, key rotation, unchanged) or openrouter (one model through "
+                             "OpenRouter; needs OPENROUTER_API_KEY in the environment).")
+    parser.add_argument("--model", default=None,
+                        help="openrouter only: OpenRouter model ID, e.g. deepseek/deepseek-v4.1-flash-20260910")
+    parser.add_argument("--provider", default=None,
+                        help="openrouter only: pin ONE upstream provider (no fallbacks), e.g. CoreWeave")
+    parser.add_argument("--budget-usd", type=float, default=1.0,
+                        help="openrouter only: hard spending ceiling for this process in USD (default 1.0); "
+                             "the run records BACKEND_FAILED and stops cleanly when it is reached")
+    parser.add_argument("--max-tokens", type=int, default=4096,
+                        help="openrouter only: max output tokens per call (default 4096)")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    offline = not any(os.getenv(f"GEMINI_API_KEY_{i}") for i in range(1, 5))
-    agent = build_agent(offline)
-
-    report_path = OUTPUT_DIR / "item2_report.json"
+    out_root = OUTPUT_DIR
+    run_meta = None
+    if args.backend == "openrouter":
+        if not args.model:
+            parser.error("--backend openrouter requires --model")
+        key = os.getenv("OPENROUTER_API_KEY")
+        if not key:
+            sys.exit("OPENROUTER_API_KEY is not set in this terminal. Set it and re-run.")
+        slug = args.model.replace(":", "_").replace("/", "_")
+        if args.provider:
+            slug += "_prov-" + "".join(c if c.isalnum() else "-" for c in args.provider)
+        # separate files/dirs: OpenRouter data must never mix with the Gemini-key data
+        out_root = OUTPUT_DIR / f"openrouter_{slug}"
+        out_root.mkdir(parents=True, exist_ok=True)
+        os.environ["OPENROUTER_BUDGET_USD"] = str(args.budget_usd)
+        os.environ["OPENROUTER_LEDGER"] = str(out_root / "openrouter_calls.jsonl")
+        os.environ.setdefault("OPENROUTER_REASONING", "off")
+        if args.provider:
+            os.environ["OPENROUTER_PROVIDER"] = args.provider
+        agent = SingleBackendHarnessSynthesizerAgent(
+            model_name=args.model, openrouter_api_key=key, max_output_tokens=args.max_tokens
+        )
+        offline = False
+        run_meta = {"backend": "openrouter", "model": args.model, "provider_pinned": args.provider,
+                    "reasoning": os.environ["OPENROUTER_REASONING"], "max_tokens": args.max_tokens}
+        print(f"OPENROUTER mode: model={args.model} provider={args.provider or 'unpinned'} "
+              f"budget=${args.budget_usd:.2f} ledger={os.environ['OPENROUTER_LEDGER']}", file=sys.stderr)
+        report_path = out_root / "item2_report.json"
+    else:
+        offline = not any(os.getenv(f"GEMINI_API_KEY_{i}") for i in range(1, 5))
+        agent = build_agent(offline)
+        report_path = OUTPUT_DIR / "item2_report.json"
     existing_by_name = _load_existing_report(report_path)
 
     targets = TARGETS
@@ -293,9 +359,15 @@ def main():
 
     for t in targets_to_run:
         print(f"\n=== {t.name} (CCN {t.ccn}) ===", file=sys.stderr)
-        record = run_one_target(t, agent, offline)
+        record = run_one_target(t, agent, offline, out_root=out_root, run_meta=run_meta)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
         existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
+        if record["status"] == "BACKEND_FAILED":
+            print("Backend failed (HTTP error, empty reply or budget reached) -- stopping run here. "
+                  "Nothing was recorded for this target as a real attempt; re-running the same "
+                  "command resumes from it (targets with a terminal result are skipped).",
+                  file=sys.stderr)
+            break
         if record["status"] == "ALL_KEYS_EXHAUSTED":
             print("All keys exhausted -- stopping run here. Resume later with fresh "
                   "daily quota by re-running with --only <remaining targets> (or no --only "

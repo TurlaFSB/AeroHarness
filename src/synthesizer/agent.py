@@ -17,6 +17,12 @@ from .prompts import PromptFactory
 from .mmio_stubber import MMIOStubber
 
 
+class OpenRouterSpend:
+    """Process-wide running total of OpenRouter spend (USD) and call count."""
+    total: float = 0.0
+    calls: int = 0
+
+
 class SynthesisCandidate(BaseModel):
     target_api: str
     code: str
@@ -251,15 +257,62 @@ class HarnessSynthesizerAgent:
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": temperature,
+                "usage": {"include": True},
             }
             if self.max_output_tokens:
                 payload["max_tokens"] = self.max_output_tokens
+            # Oct 15 2026, measured on Ablation G: a hybrid-reasoning model (DeepSeek
+            # V4.1 Flash) spent the whole 4096-token cap on hidden reasoning and
+            # returned empty text on 25/25 calls. Reasoning is therefore requested OFF
+            # unless OPENROUTER_REASONING=default is set.
+            if os.getenv("OPENROUTER_REASONING", "off") != "default":
+                payload["reasoning"] = {"enabled": False}
+            # Optional single-provider pin (reproducibility): OPENROUTER_PROVIDER=CoreWeave.
+            pinned = os.getenv("OPENROUTER_PROVIDER")
+            if pinned:
+                payload["provider"] = {"order": [pinned], "allow_fallbacks": False}
+            # Optional hard spending ceiling for this process: OPENROUTER_BUDGET_USD=0.5.
+            budget = os.getenv("OPENROUTER_BUDGET_USD")
+            if budget and OpenRouterSpend.total >= float(budget):
+                self.last_error = (f"OpenRouter budget reached: spent ${OpenRouterSpend.total:.4f} "
+                                   f"of ${float(budget):.2f} (OPENROUTER_BUDGET_USD)")
+                return None
 
             with httpx.Client(timeout=120.0) as http_client:
                 resp = http_client.post(f"{self.openrouter_base_url}/chat/completions", headers=headers, json=payload)
                 resp.raise_for_status()
                 data = resp.json()
-                return data["choices"][0]["message"]["content"]
+            usage = data.get("usage") or {}
+            cost = float(usage.get("cost") or 0.0)
+            OpenRouterSpend.total += cost
+            OpenRouterSpend.calls += 1
+            ledger = os.getenv("OPENROUTER_LEDGER")
+            if ledger:
+                with open(ledger, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({
+                        "time": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "requested_model": model,
+                        "served_model": data.get("model"),
+                        "provider": data.get("provider"),
+                        "prompt_tokens": usage.get("prompt_tokens"),
+                        "completion_tokens": usage.get("completion_tokens"),
+                        "reasoning_tokens": (usage.get("completion_tokens_details") or {}).get("reasoning_tokens"),
+                        "finish_reason": data["choices"][0].get("finish_reason"),
+                        "cost_usd": cost,
+                        "spent_total_usd": round(OpenRouterSpend.total, 6),
+                    }) + "\n")
+            text = data["choices"][0]["message"].get("content") or ""
+            # Some providers leak DeepSeek tool-call control tokens after the code
+            # (<｜DSML｜ ...>); they are transport noise and break the compile.
+            for marker in ("<｜DSML｜", "</｜DSML｜"):
+                cut = text.find(marker)
+                if cut != -1:
+                    text = text[:cut].rstrip()
+            if not text.strip():
+                self.last_error = (f"OpenRouter reply for {model} was empty "
+                                   f"(finish_reason={data['choices'][0].get('finish_reason')})")
+                return None
+            return text
         except Exception as e:
             self.last_error = f"OpenRouter API call failed ({model}): {e!r}"
             return None
