@@ -267,6 +267,8 @@ _parser.add_argument("--price-in", type=float, default=0.30, help="openrouter on
 _parser.add_argument("--price-out", type=float, default=1.20, help="openrouter only: USD per 1M output tokens (see --price-in). Default 1.20")
 _parser.add_argument("--max-tokens", type=int, default=4096, help="openrouter only: max output tokens per call (reasoning tokens count toward it). Default 4096")
 _parser.add_argument("--reasoning", default="off", choices=["off", "default"], help="openrouter only: 'off' (default) asks the provider to disable hidden reasoning so the whole token budget goes to the harness code, matching the non-thinking local baselines; 'default' leaves the model's own behaviour. Pilot of Oct 14 2026: with reasoning on and max_tokens 4096, all 25 replies were empty (budget spent on reasoning).")
+_parser.add_argument("--mock-headers", default="v1", choices=["v1", "ext"], help="v1 = the frozen mock Zephyr headers in harnesses/include (headline configuration). ext = harnesses/include_ext placed first on the include path: adds names real Zephyr provides (mm_reg_t, mem_addr_t, mmio_addr_t, ARG_UNUSED, uart_irq_callback_user_data_t, k_spinlock_init) and lets struct device.mmio_base take a pointer or an integer. A labeled variant: results go to separate _mockext files.")
+_parser.add_argument("--repair-context", default="error", choices=["error", "code"], help="error = the retry prompt carries only the latest compiler error (frozen original behavior). code = it also carries the previous attempt's code, like the production SelfRepairOrchestrator's repair prompt. A labeled variant: results go to separate _ctxcode files.")
 _parser.add_argument("--attempt1-only", action="store_true", help="Make only the first attempt per trial (no repair retries) and report the attempt-1 success rate. Results go to a separate _a1only file.")
 _args, _ = _parser.parse_known_args()
 
@@ -349,6 +351,10 @@ if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
 if _args.prompt_version != "v1":
     _MODEL_SLUG += "_prompt" + _args.prompt_version
+if _args.mock_headers != "v1":
+    _MODEL_SLUG += "_mock" + _args.mock_headers
+if _args.repair_context != "error":
+    _MODEL_SLUG += "_ctx" + _args.repair_context
 if _args.backend == "openrouter" and _args.provider:
     # a provider-pinned run is a different condition: keep its results, ledger
     # and logs apart from the unpinned run so neither is resumed or overwritten
@@ -417,7 +423,7 @@ def call_openrouter(prompt, seed):
         body["provider"] = {"order": [_args.provider], "allow_fallbacks": False}
     try:
         import requests
-        resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
+        resp = requests.post(os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1") + "/chat/completions",
                              headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                              json=body, timeout=180)
         if resp.status_code != 200:
@@ -534,8 +540,9 @@ def evaluate_harness(harness_code, dir_path, target_func, attempt=None):
     # dir_path (not dir_path-prefixed again) -- see the existing comment a few
     # lines down about the exact same double-prefixing bug in the run step.
     res_compile = subprocess.run(
-        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline",
-         "-I" + os.path.join(repo_root, "harnesses", "include"),
+        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline"]
+        + (["-I" + os.path.join(repo_root, "harnesses", "include_ext")] if _args.mock_headers == "ext" else [])
+        + ["-I" + os.path.join(repo_root, "harnesses", "include"),
          "-I" + repo_root,
          f"harness{suffix}.cpp", "-o", "fuzz_bin"],
         cwd=dir_path, capture_output=True, text=True
@@ -602,6 +609,17 @@ def evaluate_harness(harness_code, dir_path, target_func, attempt=None):
         return _finish(False, "Trivial Coverage (<=3 edges)", out_stderr)
 
     return _finish(True, "Success", out_stderr)
+
+def _retry_prompt(prompt, err, prev_code):
+    """Retry prompt. Default (--repair-context error) is the frozen original: the latest
+    error only. With --repair-context code the previous attempt's code is included too, as in
+    the production SelfRepairOrchestrator's repair prompt."""
+    if _args.repair_context == "code":
+        return (prompt + f"\n\nYour previous code:\n```cpp\n{prev_code}\n```\n\n"
+                f"It failed with the following error:\n```\n{err}\n```\n"
+                "Fix it and output the complete corrected C++ only.")
+    return prompt + f"\n\nYour previous code failed with the following error:\n```\n{err}\n```\nPlease try again. Output ONLY C++."
+
 
 def run_experiment():
     print(f"=== Ablation G (Work Plan item 8): Compiler-Oracle-Presence ===")
@@ -692,7 +710,7 @@ def run_experiment():
             # asking about feedback type, only whether a loop exists at all.
             oracle_present_success = False
             oracle_present_attempts = 1
-            cur_prompt = prompt + f"\n\nYour previous code failed with the following error:\n```\n{err_out}\n```\nPlease try again. Output ONLY C++."
+            cur_prompt = _retry_prompt(prompt, err_out, code)
 
             for retry in range(2, 6):
                 oracle_present_attempts = retry
@@ -702,7 +720,7 @@ def run_experiment():
                 if s:
                     oracle_present_success = True
                     break
-                cur_prompt = prompt + f"\n\nYour previous code failed with the following error:\n```\n{eo}\n```\nPlease try again. Output ONLY C++."
+                cur_prompt = _retry_prompt(prompt, eo, retry_code)
 
             print(f"      Oracle-present (loop, real feedback): {'SUCCESS' if oracle_present_success else 'FAIL'} in {oracle_present_attempts} total attempts")
 

@@ -288,3 +288,47 @@ out of scope. Reporting plan: v1 (7B, 14B) is the headline result; v2/v3 smoke t
 as a scaffold-sensitivity finding (Table 16 is hypersensitive to prompt scaffolding for small
 models, and both models sit near the floor under every prompt tried). The 14B was not re-run
 under v2/v3.
+
+## Cloud leg: DeepSeek V4.1 Flash via OpenRouter, provider pinned to CoreWeave (Oct 15 2026)
+
+Model `deepseek/deepseek-v4.1-flash-20260910`, hidden reasoning off, 5 targets x 20 trials, same
+scoring as the local legs. Every call in these runs was served by CoreWeave (ledger-checked).
+
+| Prompt | Attempt 1 (oracle absent) | Eventual, <=5 attempts (oracle present) |
+|---|---|---|
+| v1, unpinned (8 providers) | 0/100 | 42/100 |
+| v1, pinned CoreWeave | 0/100 | 42/100 |
+| v3, pinned CoreWeave | 0/100 | 16/100 |
+
+v1 per target (loop, pinned): `poll_in` 12/20, `poll_out` 11/20, `isr` 2/20, `runtime_configure_internal`
+6/20, `init` 11/20. v3 per target (loop): 0, 0, 0, 14, 2. v1 vs v3 loop totals: Fisher exact two-sided
+p = 8e-5. The unpinned run's provider changed in time blocks, which confounds provider with target
+there; the pinned run removes that, and both agree on 42/100.
+
+**Prompt v3 made a strong model worse.** v3 makes the model include the project's mock Zephyr
+headers, and those headers are missing names real Zephyr provides. All 100 attempt-1 failures under v3
+are scaffold gaps, not model mistakes: `mmio_addr_t` (61), `mm_reg_t` (18),
+`uart_irq_callback_user_data_t` (16), `mem_addr_t` (1), `ARG_UNUSED` (1), `irq_cb_t` (1), plus 2 linker
+errors. At attempt 5, 65 of the 84 remaining failures are the same family, led by 33 (+1) cases of
+`incompatible integer to pointer conversion assigning to 'void *' from 'uintptr_t'`: real Zephyr
+stores the MMIO address as an integer, models write `dev.mmio_base = (uintptr_t)&regs`, and the mock
+declares `void *mmio_base`. The exact error strings were reproduced with a small harness against the
+v1 mock (`harnesses/include`). Reading: the 0/100 one-shot rate is a property of an environment with
+undocumented requirements, which the compiler error reveals one at a time; it is not a pure measure of
+model ability. Item 2 (documented scaffold, see `FAILURE_TAXONOMY.md`) is the contrast: first-attempt
+success 14/18 once the scaffold facts were stated.
+
+**Two labeled variants (added Oct 15 2026; v1 mock and error-only retries remain the frozen default):**
+
+* `--mock-headers ext`: puts `harnesses/include_ext` first on the include path. It adds `mm_reg_t`,
+  `mem_addr_t`, `mmio_addr_t` (all `uintptr_t`), `ARG_UNUSED`, `uart_irq_callback_user_data_t`,
+  `k_spinlock_init`, and makes `struct device.mmio_base` accept a pointer or an integer (C++ only).
+  Nothing about register semantics or the target bodies changes. Checked: the five hand-written
+  reference harnesses (`verify_reference_harnesses.py`, `MOCK_HEADERS=ext`) still compile and run
+  with exit 0, and the harness that fails on v1 with the exact errors above compiles on ext.
+* `--repair-context code`: the retry prompt also carries the previous attempt's code, as the
+  production `SelfRepairOrchestrator` repair prompt does. The frozen retry prompt carries only the
+  latest error, so Ablation G's loop is a weaker loop than the pipeline's own.
+
+Results of these variants go to `_mockext` / `_ctxcode` suffixed files; they are scaffold-sensitivity
+arms, and v1 stays the headline. Not yet run at the time of writing.
