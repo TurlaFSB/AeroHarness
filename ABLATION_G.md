@@ -331,4 +331,28 @@ success 14/18 once the scaffold facts were stated.
   latest error, so Ablation G's loop is a weaker loop than the pipeline's own.
 
 Results of these variants go to `_mockext` / `_ctxcode` suffixed files; they are scaffold-sensitivity
-arms, and v1 stays the headline. Not yet run at the time of writing.
+arms, and v1 stays the headline.
+
+### First variant result: prompt v3 + `--mock-headers ext` (Oct 16 2026)
+
+Same model and provider pin (DeepSeek V4.1 Flash, CoreWeave), 100 trials, 285 calls, USD 0.086.
+One-shot 9/100, loop 86/100 (b=77, c=0, McNemar exact p < 1e-20). Per target (one-shot / loop):
+poll_in 0/18, poll_out 1/17, isr 2/11, runtime_configure_internal 3/20, init 3/20 (each out of 20).
+
+| Config | One-shot | Loop |
+|---|---|---|
+| v1, original mocks | 0/100 | 42/100 |
+| v3, original mocks | 0/100 | 16/100 |
+| v3, extended mocks | 9/100 | 86/100 |
+
+Caveats, stated so the table is not over-read:
+- The last row differs from the first in both prompt and headers; the v1 + ext run separates the two.
+- 74 of 91 attempt-1 failures are a missing `extern "C"` on `LLVMFuzzerTestOneInput` (linker error), which the
+  loop repairs on attempt 2. The loop's measured benefit here is largely mechanical-error repair.
+- "SUCCESS" is compile + a short sanitizer run. At least one passing `runtime_configure_internal` harness stubs
+  `pl011_set_baudrate` as a no-op, so it passes without exercising that callee. Success counts are therefore an
+  upper bound on useful harnesses, not a measure of them.
+- 5 of the 14 final failures are still `uart_irq_callback_user_data_t`; the extended headers define it only in
+  `zephyr/drivers/uart.h`, which these harnesses do not always include.
+
+`report_ablation_g.py` recomputes every table in this section from the result, ledger and per-attempt log files.
