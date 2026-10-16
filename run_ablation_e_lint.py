@@ -336,6 +336,8 @@ _parser.add_argument("--price-in", type=float, default=0.30, help="openrouter on
 _parser.add_argument("--price-out", type=float, default=1.20, help="openrouter only: USD per 1M output tokens (see --price-in)")
 _parser.add_argument("--max-tokens", type=int, default=4096, help="openrouter only: max output tokens per call")
 _parser.add_argument("--reasoning", default="off", choices=["off", "default"], help="openrouter only: 'off' asks the provider to disable hidden reasoning")
+_parser.add_argument("--mock-headers", default="v1", choices=["v1", "ext"], help="v1 = the frozen mock Zephyr headers in harnesses/include (original behavior). ext = harnesses/include_ext placed first on the include path, exactly as in run_ablation_g.py. A labeled variant: results go to separate _mockext files.")
+_parser.add_argument("--repair-context", default="error", choices=["error", "code"], help="error = the retry prompt carries only the latest error (original behavior). code = it also carries the previous attempt's code, exactly as in run_ablation_g.py. A labeled variant: results go to separate _ctxcode files.")
 _args, _ = _parser.parse_known_args()
 
 OLLAMA_MODEL = _args.model
@@ -344,6 +346,10 @@ N_TRIALS = _args.trials
 if _args.target:
     TARGETS = {_args.target: TARGETS[_args.target]}
 _MODEL_SLUG = OLLAMA_MODEL.replace(":", "_").replace("/", "_")
+if _args.mock_headers != "v1":
+    _MODEL_SLUG += "_mock" + _args.mock_headers
+if _args.repair_context != "error":
+    _MODEL_SLUG += "_ctx" + _args.repair_context
 if _args.backend == "openrouter" and _args.provider:
     _MODEL_SLUG += "_prov-" + "".join(c if c.isalnum() else "-" for c in _args.provider)
 if _args.target:
@@ -356,6 +362,16 @@ if not CLANG and not _args.analyze_only:
     sys.exit("clang++ not found on PATH. Install LLVM/clang (with libFuzzer + AddressSanitizer support) before running this script.")
 if not CLANG_TIDY and not _args.analyze_only:
     sys.exit("clang-tidy not found on PATH. Install it (usually ships alongside clang/LLVM) before running this script -- it's the static-analysis tool this ablation is specifically about.")
+
+def _include_flags(repo_root):
+    """-I flags shared by the compile step and clang-tidy, so lint sees what the compiler sees.
+    With --mock-headers ext, harnesses/include_ext comes first (same order as run_ablation_g.py)."""
+    flags = []
+    if _args.mock_headers == "ext":
+        flags.append("-I" + os.path.join(repo_root, "harnesses", "include_ext"))
+    flags += ["-I" + os.path.join(repo_root, "harnesses", "include"), "-I" + repo_root]
+    return flags
+
 
 def call_ollama(prompt, seed):
     data = {
@@ -499,10 +515,9 @@ def evaluate_harness(harness_code, dir_path, target_func):
     # 1. Compile (portable: plain clang++, OS-native absolute include paths, no wsl wrapper)
     repo_root = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
     res_compile = subprocess.run(
-        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline",
-         "-I" + os.path.join(repo_root, "harnesses", "include"),
-         "-I" + repo_root,
-         "harness.cpp", "-o", "fuzz_bin"],
+        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline"]
+        + _include_flags(repo_root)
+        + ["harness.cpp", "-o", "fuzz_bin"],
         cwd=dir_path, capture_output=True, text=True
     )
     if res_compile.returncode != 0:
@@ -592,10 +607,7 @@ def run_clang_tidy(dir_path):
     repo_root = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
     try:
         res = subprocess.run(
-            [CLANG_TIDY, "harness.cpp",
-             "--",
-             "-I" + os.path.join(repo_root, "harnesses", "include"),
-             "-I" + repo_root],
+            [CLANG_TIDY, "harness.cpp", "--"] + _include_flags(repo_root),
             cwd=dir_path, capture_output=True, text=True, timeout=30
         )
     except subprocess.TimeoutExpired:
@@ -650,14 +662,25 @@ def _filter_tidy_warnings(output):
     return "\n".join(blocks), len(blocks)
 
 
-def _feedback_text(err, lint_dir, use_lint):
+def _feedback_text(err, lint_dir, use_lint, prev_code):
     """Prompt suffix for one retry round: the real compiler/runtime error, plus (Arm A
     only) clang-tidy warnings on the failed harness in lint_dir when it finds any.
-    Returns (suffix, lint_was_added)."""
-    fb = f"\n\nYour previous code failed with the following error:\n```\n{err}\n```"
+    With --repair-context code the previous attempt's code is included first (same text
+    as run_ablation_g.py), identically for both arms.
+    Returns (suffix, lint_added, tidy_parsed): lint_added = a non-empty lint section went
+    into the prompt; tidy_parsed = clang-tidy could analyze the harness at all."""
+    if _args.repair_context == "code":
+        fb = (f"\n\nYour previous code:\n```cpp\n{prev_code}\n```\n\n"
+              f"It failed with the following error:\n```\n{err}\n```")
+        tail = "\nFix it and output the complete corrected C++ only."
+    else:
+        fb = f"\n\nYour previous code failed with the following error:\n```\n{err}\n```"
+        tail = "\nPlease try again. Output ONLY C++."
     lint_added = False
+    tidy_parsed = False
     if use_lint:
         warn_count, tidy_output, tidy_ok = run_clang_tidy(lint_dir)
+        tidy_parsed = tidy_ok
         if tidy_ok and warn_count > 0:
             lint_added = True
             fb += (
@@ -666,25 +689,32 @@ def _feedback_text(err, lint_dir, use_lint):
             )
         # tidy_ok=False (harness too broken to parse) or no warnings: falls back to
         # compiler-only feedback for this round, same as the other arm.
-    return fb, lint_added
+    return fb + tail, lint_added, tidy_parsed
 
 
-def _retry_loop(prompt, seed, loop_dir, target, use_lint, first_err, first_dir):
+def _retry_loop(prompt, seed, loop_dir, target, use_lint, first_err, first_dir, first_code):
     """Shared retry mechanics for both arms: up to 4 more attempts (5 total,
     attempt 1 already having failed), feeding back the real compiler error
     plus, when use_lint=True and clang-tidy can parse the failed harness,
     its static-analysis warnings too. Returns
-    (success, total_attempts, lint_used_on_any_retry)."""
+    (success, total_attempts, lint_used_on_any_retry, rounds) where rounds counts the
+    feedback rounds generated: {"total", "tidy_parsed", "with_lint"} (Arm A only; zeros for B)."""
     success = False
     attempts = 1
-    lint_used = False
+    rounds = {"total": 0, "tidy_parsed": 0, "with_lint": 0}
+
+    def _round(err, d, code):
+        fb, added, parsed = _feedback_text(err, d, use_lint, code)
+        rounds["total"] += 1
+        rounds["tidy_parsed"] += parsed
+        rounds["with_lint"] += added
+        return prompt + fb, added
+
     # Oct 15 2026 fix: the first retry used to be sent the bare original prompt (the
     # attempt-1 error was computed but never passed in), so both arms silently got a
     # free blind resample and Arm A's lint was never applied to the attempt-1 harness.
     # Now retry 2 carries the attempt-1 feedback, matching Ablation G's loop.
-    fb, lint_added = _feedback_text(first_err, first_dir, use_lint)
-    lint_used = lint_added
-    cur_prompt = prompt + fb + "\nPlease try again. Output ONLY C++."
+    cur_prompt, lint_used = _round(first_err, first_dir, first_code)
 
     for retry in range(2, 6):
         attempts = retry
@@ -697,11 +727,10 @@ def _retry_loop(prompt, seed, loop_dir, target, use_lint, first_err, first_dir):
             success = True
             break
 
-        fb, lint_added = _feedback_text(eo, loop_dir, use_lint)
-        lint_used = lint_used or lint_added
-        cur_prompt = prompt + fb + "\nPlease try again. Output ONLY C++."
+        cur_prompt, added = _round(eo, loop_dir, retry_code)
+        lint_used = lint_used or added
 
-    return success, attempts, lint_used
+    return success, attempts, lint_used, rounds
 
 
 def run_experiment():
@@ -778,17 +807,17 @@ def run_experiment():
             # Arm A: lint + compiler feedback. Offset seed base so the two
             # arms' retry sequences don't draw identical generations off the
             # same seed stream.
-            arm_a_success, arm_a_attempts, arm_a_lint_used = _retry_loop(
+            arm_a_success, arm_a_attempts, arm_a_lint_used, arm_a_rounds = _retry_loop(
                 prompt, seed, arm_a_dir, target, use_lint=True,
-                first_err=err_out, first_dir=trial_dir
+                first_err=err_out, first_dir=trial_dir, first_code=code
             )
             # Arm B: compiler-only feedback -- the existing, already-proven
             # real-feedback condition (identical mechanism to Ablation B
             # v2's Arm A / item 8's oracle-present loop), unmodified. Offset
             # seed so it doesn't share Arm A's exact generations.
-            arm_b_success, arm_b_attempts, _ = _retry_loop(
+            arm_b_success, arm_b_attempts, _, _ = _retry_loop(
                 prompt, seed + 100, arm_b_dir, target, use_lint=False,
-                first_err=err_out, first_dir=trial_dir
+                first_err=err_out, first_dir=trial_dir, first_code=code
             )
 
             print(f"      Arm A (lint+compiler): {'SUCCESS' if arm_a_success else 'FAIL'} in {arm_a_attempts} total attempts (lint used on a retry: {arm_a_lint_used})")
@@ -801,6 +830,9 @@ def run_experiment():
                 "arm_a_attempts": arm_a_attempts,
                 "arm_b_attempts": arm_b_attempts,
                 "arm_a_lint_used_on_any_retry": arm_a_lint_used,
+                "arm_a_feedback_rounds": arm_a_rounds["total"],
+                "arm_a_rounds_tidy_parsed": arm_a_rounds["tidy_parsed"],
+                "arm_a_rounds_with_lint": arm_a_rounds["with_lint"],
                 "fail_type_attempt1": fail_type
             })
 
@@ -848,6 +880,12 @@ def analyze_results(results=None):
     print(f"Arm A succeeded, Arm B failed (b):       {b_a_only}")
     print(f"Arm B succeeded, Arm A failed (c):       {c_b_only}")
     print(f"Trials where Arm A actually got a non-empty lint warning on a retry: {lint_actually_used}")
+    rounds = sum(t.get("arm_a_feedback_rounds", 0) for t in all_trials)
+    if rounds:
+        parsed = sum(t.get("arm_a_rounds_tidy_parsed", 0) for t in all_trials)
+        withl = sum(t.get("arm_a_rounds_with_lint", 0) for t in all_trials)
+        print(f"Arm A feedback rounds: {rounds} | clang-tidy could analyze the harness in {parsed} ({parsed/rounds:.0%}) | "
+              f"round carried a non-empty lint section in {withl} ({withl/rounds:.0%})")
     print(f"Arm A (lint+compiler) success rate:  {arm_a_rate:.1%} ({both_success + b_a_only}/{n})")
     print(f"Arm B (compiler-only) success rate:  {arm_b_rate:.1%} ({both_success + c_b_only}/{n})")
 
