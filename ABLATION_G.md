@@ -388,8 +388,40 @@ Reading the table:
 - All 9 trials the loop never fixed are `pl011_isr`. The attempt-5 errors show the cause: the model copies the real
   driver's `struct pl011_config { DEVICE_MMIO_ROM; }` and `struct pl011_data { DEVICE_MMIO_RAM; ... }`, and the mock
   headers define neither macro (8 trials), or it uses `uart_irq_callback_user_data_t` without including
-  `<zephyr/drivers/uart.h>` (1 trial). It saw the error four times and did not define the macro itself, so
-  the loop repairs coding mistakes but not missing environment knowledge. These two names are a remaining gap in
-  `harnesses/include_ext`, left unchanged here to keep this arm frozen.
+  `<zephyr/drivers/uart.h>` (1 trial). In this error-only loop the model saw the error four times and did not
+  define the macro itself. (The next section shows that this was a property of the error-only retry prompt, not a
+  limit of the model: with the previous code in the prompt all 20 `pl011_isr` trials were repaired.) These two names
+  are a remaining gap in `harnesses/include_ext`, left unchanged to keep these arms frozen.
 - Two calls ended with `finish_reason: length` at the 4096-token cap; both are counted as failed attempts.
 
+### Third variant result: v1 + `--mock-headers ext` + `--repair-context code` (Oct 16 2026)
+
+Same model, provider pin and headers as the previous section; the only change is that each retry prompt also
+contains the previous attempt's code (as the production `SelfRepairOrchestrator` does). 100 trials, 179 calls,
+207,706 prompt and 99,778 completion tokens, USD 0.076. Attempt 1 uses the identical prompt in both runs.
+
+| Config | One-shot | Loop |
+|---|---|---|
+| v1, extended mocks, error-only retry | 49/100 | 91/100 |
+| v1, extended mocks, **code + error retry** | 35/100 (CI 26-45%) | **100/100** (CI 96-100%) |
+
+Per target (one-shot -> loop, each of 20): poll_in 11 -> 20, poll_out 11 -> 20, isr 4 -> 20,
+runtime_configure_internal 0 -> 20, init 9 -> 20. The loop rescued all 65 attempt-1 failures (CI 94-100%); the
+successful trials took 1 attempt (35), 2 (51) or 3 (14).
+
+Reading the table:
+- **Showing the model its previous code removed every unrepaired trial.** `pl011_isr` went from 11/20 to 20/20
+  (Fisher exact p = 0.001). This also corrects the previous section's first reading, that the loop cannot supply
+  missing environment knowledge: given its own code the model defined the missing macros and fixed the other
+  errors. The error-only retry in Ablation G is a weaker loop than the pipeline's, as stated in the variants
+  section, and understates what the production loop does.
+- **Run-to-run variance in the one-shot column is large.** Attempt 1 is the same call in both runs, yet one-shot
+  success was 49/100 and 35/100 (Fisher p = 0.06; `pl011_init` alone 16/20 vs 9/20, p = 0.05). Sampling is
+  non-deterministic and seeds are time-based, so a single run's one-shot rate carries roughly +-10 points. The pooled
+  estimate over both runs is 84/200 = 42% (CI 35-49%). The loop-minus-one-shot gap is therefore well established; the
+  exact one-shot figure is not.
+- Attempt-1 failure patterns repeat the previous run: missing `extern "C"` (23), `ENOTSUP` without `<errno.h>`
+  (18), undefined `DEVICE_MMIO_ROM`/`DEVICE_MMIO_RAM` (11), `uart_irq_callback_user_data_t` (7).
+- **Still unaudited.** 100/100 means compile plus a short sanitizer run, as before. Whether each passing harness
+  calls its target and exercises it (rather than stubbing the callee) has not been checked for Ablation G.
+  Item 2's audit covered a different set of harnesses.
