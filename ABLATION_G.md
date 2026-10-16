@@ -425,3 +425,32 @@ Reading the table:
 - **Still unaudited.** 100/100 means compile plus a short sanitizer run, as before. Whether each passing harness
   calls its target and exercises it (rather than stubbing the callee) has not been checked for Ablation G.
   Item 2's audit covered a different set of harnesses.
+
+### Harness validity audit (Oct 16 2026)
+
+`audit_ablation_g_harnesses.py` re-reads the final passing harness of every successful trial in the five DeepSeek
+result sets (335 harnesses in total) and checks four text-level properties. It is a static heuristic, not a proof.
+
+| Result set | Audited | Call the target | Redefine it | Use the fuzz input | Stub a callee |
+|---|---|---|---|---|---|
+| v1, original mocks | 42 | 42 | 0 | 42 | 17 |
+| v3, original mocks | 16 | 16 | 0 | 16 | 16 |
+| v3, extended mocks | 86 | 86 | 0 | 86 | 40 |
+| v1, extended mocks | 91 | 91 | 0 | 91 | 40 |
+| v1, extended mocks, code context | 100 | 100 | 0 | 100 | 40 |
+
+Findings:
+- Every passing harness calls its target, none redefines it, and every one reads the fuzz input in the body of
+  `LLVMFuzzerTestOneInput`. The "SUCCESS" counts above are therefore not inflated by harnesses that never invoke the
+  target (the main way a compile-and-run oracle can be fooled).
+- Stubbing is universal where it is possible: every passing `pl011_runtime_configure_internal` harness defines no-op
+  `pl011_set_baudrate` and `pl011_set_flow_control`, and every passing `pl011_init` harness defines a no-op
+  `pl011_set_baudrate`. This is forced by the task design, not a model shortcut: the prompt contains only the target
+  function's source, and the helpers are `static` functions defined elsewhere in the driver, so the harness must
+  provide a definition for the link to succeed. The consequence is that Ablation G harnesses for these two targets
+  cannot reach the helpers' code. The `pl011_set_baudrate` division by zero (see the item 2 results) is unreachable in
+  every one of them, and Ablation G measures whether a harness compiles and runs, not how deep it fuzzes.
+- Not measured here: line or branch coverage of the passing harnesses, and whether the fuzz input drives the target's
+  branches rather than being read and ignored. Item 2's harnesses link the real driver file and do not have the
+  stubbing limitation.
+
