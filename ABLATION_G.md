@@ -372,19 +372,19 @@ Seeds are time-based, so neither affects the comparison.
 | v3, extended mocks | 9/100 | 86/100 |
 | v1, extended mocks | 49/100 (95% CI 39-59%) | 91/100 (CI 84-95%) |
 
-Per target (one-shot / loop, of 20): poll_in 14/20, poll_out 16/20, isr 3/11, runtime_configure_internal 0/20,
-init 16/20.
+Per target (one-shot -> loop, each of 20): poll_in 14 -> 20, poll_out 16 -> 20, isr 3 -> 11,
+runtime_configure_internal 0 -> 20, init 16 -> 20.
 
 Reading the table:
 - Changing only the headers moves the v1 loop from 42% to 91%; changing only the prompt (v3 vs v1, both with
   extended headers) moves one-shot from 49% to 9% and the loop from 91% to 86%. The scaffold matters far more
   than the prompt wording, and v3's mandatory include list did not help.
-- The loop rescued 42 of 51 attempt-1 failures (82%, CI 70-91%). Report this rate, not the McNemar p-value:
+- The loop rescued 42 of 51 attempt-1 failures (82%, CI 70-90%). Report this rate, not the McNemar p-value:
   attempt 1 is the same call in both conditions, so c = 0 by construction and the exact test only restates that
   at least a few failures were rescued.
 - Attempt-1 failures are mostly environment gaps, not model errors: `ENOTSUP` undeclared (20; the harness did
   not include `<errno.h>`), missing `extern "C"` on `LLVMFuzzerTestOneInput` (10), `uart_irq_callback_user_data_t`
-  not included (8), and `DEVICE_MMIO_ROM`/`DEVICE_MMIO_RAM` undefined (8).
+  not included (8), and a "type specifier is required" error (8; identified as the undefined `DEVICE_MMIO_ROM`/`DEVICE_MMIO_RAM` macros from the attempt-5 error text of three `pl011_isr` trials, not checked in the other five).
 - All 9 trials the loop never fixed are `pl011_isr`. The attempt-5 errors show the cause: the model copies the real
   driver's `struct pl011_config { DEVICE_MMIO_ROM; }` and `struct pl011_data { DEVICE_MMIO_RAM; ... }`, and the mock
   headers define neither macro (8 trials), or it uses `uart_irq_callback_user_data_t` without including
