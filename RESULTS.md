@@ -332,3 +332,39 @@ Contrary to a naive expectation that "less domain knowledge → worse coverage,"
 * **Honest conclusion**: both tools fuzz the real `uart_pl011.c` driver cleanly and both plateau on coverage quickly with zero crashes — consistent with this project's item 6 finding that this driver's bug surface (within the scope of either tool's mocking) is genuinely shallow, not an artifact of one harness design. The ~45-50x throughput gap (host-native libFuzzer vs. Unicorn-instruction-level ARM emulation plus a Python-level AFL harness wrapper) is itself the expected, reportable cost of Fuzzware's approach — it buys hardware-level MMIO fidelity (no need to hand-write register mocks at all) at a large per-execution overhead, exactly the trade-off Fuzzware's own publication describes. Neither tool surfaced a vulnerability the other missed on this target; the comparison's value is methodological (confirming AeroHarness's host-mocking approach reaches the same practical ceiling on this driver, much faster, at the cost of the mocks themselves needing to be hand-verified against the real register semantics — which is exactly what item 11's ordering-edge work and this item's own `GENMASK` catch were about).
 * **Scripts/artifacts**: `item7_fuzzware/` (firmware source, build script, linker script, Fuzzware `config.yml`, seed corpus) committed. `item7_fuzzware/evidence/` committed as the curated raw evidence: the 3 surviving `fuzzer_stats` snapshots (`fuzzer_stats.run1_old.main001`, `fuzzer_stats.run1.main001`, `fuzzer_stats.run1.main002`), the basic-block-coverage-over-time CSV, and all 4 outer invocations' own captured `pipeline.log` output (`pipeline_chunk1.log`-`pipeline_chunk4.log`, each independently grep-verified for `Current number of crashes: 0`). The full generated Fuzzware project tree (`item7_fuzzware/config/run1*/`: AFL's `queue/`/`traces/`/`mmio_states/`, per-session backups, etc.) is gitignored — large, ephemeral working state with its own internal rotation bookkeeping (see `FAILURE_TAXONOMY.md`), carrying no information beyond what's already curated into `evidence/`. The native Fuzzware toolchain itself is not committed (it's a third-party tool installed to `/tmp`, not project output, same as AFL/libFuzzer binaries are not committed elsewhere in this repo).
 * **Verification Status**: VERIFIED — Fuzzware built and installed natively in this session (not assumed present), its functional correctness checked via `checkenv` and a bounded smoke-test emulation before any campaign claim, the firmware target's own mock-macro width bug caught and fixed before fuzzing (not discovered after and rationalized around), all four campaign chunks run as genuine synchronous foreground executions with exact timestamps, and the "zero crashes" claim confirmed from each chunk's own live log independently of the stats-file overwrite quirk that was found and reported rather than hidden.
+
+## Work Plan Item 2: Self-Repair Statistics on 18 PL011 Targets (Oct 15-16 2026)
+
+**Setup.** 18 PL011 driver functions (CCN 1-6) from `targets/uart_pl011_item2/`, synthesized with
+DeepSeek V4.1 Flash via OpenRouter (provider pinned to CoreWeave, reasoning off, max 4096 tokens) through the
+production `SelfRepairOrchestrator` (max 5 iterations; compiler, then ASan/UBSan smoke test). Two arms differing
+only in the prompt:
+
+| Arm | Final success | First-attempt (strict) success | Mean iterations | LLM calls | Cost |
+|---|---|---|---|---|---|
+| No scaffold note | 4/18 (22%, 95% Wilson CI 9-45%) | n/a | n/a | 78 | USD 0.084 |
+| With scaffold-convention note | 18/18 (100%, CI 82-100%) | 14/18 (78%, CI 55-91%) | 1.33 | 24 | USD 0.015 |
+
+The no-scaffold arm's failures were 11 SEGVs from the undocumented `mock_regs_ptr` convention (the test scaffold's
+global MMIO pointer, defined per target). Documenting that one convention is the entire difference between the arms,
+so the scaffold description, not the model or the loop, dominated the outcome.
+
+**The four targets that needed repair (convention-note arm).** Iteration-1 errors, from `item2_report.json`:
+
+| Target | CCN | Iterations | Errors before success |
+|---|---|---|---|
+| `clk_enable_arm_pl011` | 1 | 3 | `enum uart_config_parity` etc. used as forward references (ISO C++ forbids); then undeclared identifiers |
+| `pl011_enable` | 1 | 2 | same forward-reference-to-enum error |
+| `pl011_set_flow_control` | 3 | 2 | `mock_regs_ptr` redeclared with different language linkage (`extern "C"` mismatch) |
+| `pl011_set_baudrate` | 3 | 3 | UBSan: null pointer to `memcpy`; then UBSan: division by zero in `pl011_set_baudrate.c:28` |
+
+No rule-fix iterations were used. By CCN: CCN 1 6/8 strict, mean 1.38 iterations; CCN 3 3/5, 1.6; CCN 4-6 5/5, 1.0.
+With 18 targets and 4 repairs, no CCN trend is claimed.
+
+**What this does and does not show.** It supports a first-attempt success rate near 78% when the scaffold is
+documented, and a repair loop that fixes mechanical C++ errors within 1-2 further iterations. It is one model, one
+driver family and n=18, so the interval is wide. "SUCCESS" means the harness compiles and survives a short sanitizer
+smoke run; an audit of the 22 passing harnesses (convention-note arm plus the no-note arm's four) confirmed each calls
+its target once and none redefines it, with line coverage not yet measured by `llvm-cov`.
+The `pl011_set_baudrate` division by zero surfaced by this arm is the candidate described in the vulnerability notes;
+it is not counted as a discovery.
