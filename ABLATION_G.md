@@ -356,3 +356,40 @@ Caveats, stated so the table is not over-read:
   `zephyr/drivers/uart.h`, which these harnesses do not always include.
 
 `report_ablation_g.py` recomputes every table in this section from the result, ledger and per-attempt log files.
+
+### Second variant result: frozen prompt v1 + `--mock-headers ext` (Oct 16 2026)
+
+Same model and provider pin, 100 trials, 188 calls, USD 0.085. This isolates the header effect (compare with
+the v1 original-mock row) and the prompt effect (compare with the v3 + ext row). The run was completed in two
+sessions: 9 `pl011_poll_in` trials came from an earlier interrupted launch of the same configuration, and 4
+`pl011_init` trials were re-run after OpenRouter connection errors (SSL EOF / connection reset) skipped them.
+Seeds are time-based, so neither affects the comparison.
+
+| Config | One-shot | Loop |
+|---|---|---|
+| v1, original mocks (headline) | 0/100 | 42/100 |
+| v3, original mocks | 0/100 | 16/100 |
+| v3, extended mocks | 9/100 | 86/100 |
+| v1, extended mocks | 49/100 (95% CI 39-59%) | 91/100 (CI 84-95%) |
+
+Per target (one-shot / loop, of 20): poll_in 14/20, poll_out 16/20, isr 3/11, runtime_configure_internal 0/20,
+init 16/20.
+
+Reading the table:
+- Changing only the headers moves the v1 loop from 42% to 91%; changing only the prompt (v3 vs v1, both with
+  extended headers) moves one-shot from 49% to 9% and the loop from 91% to 86%. The scaffold matters far more
+  than the prompt wording, and v3's mandatory include list did not help.
+- The loop rescued 42 of 51 attempt-1 failures (82%, CI 70-91%). Report this rate, not the McNemar p-value:
+  attempt 1 is the same call in both conditions, so c = 0 by construction and the exact test only restates that
+  at least a few failures were rescued.
+- Attempt-1 failures are mostly environment gaps, not model errors: `ENOTSUP` undeclared (20; the harness did
+  not include `<errno.h>`), missing `extern "C"` on `LLVMFuzzerTestOneInput` (10), `uart_irq_callback_user_data_t`
+  not included (8), and `DEVICE_MMIO_ROM`/`DEVICE_MMIO_RAM` undefined (8).
+- All 9 trials the loop never fixed are `pl011_isr`. The attempt-5 errors show the cause: the model copies the real
+  driver's `struct pl011_config { DEVICE_MMIO_ROM; }` and `struct pl011_data { DEVICE_MMIO_RAM; ... }`, and the mock
+  headers define neither macro (8 trials), or it uses `uart_irq_callback_user_data_t` without including
+  `<zephyr/drivers/uart.h>` (1 trial). It saw the error four times and did not define the macro itself, so
+  the loop repairs coding mistakes but not missing environment knowledge. These two names are a remaining gap in
+  `harnesses/include_ext`, left unchanged here to keep this arm frozen.
+- Two calls ended with `finish_reason: length` at the 4096-token cap; both are counted as failed attempts.
+
