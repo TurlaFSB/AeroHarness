@@ -368,3 +368,39 @@ smoke run; an audit of the 22 passing harnesses (convention-note arm plus the no
 its target once and none redefines it, with line coverage not yet measured by `llvm-cov`.
 The `pl011_set_baudrate` division by zero surfaced by this arm is the candidate described in the vulnerability notes;
 it is not counted as a discovery.
+
+## Work Plan Item 5: Static-Analysis (clang-tidy) Feedback in the Repair Loop (Ablation E) — Null Result
+
+**Question.** Does adding clang-tidy warnings to the retry prompt (Arm A) help beyond the compiler/linker error alone
+(Arm B)? Paired design: both arms branch from the same failed attempt 1; success criterion identical in both.
+Model `deepseek/deepseek-v4.1-flash-20260910`, OpenRouter, provider pinned to CoreWeave, temperature 0.7, up to 5
+attempts. clang-tidy 18.1.3, default check set; only warnings located in the harness file are fed back.
+
+| Run | Configuration | Trials | Failed attempt 1 | Arm A (lint) | Arm B (compiler only) | Lint reached the prompt | Cost |
+|---|---|---|---|---|---|---|---|
+| Smoke 1 | original mocks, error-only retries, `pl011_poll_in` | 6 | 6 | 5/6 | 4/6 | 0 of 6 trials | $0.010 |
+| Smoke 2 | `--mock-headers ext --repair-context code`, 5 targets | 15 | 10 | 15/15 | 15/15 | 0 of 10 feedback rounds | $0.018 |
+
+**Reading.**
+* Lint never reached a prompt: 0 of 6 trials in smoke 1 and 0 of 10 feedback rounds in smoke 2. The two arms therefore
+  received identical feedback, and the smoke 1 difference (5/6 vs 4/6, McNemar p = 1.0) is sampling noise between
+  independently drawn retries, not an effect of lint.
+* Smoke 1 explains itself: every attempt-1 failure was a compile error, and on code that does not compile clang-tidy
+  only repeats the compiler's errors, which the filter drops.
+* Smoke 2 reached a regime where the loop repairs every failure in 1-2 further attempts (15/15 in both arms), so there
+  is a ceiling effect: with no failing trial left, the experiment cannot show any benefit.
+* Caveat on the counters. `arm_a_rounds_tidy_parsed` counts rounds where clang-tidy ran without a fatal
+  tool error; it does not mean the harness compiled. The attempt-1 failure type "Compiler Error" also covers link
+  errors, because the harness is compiled and linked in a single `clang++ -fsanitize=fuzzer` call. Which of the 10
+  failures were link versus compile errors was not recorded and is not claimed here. For link errors such as a missing
+  `extern "C"` on `LLVMFuzzerTestOneInput`, clang-tidy's default checks have nothing to say.
+
+**Conclusion.** In this pipeline the failures a repair loop sees are compiler and linker diagnostics, a class that
+default clang-tidy checks do not cover; the loop already fixes them from the error text alone. We therefore report
+lint-in-the-loop as a null result with the lint-reached-prompt rate as the headline number, and we do not claim that
+static analysis cannot help in other settings (for example as a quality gate on harnesses that already pass).
+Limits: one model, 21 trials, two small smoke runs, no full-power ablation; the full 100-trial design was not run
+because the measured lint rate was 0 and the second run had no failures left to compare.
+
+Provider note: DeepSeek via CoreWeave occasionally leaked `<｜DSML｜` control tokens into the completion
+(3 of 76 calls across both runs); the script truncates at the marker, and no call finished abnormally.
