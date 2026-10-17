@@ -67,28 +67,40 @@ def harness_only(text):
     return text.split(MARKER, 1)[0] if MARKER in text else text
 
 
-def filter_warnings(output, harness_basename):
-    """Return (count, checks) for clang-tidy 'warning' diagnostics whose location is
-    the harness file. Errors, notes, summary lines and other files are dropped."""
+# The gate analyzes the harness WITHOUT the appended real driver body, so the target
+# function (declared static in the generated harness) is declared but never defined.
+# clang reports that as clang-diagnostic-undefined-internal on every harness. It is a
+# property of how the gate slices the file, not a defect in the generated code, so it
+# is excluded from the counts by default (reported separately, not hidden).
+DEFAULT_IGNORE = ("clang-diagnostic-undefined-internal",)
+
+
+def filter_warnings(output, harness_basename, ignore=DEFAULT_IGNORE):
+    """Return (count, checks, ignored) for clang-tidy 'warning' diagnostics whose
+    location is the harness file. Errors, notes, summary lines and other files are
+    dropped. Warnings whose only check names are in `ignore` are counted in `ignored`
+    and not in `count`."""
     checks = collections.Counter()
     n = 0
+    ignored = 0
     for line in output.split("\n"):
         m = _DIAG_RE.match(line)
         if not m or m.group(4) != "warning":
             continue
         if os.path.basename(m.group(1)) != harness_basename:
             continue
-        n += 1
         cm = _CHECK_RE.search(line)
-        if cm:
-            for chk in cm.group(1).split(","):
-                checks[chk] += 1
-        else:
-            checks["(uncategorized)"] += 1
-    return n, checks
+        names = cm.group(1).split(",") if cm else ["(uncategorized)"]
+        if all(c in ignore for c in names):
+            ignored += 1
+            continue
+        n += 1
+        for chk in names:
+            checks[chk] += 1
+    return n, checks, ignored
 
 
-def run_tidy(clang_tidy, path, use_ext):
+def run_tidy(clang_tidy, path, use_ext, ignore=DEFAULT_IGNORE):
     """Run clang-tidy on a copy that keeps only the harness part (so the appended
     real driver body is not analyzed) in a temp file beside the original."""
     text = open(path, errors="replace").read()
@@ -101,21 +113,21 @@ def run_tidy(clang_tidy, path, use_ext):
             cwd=os.path.dirname(tmp), capture_output=True, text=True, timeout=60)
         out = res.stdout + res.stderr
     except subprocess.TimeoutExpired:
-        return None, None, "timeout"
+        return None, None, 0, "timeout"
     except Exception as e:
-        return None, None, f"invocation failed: {e}"
+        return None, None, 0, f"invocation failed: {e}"
     finally:
         try:
             os.remove(tmp)
         except OSError:
             pass
     if "unable to handle compilation" in out.lower() or "error reading" in out.lower():
-        return None, None, "clang-tidy could not parse the harness"
-    cnt, checks = filter_warnings(out, os.path.basename(tmp))
-    return cnt, checks, out
+        return None, None, 0, "clang-tidy could not parse the harness"
+    cnt, checks, ign = filter_warnings(out, os.path.basename(tmp), ignore)
+    return cnt, checks, ign, out
 
 
-def gate_one(results_path, logs_override, clang_tidy, list_flagged, max_shown):
+def gate_one(results_path, logs_override, clang_tidy, list_flagged, max_shown, ignore=DEFAULT_IGNORE):
     base = os.path.basename(results_path)
     slug = base[len("ablation_g_results_"):-len(".json")] if base.startswith("ablation_g_results_") else None
     use_ext = bool(slug and "_mockext" in slug)
@@ -132,8 +144,10 @@ def gate_one(results_path, logs_override, clang_tidy, list_flagged, max_shown):
             if not os.path.exists(path):
                 missing += 1
                 continue
-            cnt, checks, _ = run_tidy(clang_tidy, path, use_ext)
+            cnt, checks, ign, _ = run_tidy(clang_tidy, path, use_ext, ignore)
             per[target]["audited"] += 1
+            if cnt is not None:
+                per[target]["ignored"] += ign
             if cnt is None:
                 unparsed += 1
                 per[target]["unparsed"] += 1
@@ -147,6 +161,7 @@ def gate_one(results_path, logs_override, clang_tidy, list_flagged, max_shown):
                 flagged.append((path, cnt, checks))
     print(f"\n=== clang-tidy quality gate: {base} ===")
     print(f"mock set: {'extended (include_ext first)' if use_ext else 'original (include only)'} | logs: {logs}")
+    print(f"ignored check classes (reported below, not counted): {', '.join(ignore) or 'none'}")
     hdr = ["target", "audited", "clean", "flagged", "warnings", "unparsed"]
     rows = []
     tot = collections.Counter()
@@ -161,6 +176,7 @@ def gate_one(results_path, logs_override, clang_tidy, list_flagged, max_shown):
     print("-+-".join("-" * x for x in w))
     for r in rows:
         print(fmt.format(*[str(x) for x in r]))
+    print(f"ignored (excluded-class) warnings: {tot['ignored']}")
     if missing:
         print(f"\nsuccessful trials whose final harness file was not found: {missing}")
     if checks_total:
@@ -182,6 +198,9 @@ def main():
     ap.add_argument("--logs", help="override logs dir (single results file only)")
     ap.add_argument("--clang-tidy", default=shutil.which("clang-tidy") or "clang-tidy")
     ap.add_argument("--list", action="store_true", help="list flagged harness paths")
+    ap.add_argument("--ignore", default=",".join(DEFAULT_IGNORE),
+                    help="comma-separated check names excluded from counts (default: the "
+                         "slicing artifact clang-diagnostic-undefined-internal; pass '' to count everything)")
     ap.add_argument("--max-warnings-shown", type=int, default=0,
                     help="cap the number of flagged harnesses listed (0 = all)")
     a = ap.parse_args()
@@ -189,10 +208,11 @@ def main():
         sys.exit("--logs can only be used with a single results file")
     if not shutil.which(a.clang_tidy) and not os.path.exists(a.clang_tidy):
         sys.exit(f"clang-tidy not found: {a.clang_tidy}")
+    ign = tuple(c for c in a.ignore.split(",") if c)
     grand = collections.Counter()
     grand_checks = collections.Counter()
     for rp in a.results:
-        tot, checks = gate_one(rp, a.logs, a.clang_tidy, a.list, a.max_warnings_shown)
+        tot, checks = gate_one(rp, a.logs, a.clang_tidy, a.list, a.max_warnings_shown, ign)
         grand.update(tot)
         grand_checks.update(checks)
     if len(a.results) > 1:
