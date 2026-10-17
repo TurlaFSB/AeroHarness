@@ -404,3 +404,31 @@ because the measured lint rate was 0 and the second run had no failures left to 
 
 Provider note: DeepSeek via CoreWeave occasionally leaked `<｜DSML｜` control tokens into the completion
 (3 of 76 calls across both runs); the script truncates at the marker, and no call finished abnormally.
+
+## Ablation G Follow-Up: clang-tidy Quality Gate over Passing Harnesses (Oct 17 2026)
+
+**Question.** "SUCCESS" in Ablation G means compile + link + a short sanitizer run. Do the harnesses that reached SUCCESS still carry defects clang-tidy's default checks can see? Ablation E asked whether lint helps *inside* the repair loop (null result); this asks whether lint flags anything in what the loop *produced*. Script: `lint_gate_ablation_g.py` (read-only, zero API calls, never `-fix`).
+
+**Method.** For every trial that passed, the final harness is re-read from the run's logs, cut at the `// === APPENDED TARGET FUNCTION ===` marker (so only the generated code is analyzed, not the driver under test), and run through clang-tidy 18.1.3 with its default check set and the same include paths the run compiled with. Only warnings located in the harness file count.
+
+**A measurement artifact found and removed.** The first full run reported 387/387 harnesses flagged. All 387 were one `clang-diagnostic-undefined-internal` warning each: cutting the driver body leaves the `static` target function declared but never defined. That is a property of how the gate slices the file, not of the generated code, so the check is excluded by default (commit `3892c54e0`; excluded counts are printed, and `--ignore ''` counts everything). The 387-flagged figure must not be cited.
+
+**Result (artifact excluded).**
+
+| Configuration | Passing harnesses audited | Lint-clean | Flagged | Warnings | Clean rate (Wilson 95% CI) |
+| :--- | :-: | :-: | :-: | :-: | :-: |
+| Extended mocks + code context (loop 100/100) | 100 | 91 | 9 | 14 | 91.0% (83.8–95.2) |
+| Extended mocks (loop 91/100) | 91 | 84 | 7 | 13 | 92.3% (85.0–96.2) |
+
+By target in the headline configuration: `pl011_poll_in` 20/20 clean, `pl011_isr` 19/20, `pl011_poll_out` 18/20, `pl011_runtime_configure_internal` 18/20, `pl011_init` 16/20. The two larger-scope functions carry most of the findings. Across all 20 results files (387 audits; configurations overlap, so these are not 387 independent harnesses) the totals are 351 clean / 36 flagged / 64 warnings, 0 unparsed, 0 timeouts.
+
+**What the warnings are** (64 across all files):
+- `DeadStores` (22): unused assignments. Style-level.
+- `EnumCastOutOfRange` (22): inspected samples are `cfg.parity = (enum uart_config_parity)0x7f;` in a `default:` branch. This is deliberate: the harness feeds an invalid enum value to exercise the driver's rejection path. Valid in the C driver; strictly unspecified in C++, which is why the analyzer flags it. Intentional, not a defect.
+- `reorder-init-list` (13): all in the Qwen2.5-coder 14B and 7B smoke runs (out-of-order C++ designated initializers). None in the DeepSeek runs.
+- `StackAddressEscape` (3): a `static struct device` assigned pointers to stack locals, still referenced after `LLVMFuzzerTestOneInput` returns (2 in the headline configuration, 1 in the prompt-v3 run). By the reported excerpts the pointers are reassigned at the start of every call before any use, so this reads as harness hygiene rather than a use-after-return. The harness files were not opened in this write-up; treat this as unverified until read directly.
+- `macro-redefined` (3), `missing-declarations` (1): minor.
+
+**Reading.** About nine in ten SUCCESS harnesses are clean under clang-tidy's default checks, and none of the findings inspected so far changes whether a harness is valid. Together with Ablation E this gives a consistent picture: lint-class issues are rare in what the loop produces and almost never present in what the loop sees.
+
+**Limits.** (1) clang-tidy's default checks are a weak oracle; clean does not mean correct. (2) Only the generated harness text is analyzed, not the appended driver. (3) 14 passing Qwen2.5-coder 7B trials had no stored harness file and were not audited. (4) The counts above are warnings per harness file, not a severity ranking.
