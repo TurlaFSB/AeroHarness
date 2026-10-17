@@ -195,3 +195,16 @@ def test_coverage_measure_error_is_skipped_not_fatal(tmp_path):
     out, agent = run_cov(tmp_path, CovOracle(CoverageResult(ok=False, error="clang missing")),
                          coverage_feedback_min=0.9)
     assert out.success and agent.cov_calls == 0 and out.coverage_feedback["skipped_reason"] == "clang missing"
+
+
+def test_escalate_after_two_same_site_crashes_halts_early(tmp_path):
+    out, agent = run(tmp_path, Smoke(bad=99), crash_triage="record", escalate_after=2)
+    assert out.halted_on_finding and not out.success
+    assert out.total_iterations == 2 and agent.repairs == 1
+    assert "same location crashed 2 times" in out.failure_reason
+    assert all(f.masked_by_repair is False for f in out.candidate_findings)
+
+
+def test_without_escalation_record_runs_all_iterations(tmp_path):
+    out, agent = run(tmp_path, Smoke(bad=99), crash_triage="record")
+    assert not out.success and not out.halted_on_finding and out.total_iterations == 5

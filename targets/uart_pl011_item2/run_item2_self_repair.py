@@ -182,7 +182,7 @@ def build_agent(offline: bool):
 
 def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None,
                    mmio_note: str = None, crash_triage: str = "off", stability_runs: int = 0,
-                   stability_time: int = 60, wrap_probe_runs: int = 0, coverage_feedback_min: float = 0.0) -> dict:
+                   stability_time: int = 60, wrap_probe_runs: int = 0, coverage_feedback_min: float = 0.0, escalate_after: int = 0) -> dict:
     h_path = ITEM2_DIR / f"{t.name}.h"
     c_path = ITEM2_DIR / f"{t.name}.c"
     out_dir = (out_root or OUTPUT_DIR) / t.name
@@ -200,7 +200,8 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
                                           stability_runs=stability_runs,
                                           stability_max_time_sec=stability_time,
                                           wrap_probe_runs=wrap_probe_runs,
-                                          coverage_feedback_min=coverage_feedback_min)
+                                          coverage_feedback_min=coverage_feedback_min,
+                                          escalate_after=escalate_after)
 
     record = {
         "target": t.name,
@@ -359,6 +360,10 @@ def main():
                              "below this fraction, send the unreached lines back to the model for ONE round. "
                              "The new harness is kept only if it passes all oracles and covers more "
                              "(separate '_covfb<pct>' folder)")
+    parser.add_argument("--escalate-after", type=int, default=0,
+                        help="with --crash-triage record: halt as CANDIDATE_FINDING once this many "
+                             "driver-side crashes at the same source location have been recorded "
+                             "(repairing the harness is then treated as futile). 0 = off")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -382,6 +387,8 @@ def main():
             slug += f"_stab{args.stability_runs}"
         if args.wrap_probe_runs:
             slug += f"_wrap{args.wrap_probe_runs}"
+        if args.escalate_after:
+            slug += f"_esc{args.escalate_after}"
         if args.coverage_feedback_min:
             slug += f"_covfb{int(round(args.coverage_feedback_min * 100))}"
         out_root = OUTPUT_DIR / f"openrouter_{slug}"
@@ -400,7 +407,8 @@ def main():
                     "prompt_variant": "convention_note" if args.convention_note else "no_note",
                     "crash_triage": args.crash_triage, "stability_runs": args.stability_runs,
                     "wrap_probe_runs": args.wrap_probe_runs,
-                    "coverage_feedback_min": args.coverage_feedback_min}
+                    "coverage_feedback_min": args.coverage_feedback_min,
+                    "escalate_after": args.escalate_after}
         print(f"OPENROUTER mode: model={args.model} provider={args.provider or 'unpinned'} "
               f"budget=${args.budget_usd:.2f} ledger={os.environ['OPENROUTER_LEDGER']}", file=sys.stderr)
         report_path = out_root / "item2_report.json"
@@ -436,7 +444,8 @@ def main():
                                 mmio_note=ITEM2_CONVENTION_NOTE if args.convention_note else None,
                                 crash_triage=args.crash_triage, stability_runs=args.stability_runs,
                                 stability_time=args.stability_time, wrap_probe_runs=args.wrap_probe_runs,
-                                coverage_feedback_min=args.coverage_feedback_min)
+                                coverage_feedback_min=args.coverage_feedback_min,
+                                escalate_after=args.escalate_after)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
         existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
         if record["status"] == "BACKEND_FAILED":

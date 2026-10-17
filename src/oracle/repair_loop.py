@@ -115,6 +115,7 @@ class SelfRepairOrchestrator:
         coverage_oracle: Optional[CoverageOracle] = None,
         coverage_runs: int = 20000,
         coverage_max_time_sec: int = 30,
+        escalate_after: int = 0,
     ):
         """
         ``crash_triage`` (default ``off`` = the protocol behind the reported 18/18 result):
@@ -138,6 +139,10 @@ class SelfRepairOrchestrator:
         short campaign; if it is below the threshold, the unreached lines are sent to the model
         and the new harness replaces the old one only if it passes the same oracles and covers
         strictly more lines. Otherwise the verified harness is kept unchanged. Default 0 = off.
+        ``escalate_after`` = K > 0 (with ``crash_triage`` record): once K target-side crashes at
+        the same source location have been recorded, repairing the harness is treated as futile
+        and the loop halts as a candidate finding, like policy ``halt``. In the Oct 2026 full-loop
+        run the model spent all five iterations on a driver defect it could not remove.
         """
         if crash_triage not in TRIAGE_POLICIES:
             raise ValueError(f"crash_triage must be one of {TRIAGE_POLICIES}, got {crash_triage!r}")
@@ -148,6 +153,7 @@ class SelfRepairOrchestrator:
         self.coverage_feedback_min = float(coverage_feedback_min)
         self.coverage_oracle = coverage_oracle or CoverageOracle()
         self.coverage_runs = coverage_runs
+        self.escalate_after = max(0, int(escalate_after))
         self.coverage_max_time_sec = coverage_max_time_sec
         self.settings = get_settings()
         self.agent = agent or HarnessSynthesizerAgent()
@@ -317,7 +323,13 @@ class SelfRepairOrchestrator:
                             message=crash_reason,
                             reproducer_path=str(repro[-1]) if repro else None,
                             evidence_excerpt=evidence_excerpt(smoke_res.stderr)))
-                        if self.crash_triage == "halt":
+                        same_site = sum(
+                            1 for f in findings
+                            if f.stage in ("SMOKE_TEST_ORACLE", "STABILITY_GATE")
+                            and f.verdict == CrashVerdict.TARGET_SIDE
+                            and (f.site_file, f.site_line) == (tri.site.file, tri.site.line))
+                        escalate = self.escalate_after > 0 and same_site >= self.escalate_after
+                        if self.crash_triage == "halt" or escalate:
                             history.append(RepairIteration(
                                 iteration=iteration, stage=stage, passed=False,
                                 diagnostics=[], raw_error=crash_reason))
@@ -332,7 +344,10 @@ class SelfRepairOrchestrator:
                                 failure_reason=(
                                     "CANDIDATE_FINDING: crash located in the code under test "
                                     f"({tri.site.file}:{tri.site.line}); loop halted instead of "
-                                    f"repairing the harness around it ({crash_reason})."),
+                                    f"repairing the harness around it"
+                                    + (f" (same location crashed {same_site} times despite repair)"
+                                       if escalate and self.crash_triage != "halt" else "")
+                                    + f" ({crash_reason})."),
                                 halted_on_finding=True,
                             ))
                 history.append(
