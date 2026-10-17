@@ -33,6 +33,9 @@ class Smoke:
         self.bad, self.gate_bad, self.calls = bad, gate_bad, []
     def run_smoke_test(self, binary, runs=100, **kw):
         self.calls.append((runs, kw))
+        if str(binary).endswith("_wrap"):
+            return SmokeTestResult(passed=True, crashed=False, timed_out=False,
+                                   stderr=f"{T}:28:29: runtime error: unsigned integer overflow: 5 * 16\n")
         is_gate = "max_total_time" in kw
         if is_gate and self.gate_bad > 0:
             self.gate_bad -= 1
@@ -97,3 +100,12 @@ def test_invalid_policy_rejected():
     with pytest.raises(ValueError):
         SelfRepairOrchestrator(agent=Agent(), compiler_oracle=Comp(), smoke_oracle=Smoke(0),
                                crash_triage="bogus")
+
+
+def test_wrap_probe_is_record_only_and_not_masked(tmp_path):
+    smoke = Smoke(bad=0)
+    out, agent = run(tmp_path, smoke, wrap_probe_runs=20000)
+    assert out.success and agent.repairs == 0
+    assert [f.stage for f in out.candidate_findings] == ["WRAP_PROBE"]
+    assert out.candidate_findings[0].masked_by_repair is None
+    assert out.wrap_probe_runs == 20000

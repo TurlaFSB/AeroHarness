@@ -182,7 +182,7 @@ def build_agent(offline: bool):
 
 def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None,
                    mmio_note: str = None, crash_triage: str = "off", stability_runs: int = 0,
-                   stability_time: int = 60) -> dict:
+                   stability_time: int = 60, wrap_probe_runs: int = 0) -> dict:
     h_path = ITEM2_DIR / f"{t.name}.h"
     c_path = ITEM2_DIR / f"{t.name}.c"
     out_dir = (out_root or OUTPUT_DIR) / t.name
@@ -198,7 +198,8 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
 
     orchestrator = SelfRepairOrchestrator(agent=agent, max_iterations=5, crash_triage=crash_triage,
                                           stability_runs=stability_runs,
-                                          stability_max_time_sec=stability_time)
+                                          stability_max_time_sec=stability_time,
+                                          wrap_probe_runs=wrap_probe_runs)
 
     record = {
         "target": t.name,
@@ -241,9 +242,10 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
             if hist[i]["stage"] == "COMPILATION_ORACLE" and not hist[i]["passed"]
             and hist[i + 1]["iteration"] == hist[i]["iteration"]
         })
-        if crash_triage != "off" or stability_runs:
+        if crash_triage != "off" or stability_runs or wrap_probe_runs:
             record["crash_triage"] = crash_triage
             record["stability_runs"] = stability_runs
+            record["wrap_probe_runs"] = wrap_probe_runs
             record["candidate_findings"] = [f.model_dump(mode="json") for f in outcome.candidate_findings]
         record["first_attempt_success_strict"] = bool(outcome.success and len(hist) == 1)
         record["rule_fix_iterations"] = rule_fix_iters
@@ -345,6 +347,10 @@ def main():
                              "smoke test (separate '_stab<N>' folder)")
     parser.add_argument("--stability-time", type=int, default=60,
                         help="wall-clock cap in seconds for the stability campaign (default 60)")
+    parser.add_argument("--wrap-probe-runs", type=int, default=0,
+                        help="if >0, record-only probe on each final harness: rebuild with "
+                             "-fsanitize=unsigned-integer-overflow and run this many executions; wraps "
+                             "located in the driver are kept as candidate findings (separate '_wrap<N>' folder)")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -366,6 +372,8 @@ def main():
             slug += f"_triage-{args.crash_triage}"
         if args.stability_runs:
             slug += f"_stab{args.stability_runs}"
+        if args.wrap_probe_runs:
+            slug += f"_wrap{args.wrap_probe_runs}"
         out_root = OUTPUT_DIR / f"openrouter_{slug}"
         out_root.mkdir(parents=True, exist_ok=True)
         os.environ["OPENROUTER_BUDGET_USD"] = str(args.budget_usd)
@@ -380,7 +388,8 @@ def main():
         run_meta = {"backend": "openrouter", "model": args.model, "provider_pinned": args.provider,
                     "reasoning": os.environ["OPENROUTER_REASONING"], "max_tokens": args.max_tokens,
                     "prompt_variant": "convention_note" if args.convention_note else "no_note",
-                    "crash_triage": args.crash_triage, "stability_runs": args.stability_runs}
+                    "crash_triage": args.crash_triage, "stability_runs": args.stability_runs,
+                    "wrap_probe_runs": args.wrap_probe_runs}
         print(f"OPENROUTER mode: model={args.model} provider={args.provider or 'unpinned'} "
               f"budget=${args.budget_usd:.2f} ledger={os.environ['OPENROUTER_LEDGER']}", file=sys.stderr)
         report_path = out_root / "item2_report.json"
@@ -415,7 +424,7 @@ def main():
         record = run_one_target(t, agent, offline, out_root=out_root, run_meta=run_meta,
                                 mmio_note=ITEM2_CONVENTION_NOTE if args.convention_note else None,
                                 crash_triage=args.crash_triage, stability_runs=args.stability_runs,
-                                stability_time=args.stability_time)
+                                stability_time=args.stability_time, wrap_probe_runs=args.wrap_probe_runs)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
         existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
         if record["status"] == "BACKEND_FAILED":

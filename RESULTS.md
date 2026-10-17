@@ -503,3 +503,19 @@ By target in the headline configuration: `pl011_poll_in` 20/20 clean, `pl011_isr
 **`pl011_set_baudrate` crash input.** Decoded by hand using FuzzedDataProvider's from-the-end consumption order, the 102-byte reproducer yields `clk = 0x3f3f3f40` and `baudrate = 0x40000000` (2^30). The harness excludes only baudrate 0 (`ConsumeIntegralInRange(1, 0xFFFFFFFF)`), and `baudrate * 16U` is 0 in 32-bit arithmetic for 2^30, so the divisor is zero: the overflow variant, not the zero variant. The replay of the kept input reproduces `FPE ... pl011_set_baudrate.c:28:17`. Only 15 of 2^32 non-zero baudrate values (multiples of 2^28) produce a zero divisor, which is why a random campaign reaches it rarely and a 100,000-run gate can miss it.
 
 **Proposed detector (not yet evaluated).** Clang's `-fsanitize=unsigned-integer-overflow` reports the wrap in `baudrate * 16U` for every baudrate >= 2^28 (15/16 of random values), i.e. on the first executions, independent of whether the divisor becomes zero. Unsigned wrap is defined behaviour and sometimes intended, so reports would be candidates, and precision across the 18 targets is unknown. `ubsan_wrap_probe.py` measures that (target-side reports per harness, fixed seed, no API calls); on a two-line fixture it flagged the wrap in under 2,000 runs.
+
+### Unsigned-wrap probe result (Oct 17 2026)
+
+`ubsan_wrap_probe.py`, 20,000 executions per harness with `-fsanitize=unsigned-integer-overflow` (report-and-continue), no API calls. Three campaigns: the triage-run harnesses with seed 1 and seed 2, and the earlier convention-note (18/18) harnesses with seed 1.
+
+| Campaign | Targets with a driver-side report | Reports |
+|---|---|---|
+| Triage-run harnesses, seed 1 | 1 of 18 | `pl011_set_baudrate.c:28:29` unsigned overflow, then `:28:17` division by zero |
+| Triage-run harnesses, seed 2 | 1 of 18 | same two locations |
+| Earlier 18/18 harnesses, seed 1 | 1 of 18 | same two locations |
+
+- The other 17 targets produced no driver-side report in any campaign (0 false positives in this sample), and no build errors occurred.
+- In all three campaigns the wrap and the resulting division by zero appeared within 20,000 executions. The same triage-run `pl011_set_baudrate` harness had passed the pipeline's 100,000-run stability gate (plain sanitizer build) and crashed only in the 300,000-run coverage build. The wrap-checking build therefore found the defect much sooner. Why is not established; one untested explanation is that the added overflow checks give the fuzzer extra coverage feedback toward large inputs.
+- Limits: one driver family, 18 small functions; no code with intended unsigned wrap (hashes, checksums, counters) was in the sample, so the precision observed here may not transfer. 0 reports on the 17 other targets also reflects what their harnesses reach (for example `pl011_irq_tx_enable` is at 50% coverage).
+
+**Consequence.** The loop gained an optional record-only step, `--wrap-probe-runs N` (commit follows), which rebuilds a finally-passing harness with this check and keeps driver-side wraps as candidate findings (stage `WRAP_PROBE`). It never changes success and never triggers repair. It has not yet been run through the full pipeline.

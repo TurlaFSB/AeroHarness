@@ -79,6 +79,7 @@ class RepairOutcome(BaseModel):
     # Crash triage (optional; defaults reproduce the original protocol exactly).
     triage_policy: str = "off"
     stability_runs: int = 0
+    wrap_probe_runs: int = 0
     candidate_findings: List[CrashFinding] = Field(default_factory=list)
     halted_on_finding: bool = False
 
@@ -106,6 +107,7 @@ class SelfRepairOrchestrator:
         crash_triage: str = "off",
         stability_runs: int = 0,
         stability_max_time_sec: int = 60,
+        wrap_probe_runs: int = 0,
     ):
         """
         ``crash_triage`` (default ``off`` = the protocol behind the reported 18/18 result):
@@ -119,12 +121,18 @@ class SelfRepairOrchestrator:
         ``stability_runs`` > 0 adds a second, longer campaign after the smoke test passes
         (``stability_max_time_sec`` wall-clock cap). Its failures are repaired/triaged like
         smoke failures, so a harness only succeeds if it also survives that campaign.
+        ``wrap_probe_runs`` > 0 adds a record-only probe on a final passing harness: a second
+        build with ``-fsanitize=unsigned-integer-overflow`` is run for that many executions and
+        wrap reports located in the code under test are kept as candidate findings. It never
+        changes success or triggers repair (unsigned wrap is defined C behaviour and is
+        sometimes intended).
         """
         if crash_triage not in TRIAGE_POLICIES:
             raise ValueError(f"crash_triage must be one of {TRIAGE_POLICIES}, got {crash_triage!r}")
         self.crash_triage = crash_triage
         self.stability_runs = max(0, int(stability_runs))
         self.stability_max_time_sec = stability_max_time_sec
+        self.wrap_probe_runs = max(0, int(wrap_probe_runs))
         self.settings = get_settings()
         self.agent = agent or HarnessSynthesizerAgent()
         self.compiler = compiler_oracle or CompilerOracle()
@@ -182,9 +190,12 @@ class SelfRepairOrchestrator:
 
         def _finish(outcome: RepairOutcome) -> RepairOutcome:
             for f in findings:
+                if f.stage == "WRAP_PROBE":
+                    continue  # observed on the final harness; nothing was repaired away
                 f.masked_by_repair = bool(outcome.success) and not outcome.halted_on_finding
             outcome.triage_policy = self.crash_triage
             outcome.stability_runs = self.stability_runs
+            outcome.wrap_probe_runs = self.wrap_probe_runs
             outcome.candidate_findings = findings
             return outcome
 
@@ -335,6 +346,11 @@ class SelfRepairOrchestrator:
                 )
                 continue
 
+            if self.wrap_probe_runs > 0:
+                self._wrap_probe(
+                    harness_src_path, out_binary_path, target_c_files, include_dirs,
+                    target_paths, iteration, findings,
+                )
             history.append(
                 RepairIteration(
                     iteration=iteration, stage="SUCCESS", passed=True, diagnostics=[], raw_error=""
@@ -362,6 +378,34 @@ class SelfRepairOrchestrator:
             history=history,
             failure_reason=failure_reason,
         ))
+
+    def _wrap_probe(self, harness_src_path, out_binary_path, target_c_files, include_dirs,
+                    target_paths, iteration, findings) -> None:
+        """Record-only: see ``wrap_probe_runs``. Any problem here is swallowed on purpose,
+        because the probe must not change the outcome of the loop."""
+        probe_bin = out_binary_path.with_name(out_binary_path.name + "_wrap")
+        try:
+            comp = self.compiler.compile_harness(
+                harness_src_path=harness_src_path, target_c_files=target_c_files,
+                include_dirs=include_dirs, output_binary_path=probe_bin,
+                extra_flags=["-fsanitize=unsigned-integer-overflow"],
+            )
+            if not comp.success:
+                return
+            res = self.smoke_oracle.run_smoke_test(
+                probe_bin, runs=self.wrap_probe_runs,
+                max_total_time=self.stability_max_time_sec,
+                timeout_sec=self.stability_max_time_sec + 60,
+            )
+            for u in target_side_ubsan(res.stderr, target_paths)[:5]:
+                findings.append(CrashFinding(
+                    iteration=iteration, stage="WRAP_PROBE", verdict=CrashVerdict.TARGET_SIDE,
+                    site_file=u.file, site_line=u.line, site_col=u.col,
+                    message=f"UBSan (wrap probe): {u.message}",
+                    evidence_excerpt=evidence_excerpt(res.stderr, 12),
+                    status="CANDIDATE: unsigned wrap is defined behaviour; review whether it is intended"))
+        except Exception:
+            return
 
     @staticmethod
     def _summarize_terminal_failure(
