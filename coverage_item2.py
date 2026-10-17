@@ -107,7 +107,10 @@ def measure(target, item2_dir, out_root, repo, runs, keep):
         tot = data["data"][0]["totals"]
         for k in ("lines", "regions", "branches", "functions"):
             if k in tot:
-                out[k] = f"{tot[k]['covered']}/{tot[k]['count']} ({tot[k]['percent']:.1f}%)"
+                if tot[k]['count'] == 0:
+                    out[k] = "0/0 (n/a)"  # e.g. no branches in straight-line code
+                else:
+                    out[k] = f"{tot[k]['covered']}/{tot[k]['count']} ({tot[k]['percent']:.1f}%)"
     except Exception:
         out["error"] = "llvm-cov export parse failed"
         out["stderr"] = (rep.stderr or rep.stdout).strip()[-600:]
