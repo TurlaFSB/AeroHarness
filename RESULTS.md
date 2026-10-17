@@ -457,3 +457,25 @@ By target in the headline configuration: `pl011_poll_in` 20/20 clean, `pl011_isr
 3. The pipeline's own fuzzing reached the overflow family (not only the zero case), which supports the disclosure candidate. The candidate remains unreported externally and is not counted as a discovery.
 
 **Limits.** One model, one driver family, n=18. Short fuzz runs (300,000 executions). Coverage is of the driver function alone, with mocked hardware. `coverage_item2.py` was fixed after this run to report a crashed fuzz run as a crash (with pre-crash corpus coverage) instead of 0%; this result has not been re-run with the fixed script, and the 0/14 above is the old behavior.
+
+## Work Plan Item 2: Crash-Location Triage Variant (Oct 17 2026)
+
+**What was changed.** `SelfRepairOrchestrator` gained two optional, default-off features (commit a98c2522c): a crash-location triage (`--crash-triage record|halt`), which classifies each runtime crash by the deciding source location in the sanitizer report (harness, code under test, scaffold, unknown), and a stability gate (`--stability-runs N`), a longer fuzz campaign a harness must also survive after the smoke test. Motivation: in the 18/18 convention-note run, `pl011_set_baudrate` was "repaired" by guarding `baudrate == 0` in the harness, which removed a driver-side division by zero from the result (see the coverage section above). The original protocol (`off`) and its reported numbers are unchanged.
+
+**Run.** Same 18 targets, model (DeepSeek v4.1 flash via CoreWeave), convention note, `--crash-triage record --stability-runs 100000 --stability-time 60`. Output folder `..._convnote_triage-record_stab100000`. This is a fresh sampling of the model, not a re-analysis of the earlier harnesses.
+
+| Measure | Value |
+|---|---|
+| Final status | 18/18 SUCCESS |
+| Targets needing more than one iteration | 1 (`pl011_set_baudrate`, 2 iterations) |
+| LLM calls (driver count) | 19 (ledger has 20 entries, USD 0.012751 total; the one-entry difference was not investigated) |
+| Candidate findings | 1, in `pl011_set_baudrate` |
+
+**The finding.** Stage SMOKE_TEST_ORACLE, iteration 1: `pl011_set_baudrate.c:28:17: runtime error: division by zero`, classified driver-side. The kept reproducer is `crash-da39a3ee5e6b4b0d3255bfef95601890afd80709`; that name is the SHA-1 of the empty input, i.e. the zero-length input (all fuzz-provider values read as 0, so baudrate = 0). The finding is marked `masked_by_repair = True`: iteration 2 produced a harness that passed both the smoke test and the 100,000-run stability gate, so under the original protocol this crash would have vanished from the result without a trace. The new loop kept it with its reproducer.
+
+**What this does and does not show.**
+- It shows the triage works on a real pipeline run: the one driver-side crash in 18 targets was captured, located and preserved, and no other target produced a finding.
+- It reproduces the masking mechanism on an independent sample, so the earlier case was not a one-off.
+- The recorded crash is the *zero-baudrate* variant. The *overflow* variant (`baudrate` a multiple of 2^28) that crashed the earlier final harness at execution 64 was not triggered here: the final harness passed 100,000 runs / 60 s. Whether this harness would survive the 300,000-execution coverage run is not yet measured. The stability gate is a bounded check, not proof of absence.
+- The finding is a candidate: the harness generated baudrate = 0, and whether a real caller can pass 0 to the public API is not established. Disclosure status is unchanged (on hold).
+- Iteration counts (17/18 first-attempt here versus 14/18 earlier) come from different random samples of the same model and must not be read as an effect of the triage; no statistical comparison is made.
