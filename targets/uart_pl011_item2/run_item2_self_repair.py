@@ -181,7 +181,8 @@ def build_agent(offline: bool):
 
 
 def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None,
-                   mmio_note: str = None) -> dict:
+                   mmio_note: str = None, crash_triage: str = "off", stability_runs: int = 0,
+                   stability_time: int = 60) -> dict:
     h_path = ITEM2_DIR / f"{t.name}.h"
     c_path = ITEM2_DIR / f"{t.name}.c"
     out_dir = (out_root or OUTPUT_DIR) / t.name
@@ -195,7 +196,9 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
     risk_scores = cg_builder.analyze_source_file(c_path, known_apis=[t.name])
     risk_score = risk_scores.get(t.name)
 
-    orchestrator = SelfRepairOrchestrator(agent=agent, max_iterations=5)
+    orchestrator = SelfRepairOrchestrator(agent=agent, max_iterations=5, crash_triage=crash_triage,
+                                          stability_runs=stability_runs,
+                                          stability_max_time_sec=stability_time)
 
     record = {
         "target": t.name,
@@ -218,7 +221,8 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
             mmio_convention_note=mmio_note,
         )
         record.update({
-            "status": "SUCCESS" if outcome.success else "FAILED_TO_CONVERGE",
+            "status": ("SUCCESS" if outcome.success else
+                       "CANDIDATE_FINDING" if outcome.halted_on_finding else "FAILED_TO_CONVERGE"),
             "success": outcome.success,
             "first_attempt_success": outcome.success and outcome.total_iterations == 1,
             "total_iterations": outcome.total_iterations,
@@ -237,6 +241,10 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
             if hist[i]["stage"] == "COMPILATION_ORACLE" and not hist[i]["passed"]
             and hist[i + 1]["iteration"] == hist[i]["iteration"]
         })
+        if crash_triage != "off" or stability_runs:
+            record["crash_triage"] = crash_triage
+            record["stability_runs"] = stability_runs
+            record["candidate_findings"] = [f.model_dump(mode="json") for f in outcome.candidate_findings]
         record["first_attempt_success_strict"] = bool(outcome.success and len(hist) == 1)
         record["rule_fix_iterations"] = rule_fix_iters
         if calls_before is not None:
@@ -270,7 +278,7 @@ def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dic
 # ALL_KEYS_EXHAUSTED is deliberately NOT included here: it means the target never actually
 # got a real attempt (success/total_iterations are null), so it must be retried once quota
 # is available again, not treated as done.
-_TERMINAL_STATUSES = {"SUCCESS", "FAILED_TO_CONVERGE"}
+_TERMINAL_STATUSES = {"SUCCESS", "FAILED_TO_CONVERGE", "CANDIDATE_FINDING"}
 
 
 def _load_existing_report(report_path: Path) -> dict:
@@ -327,6 +335,16 @@ def main():
     parser.add_argument("--convention-note", action="store_true",
                         help="openrouter only: add the scaffold-convention note (mock_regs_ptr etc.) to the "
                              "synthesis prompt. Results go to a separate '_convnote' folder.")
+    parser.add_argument("--crash-triage", choices=["off", "record", "halt"], default="off",
+                        help="where to attribute runtime crashes: off = original protocol (default); "
+                             "record = log crashes located in the code under test as candidate findings, "
+                             "loop unchanged; halt = stop at the first such crash. Results go to a "
+                             "separate '_triage-<policy>' folder.")
+    parser.add_argument("--stability-runs", type=int, default=0,
+                        help="if >0, a harness must also survive this many libFuzzer runs after the "
+                             "smoke test (separate '_stab<N>' folder)")
+    parser.add_argument("--stability-time", type=int, default=60,
+                        help="wall-clock cap in seconds for the stability campaign (default 60)")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -344,6 +362,10 @@ def main():
         # separate files/dirs: OpenRouter data must never mix with the Gemini-key data
         if args.convention_note:
             slug += "_convnote"
+        if args.crash_triage != "off":
+            slug += f"_triage-{args.crash_triage}"
+        if args.stability_runs:
+            slug += f"_stab{args.stability_runs}"
         out_root = OUTPUT_DIR / f"openrouter_{slug}"
         out_root.mkdir(parents=True, exist_ok=True)
         os.environ["OPENROUTER_BUDGET_USD"] = str(args.budget_usd)
@@ -357,7 +379,8 @@ def main():
         offline = False
         run_meta = {"backend": "openrouter", "model": args.model, "provider_pinned": args.provider,
                     "reasoning": os.environ["OPENROUTER_REASONING"], "max_tokens": args.max_tokens,
-                    "prompt_variant": "convention_note" if args.convention_note else "no_note"}
+                    "prompt_variant": "convention_note" if args.convention_note else "no_note",
+                    "crash_triage": args.crash_triage, "stability_runs": args.stability_runs}
         print(f"OPENROUTER mode: model={args.model} provider={args.provider or 'unpinned'} "
               f"budget=${args.budget_usd:.2f} ledger={os.environ['OPENROUTER_LEDGER']}", file=sys.stderr)
         report_path = out_root / "item2_report.json"
@@ -390,7 +413,9 @@ def main():
     for t in targets_to_run:
         print(f"\n=== {t.name} (CCN {t.ccn}) ===", file=sys.stderr)
         record = run_one_target(t, agent, offline, out_root=out_root, run_meta=run_meta,
-                                mmio_note=ITEM2_CONVENTION_NOTE if args.convention_note else None)
+                                mmio_note=ITEM2_CONVENTION_NOTE if args.convention_note else None,
+                                crash_triage=args.crash_triage, stability_runs=args.stability_runs,
+                                stability_time=args.stability_time)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
         existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
         if record["status"] == "BACKEND_FAILED":

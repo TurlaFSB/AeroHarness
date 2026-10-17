@@ -36,14 +36,24 @@ from src.analyzer.call_graph import APIRiskScore
 from src.synthesizer.agent import HarnessSynthesizerAgent, SynthesisCandidate
 
 from .compiler_oracle import CompilationResult, CompilerOracle
+from .crash_triage import (
+    CrashFinding,
+    CrashVerdict,
+    evidence_excerpt,
+    target_path_set,
+    target_side_ubsan,
+    triage_crash,
+)
 from .smoke_test import SmokeTestOracle, SmokeTestResult
+
+TRIAGE_POLICIES = ("off", "record", "halt")
 
 
 class RepairIteration(BaseModel):
     """One round of the loop: which oracle ran, whether it passed, and why not."""
 
     iteration: int
-    stage: str  # 'COMPILATION_ORACLE' | 'SMOKE_TEST_ORACLE' | 'SUCCESS'
+    stage: str  # 'COMPILATION_ORACLE' | 'SMOKE_TEST_ORACLE' | 'STABILITY_GATE' | 'SUCCESS'
     passed: bool
     diagnostics: List[Dict[str, Any]] = Field(default_factory=list)
     raw_error: str = ""
@@ -66,6 +76,11 @@ class RepairOutcome(BaseModel):
     total_iterations: int = 0
     history: List[RepairIteration] = Field(default_factory=list)
     failure_reason: Optional[str] = None
+    # Crash triage (optional; defaults reproduce the original protocol exactly).
+    triage_policy: str = "off"
+    stability_runs: int = 0
+    candidate_findings: List[CrashFinding] = Field(default_factory=list)
+    halted_on_finding: bool = False
 
 
 class SelfRepairOrchestrator:
@@ -88,7 +103,28 @@ class SelfRepairOrchestrator:
         compiler_oracle: Optional[CompilerOracle] = None,
         smoke_oracle: Optional[SmokeTestOracle] = None,
         max_iterations: Optional[int] = None,
+        crash_triage: str = "off",
+        stability_runs: int = 0,
+        stability_max_time_sec: int = 60,
     ):
+        """
+        ``crash_triage`` (default ``off`` = the protocol behind the reported 18/18 result):
+          * ``off``    every runtime failure is a harness defect and is sent to the model.
+          * ``record`` runtime failures whose deciding source location is in the code under
+                       test are recorded as candidate findings (with the crashing input), the
+                       loop is otherwise unchanged; each finding is later marked
+                       ``masked_by_repair`` if the loop still ended in a passing harness.
+          * ``halt``   as ``record`` but the loop stops at the first such failure
+                       (``halted_on_finding``) instead of editing the harness around it.
+        ``stability_runs`` > 0 adds a second, longer campaign after the smoke test passes
+        (``stability_max_time_sec`` wall-clock cap). Its failures are repaired/triaged like
+        smoke failures, so a harness only succeeds if it also survives that campaign.
+        """
+        if crash_triage not in TRIAGE_POLICIES:
+            raise ValueError(f"crash_triage must be one of {TRIAGE_POLICIES}, got {crash_triage!r}")
+        self.crash_triage = crash_triage
+        self.stability_runs = max(0, int(stability_runs))
+        self.stability_max_time_sec = stability_max_time_sec
         self.settings = get_settings()
         self.agent = agent or HarnessSynthesizerAgent()
         self.compiler = compiler_oracle or CompilerOracle()
@@ -139,6 +175,18 @@ class SelfRepairOrchestrator:
         last_smoke_res: Optional[SmokeTestResult] = None
 
         consecutive_timeouts = 0
+        findings: List[CrashFinding] = []
+        triage_on = self.crash_triage != "off"
+        target_paths = target_path_set(target_c_files, header_path)
+        crash_root = output_dir / "crashes"
+
+        def _finish(outcome: RepairOutcome) -> RepairOutcome:
+            for f in findings:
+                f.masked_by_repair = bool(outcome.success) and not outcome.halted_on_finding
+            outcome.triage_policy = self.crash_triage
+            outcome.stability_runs = self.stability_runs
+            outcome.candidate_findings = findings
+            return outcome
 
         for iteration in range(1, self.max_iterations + 1):
             harness_src_path.write_text(candidate.code, encoding="utf-8")
@@ -198,17 +246,72 @@ class SelfRepairOrchestrator:
                     )
                     continue
 
+            iter_crash_dir = crash_root / f"iter{iteration}"
+            smoke_kwargs = {}
+            if triage_on:
+                iter_crash_dir.mkdir(parents=True, exist_ok=True)
+                smoke_kwargs["artifact_prefix"] = iter_crash_dir
             smoke_res = self.smoke_oracle.run_smoke_test(
-                out_binary_path, runs=self.settings.smoke_test_runs
+                out_binary_path, runs=self.settings.smoke_test_runs, **smoke_kwargs
             )
+            stage = "SMOKE_TEST_ORACLE"
+            if smoke_res.passed and self.stability_runs > 0:
+                gate_res = self.smoke_oracle.run_smoke_test(
+                    out_binary_path,
+                    runs=self.stability_runs,
+                    max_total_time=self.stability_max_time_sec,
+                    timeout_sec=self.stability_max_time_sec + 60,
+                    **smoke_kwargs,
+                )
+                if not gate_res.passed:
+                    smoke_res, stage = gate_res, "STABILITY_GATE"
             last_smoke_res = smoke_res
+
+            if smoke_res.passed and triage_on:
+                # UBSan runs in recover mode: a target-side report on a *passing* run is
+                # invisible to the legacy loop. Keep it as evidence, never as a failure.
+                for u in target_side_ubsan(smoke_res.stderr, target_paths)[:3]:
+                    findings.append(CrashFinding(
+                        iteration=iteration, stage=stage, verdict=CrashVerdict.TARGET_SIDE,
+                        site_file=u.file, site_line=u.line, site_col=u.col,
+                        message=f"non-fatal UBSan report: {u.message}",
+                        evidence_excerpt=evidence_excerpt(smoke_res.stderr, 12)))
 
             if not smoke_res.passed:
                 crash_reason = smoke_res.crash_reason or smoke_res.stderr
+                if triage_on and smoke_res.crashed:
+                    tri = triage_crash(smoke_res.stderr, harness_src_path, target_paths)
+                    if tri.verdict == CrashVerdict.TARGET_SIDE and tri.site is not None:
+                        repro = sorted(iter_crash_dir.glob("crash-*"), key=lambda q: q.stat().st_mtime)
+                        findings.append(CrashFinding(
+                            iteration=iteration, stage=stage, verdict=tri.verdict,
+                            site_file=tri.site.file, site_line=tri.site.line,
+                            site_col=tri.site.col, site_function=tri.site.function,
+                            message=crash_reason,
+                            reproducer_path=str(repro[-1]) if repro else None,
+                            evidence_excerpt=evidence_excerpt(smoke_res.stderr)))
+                        if self.crash_triage == "halt":
+                            history.append(RepairIteration(
+                                iteration=iteration, stage=stage, passed=False,
+                                diagnostics=[], raw_error=crash_reason))
+                            return _finish(RepairOutcome(
+                                success=False,
+                                target_api=target_api.name,
+                                final_harness_code=candidate.code,
+                                harness_file_path=str(harness_src_path),
+                                binary_path=None,
+                                total_iterations=iteration,
+                                history=history,
+                                failure_reason=(
+                                    "CANDIDATE_FINDING: crash located in the code under test "
+                                    f"({tri.site.file}:{tri.site.line}); loop halted instead of "
+                                    f"repairing the harness around it ({crash_reason})."),
+                                halted_on_finding=True,
+                            ))
                 history.append(
                     RepairIteration(
                         iteration=iteration,
-                        stage="SMOKE_TEST_ORACLE",
+                        stage=stage,
                         passed=False,
                         diagnostics=[],
                         raw_error=crash_reason,
@@ -237,7 +340,7 @@ class SelfRepairOrchestrator:
                     iteration=iteration, stage="SUCCESS", passed=True, diagnostics=[], raw_error=""
                 )
             )
-            return RepairOutcome(
+            return _finish(RepairOutcome(
                 success=True,
                 target_api=target_api.name,
                 final_harness_code=candidate.code,
@@ -246,10 +349,10 @@ class SelfRepairOrchestrator:
                 total_iterations=iteration,
                 history=history,
                 failure_reason=None,
-            )
+            ))
 
         failure_reason = self._summarize_terminal_failure(last_comp_res, last_smoke_res)
-        return RepairOutcome(
+        return _finish(RepairOutcome(
             success=False,
             target_api=target_api.name,
             final_harness_code=candidate.code,
@@ -258,7 +361,7 @@ class SelfRepairOrchestrator:
             total_iterations=self.max_iterations,
             history=history,
             failure_reason=failure_reason,
-        )
+        ))
 
     @staticmethod
     def _summarize_terminal_failure(
