@@ -103,7 +103,7 @@ struct; `poll_out`'s loops over every input byte calling the target function). T
 `evaluate_harness()` being flaky as the source of the 10 discordant pairs. It does not show
 which compiler error each rescue fixed.
 
-## Results — `qwen2.5-coder:14b` (statistics verified Oct 5 2026; interpretation pending)
+## Results — `qwen2.5-coder:14b` (statistics verified Oct 5 2026; interpretation superseded by the DeepSeek cloud leg below, Oct 15-16 2026)
 
 Full 100-trial run completed on Antigravity's machine (backend: see the reproducibility note
 below), about 14 hours. Run at commit `54eef536c` (the provenance-fix version), so every trial has
@@ -187,9 +187,10 @@ because the failure mode appears to be at least partly a scaffold artifact:
 build already provides (`struct pl011_regs`, `get_uart`) and the models also ignore its explicit
 rule about `struct device`; the compiler rejects the result. Both legs' absolute success rates, the 7B rescue count, and the 14B-vs-7B contrast
 are therefore measurements of a scaffold with a known defect, not clean measurements of
-repair capability. The Fisher comparison above is a fact about this scaffold only. Pending: a
-decision on correcting the prompt and re-running both models (smoke test first), and keeping
-the retry prompt design as is unless changed deliberately and reported as a separate change.
+repair capability. The Fisher comparison above is a fact about this scaffold only. Resolved
+(Oct 15-16 2026): the scaffold was corrected and the experiment re-run on a cloud model; see
+"Cloud leg: DeepSeek V4.1 Flash via OpenRouter" below. The retry prompt design was kept as is and
+the code-in-retry-context variant was reported as a separate change.
 
 ## Provenance fix (Oct 4 2026)
 
@@ -220,7 +221,7 @@ as a separate experiment next to v1, not as a replacement for it.
 
 ### Prompt v2 smoke test (7B, 5 trials per target, Oct 5 2026) and prompt v3
 
-Reported by the executing agent, not yet independently re-derived; the agent's own analysis
+Reported by the executing agent, not independently re-derived (historical; the cloud leg below supersedes it); the agent's own analysis
 was labelled a "snapshot from the first 10 completed trials" while tabulating 25, so the
 numbers below should be treated as provisional until the v3 smoke test is analysed with
 explicit file counts. The agent also disclosed that code it pasted in an earlier report
