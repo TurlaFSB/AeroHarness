@@ -84,6 +84,9 @@ class RotatingHarnessSynthesizerAgent:
     def repair_harness(self, **kwargs) -> SynthesisCandidate:
         return self._call_with_rotation("repair_harness", **kwargs)
 
+    def improve_coverage(self, **kwargs) -> SynthesisCandidate:
+        return self._call_with_rotation("improve_coverage", **kwargs)
+
     def _call_with_rotation(self, method_name: str, **kwargs) -> SynthesisCandidate:
         attempts = 0
         tried_keys = []

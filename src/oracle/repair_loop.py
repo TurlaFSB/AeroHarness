@@ -25,6 +25,7 @@ this module was exercised end-to-end against a known-good existing target
 smoke-test -> repair loop rather than merely importing cleanly. See RESULTS.md for that
 verification run's outcome before trusting any subsequent data this module produces.
 """
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -36,6 +37,7 @@ from src.analyzer.call_graph import APIRiskScore
 from src.synthesizer.agent import HarnessSynthesizerAgent, SynthesisCandidate
 
 from .compiler_oracle import CompilationResult, CompilerOracle
+from .coverage_oracle import CoverageOracle
 from .crash_triage import (
     CrashFinding,
     CrashVerdict,
@@ -82,6 +84,7 @@ class RepairOutcome(BaseModel):
     wrap_probe_runs: int = 0
     candidate_findings: List[CrashFinding] = Field(default_factory=list)
     halted_on_finding: bool = False
+    coverage_feedback: Optional[Dict[str, Any]] = None
 
 
 class SelfRepairOrchestrator:
@@ -108,6 +111,10 @@ class SelfRepairOrchestrator:
         stability_runs: int = 0,
         stability_max_time_sec: int = 60,
         wrap_probe_runs: int = 0,
+        coverage_feedback_min: float = 0.0,
+        coverage_oracle: Optional[CoverageOracle] = None,
+        coverage_runs: int = 20000,
+        coverage_max_time_sec: int = 30,
     ):
         """
         ``crash_triage`` (default ``off`` = the protocol behind the reported 18/18 result):
@@ -126,6 +133,11 @@ class SelfRepairOrchestrator:
         wrap reports located in the code under test are kept as candidate findings. It never
         changes success or triggers repair (unsigned wrap is defined C behaviour and is
         sometimes intended).
+        ``coverage_feedback_min`` > 0 (a fraction, e.g. 0.9) adds ONE coverage-feedback round to
+        a finally-passing harness: the coverage of the target's own sources is measured over a
+        short campaign; if it is below the threshold, the unreached lines are sent to the model
+        and the new harness replaces the old one only if it passes the same oracles and covers
+        strictly more lines. Otherwise the verified harness is kept unchanged. Default 0 = off.
         """
         if crash_triage not in TRIAGE_POLICIES:
             raise ValueError(f"crash_triage must be one of {TRIAGE_POLICIES}, got {crash_triage!r}")
@@ -133,6 +145,10 @@ class SelfRepairOrchestrator:
         self.stability_runs = max(0, int(stability_runs))
         self.stability_max_time_sec = stability_max_time_sec
         self.wrap_probe_runs = max(0, int(wrap_probe_runs))
+        self.coverage_feedback_min = float(coverage_feedback_min)
+        self.coverage_oracle = coverage_oracle or CoverageOracle()
+        self.coverage_runs = coverage_runs
+        self.coverage_max_time_sec = coverage_max_time_sec
         self.settings = get_settings()
         self.agent = agent or HarnessSynthesizerAgent()
         self.compiler = compiler_oracle or CompilerOracle()
@@ -346,6 +362,12 @@ class SelfRepairOrchestrator:
                 )
                 continue
 
+            cov_record = None
+            if self.coverage_feedback_min > 0:
+                cov_record = self._coverage_feedback(
+                    candidate, harness_src_path, out_binary_path, target_c_files, include_dirs,
+                    target_paths, iteration, findings,
+                )
             if self.wrap_probe_runs > 0:
                 self._wrap_probe(
                     harness_src_path, out_binary_path, target_c_files, include_dirs,
@@ -365,6 +387,7 @@ class SelfRepairOrchestrator:
                 total_iterations=iteration,
                 history=history,
                 failure_reason=None,
+                coverage_feedback=cov_record,
             ))
 
         failure_reason = self._summarize_terminal_failure(last_comp_res, last_smoke_res)
@@ -378,6 +401,107 @@ class SelfRepairOrchestrator:
             history=history,
             failure_reason=failure_reason,
         ))
+
+    def _coverage_feedback(self, candidate, harness_src_path, out_binary_path, target_c_files,
+                           include_dirs, target_paths, iteration, findings) -> Dict[str, Any]:
+        """One measured coverage-feedback round on a harness that already passed. See the
+        constructor docstring. Never raises and never leaves a worse harness behind: the
+        verified harness stays in place unless the new one passes every oracle and covers more."""
+        rec: Dict[str, Any] = {"threshold": self.coverage_feedback_min, "attempted": False,
+                               "accepted": False}
+        work = harness_src_path.parent / "coverage_feedback"
+        try:
+            before = self.coverage_oracle.measure(
+                harness_src_path, target_c_files, include_dirs, work / "before",
+                runs=self.coverage_runs, max_total_time=self.coverage_max_time_sec)
+            if not before.ok:
+                rec["skipped_reason"] = before.error
+                return rec
+            rec["before"] = {"covered": before.covered, "total": before.total,
+                             "fraction": round(before.fraction, 4),
+                             "uncovered": before.uncovered_lines, "measurement_crashed": before.crashed}
+            if before.fraction >= self.coverage_feedback_min:
+                rec["skipped_reason"] = "coverage at or above threshold"
+                return rec
+
+            marked, listing = self._mark_uncovered(target_c_files, before.uncovered_lines)
+            rec["attempted"] = True
+            new = self.agent.improve_coverage(
+                candidate=candidate, target_source_marked=marked, uncovered=listing,
+                covered=before.covered, total=before.total)
+            if new.code.strip() == candidate.code.strip():
+                rec["reject_reason"] = "model returned an unchanged harness"
+                return rec
+
+            cov_h = harness_src_path.with_name(harness_src_path.stem + "_covfb.cpp")
+            cov_bin = out_binary_path.with_name(out_binary_path.name + "_covfb")
+            cov_h.write_text(new.code, encoding="utf-8")
+            comp = self.compiler.compile_harness(
+                harness_src_path=cov_h, target_c_files=target_c_files,
+                include_dirs=include_dirs, output_binary_path=cov_bin)
+            if not comp.success:
+                rec["reject_reason"] = "new harness did not compile"
+                return rec
+            kw = {"artifact_prefix": work / "crashes"} if self.crash_triage != "off" else {}
+            if kw:
+                (work / "crashes").mkdir(parents=True, exist_ok=True)
+            sm = self.smoke_oracle.run_smoke_test(cov_bin, runs=self.settings.smoke_test_runs, **kw)
+            if sm.passed and self.stability_runs > 0:
+                gate = self.smoke_oracle.run_smoke_test(
+                    cov_bin, runs=self.stability_runs, max_total_time=self.stability_max_time_sec,
+                    timeout_sec=self.stability_max_time_sec + 60, **kw)
+                if not gate.passed:
+                    sm = gate
+            if not sm.passed:
+                rec["reject_reason"] = "new harness failed the smoke/stability oracle"
+                if sm.crashed and self.crash_triage != "off":
+                    tri = triage_crash(sm.stderr, cov_h, target_paths)
+                    if tri.verdict == CrashVerdict.TARGET_SIDE and tri.site is not None:
+                        repro = sorted((work / "crashes").glob("crash-*"), key=lambda q: q.stat().st_mtime)
+                        findings.append(CrashFinding(
+                            iteration=iteration, stage="COVERAGE_FEEDBACK", verdict=tri.verdict,
+                            site_file=tri.site.file, site_line=tri.site.line, site_col=tri.site.col,
+                            site_function=tri.site.function,
+                            message=sm.crash_reason or "crash in code reached by the coverage round",
+                            reproducer_path=str(repro[-1]) if repro else None,
+                            evidence_excerpt=evidence_excerpt(sm.stderr)))
+                        rec["reject_reason"] += "; crash located in the code under test recorded as a finding"
+                return rec
+            after = self.coverage_oracle.measure(
+                cov_h, target_c_files, include_dirs, work / "after",
+                runs=self.coverage_runs, max_total_time=self.coverage_max_time_sec)
+            if not after.ok:
+                rec["reject_reason"] = f"could not measure new harness: {after.error}"
+                return rec
+            rec["after"] = {"covered": after.covered, "total": after.total,
+                            "fraction": round(after.fraction, 4), "uncovered": after.uncovered_lines,
+                            "measurement_crashed": after.crashed}
+            if after.covered > before.covered:
+                shutil.copyfile(cov_h, harness_src_path)
+                shutil.copyfile(cov_bin, out_binary_path)
+                candidate.code = new.code
+                candidate.model_used = new.model_used
+                rec["accepted"] = True
+            else:
+                rec["reject_reason"] = "new harness did not cover more lines"
+            return rec
+        except Exception as e:  # noqa: BLE001 - the round must not change the loop's outcome
+            if type(e).__name__ in ("BackendFailedError", "AllKeysExhaustedError"):
+                raise
+            rec["skipped_reason"] = f"coverage feedback error: {e}"
+            return rec
+
+    @staticmethod
+    def _mark_uncovered(target_c_files, uncovered_by_file) -> tuple:
+        marked, listing = [], []
+        for c in target_c_files:
+            key = next((k for k in uncovered_by_file if Path(k).resolve() == Path(c).resolve()), None)
+            unc = set(uncovered_by_file.get(key, [])) if key else set()
+            lines = Path(c).read_text(encoding="utf-8", errors="replace").splitlines()
+            for i, text in enumerate(lines, 1):
+                marked.append(f"{i:4d}{'  >>NEVER<<' if i in unc else '            '} {text}")
+            listing += [f"- {Path(c).name}:{n}" for n in sorted(unc)[:60]]
+        return "\n".join(marked[:200]), "\n".join(listing)
 
     def _wrap_probe(self, harness_src_path, out_binary_path, target_c_files, include_dirs,
                     target_paths, iteration, findings) -> None:

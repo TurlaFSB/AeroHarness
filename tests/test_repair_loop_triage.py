@@ -24,7 +24,9 @@ class Agent:
 
 
 class Comp:
-    def compile_harness(self, **kw): return SimpleNamespace(success=True, diagnostics=[], stderr="")
+    def compile_harness(self, **kw):
+        kw["output_binary_path"].write_text("bin")
+        return SimpleNamespace(success=True, diagnostics=[], stderr="")
 
 
 class Smoke:
@@ -109,3 +111,87 @@ def test_wrap_probe_is_record_only_and_not_masked(tmp_path):
     assert [f.stage for f in out.candidate_findings] == ["WRAP_PROBE"]
     assert out.candidate_findings[0].masked_by_repair is None
     assert out.wrap_probe_runs == 20000
+
+
+# ---- coverage feedback ------------------------------------------------------------------
+from src.oracle.coverage_oracle import CoverageResult
+
+
+class CovOracle:
+    """Returns the queued results in order; records calls."""
+    def __init__(self, *results): self.results, self.calls = list(results), 0
+    def measure(self, *a, **k):
+        self.calls += 1
+        return self.results.pop(0)
+
+
+def cov(covered, total=22, unc=None):
+    return CoverageResult(ok=True, covered=covered, total=total,
+                          uncovered_lines={T: unc if unc is not None else [38, 39]})
+
+
+class CovAgent(Agent):
+    def __init__(self, new_code="v_cov"): super().__init__(); self.new_code, self.cov_calls = new_code, 0
+    def improve_coverage(self, candidate, **kw):
+        self.cov_calls += 1
+        return SimpleNamespace(code=self.new_code, model_used="m", iteration=getattr(candidate, "iteration", 0) + 1,
+                               history=[])
+
+
+def run_cov(tmp_path, cov_oracle, agent=None, smoke=None, **kw):
+    agent = agent or CovAgent()
+    # the real target source is read to mark lines; give it something
+    Path(T).parent.mkdir(parents=True, exist_ok=True)
+    Path(T).write_text("int x;\n" * 60)
+    orch = SelfRepairOrchestrator(agent=agent, compiler_oracle=Comp(), smoke_oracle=smoke or Smoke(bad=0),
+                                  max_iterations=5, coverage_oracle=cov_oracle, **kw)
+    out = orch.run_synthesis_and_repair(
+        header_context=None, target_api=SimpleNamespace(name="pl011_set_baudrate"),
+        risk_score=None, header_path=Path("/w/targets/pl011_set_baudrate.h"),
+        target_c_files=[Path(T)], include_dirs=[], output_dir=tmp_path)
+    return out, agent
+
+
+def test_coverage_feedback_off_by_default(tmp_path):
+    co = CovOracle()
+    out, agent = run_cov(tmp_path, co)
+    assert out.coverage_feedback is None and co.calls == 0 and agent.cov_calls == 0
+
+
+def test_coverage_above_threshold_makes_no_model_call(tmp_path):
+    out, agent = run_cov(tmp_path, CovOracle(cov(21)), coverage_feedback_min=0.9)
+    assert agent.cov_calls == 0 and out.coverage_feedback["skipped_reason"].startswith("coverage at or")
+
+
+def test_coverage_improvement_is_accepted_and_replaces_files(tmp_path):
+    (tmp_path).mkdir(exist_ok=True)
+    out, agent = run_cov(tmp_path, CovOracle(cov(11), cov(20, unc=[40])), coverage_feedback_min=0.9)
+    assert out.coverage_feedback["accepted"] and agent.cov_calls == 1
+    assert out.final_harness_code == "v_cov"
+    assert (tmp_path / "fuzz_pl011_set_baudrate.cpp").read_text() == "v_cov"
+
+
+def test_coverage_not_better_is_rejected_and_original_kept(tmp_path):
+    out, agent = run_cov(tmp_path, CovOracle(cov(11), cov(11)), coverage_feedback_min=0.9)
+    assert not out.coverage_feedback["accepted"] and out.final_harness_code == "v0"
+    assert "did not cover more" in out.coverage_feedback["reject_reason"]
+    assert out.success
+
+
+def test_coverage_round_failing_smoke_is_rejected(tmp_path):
+    class S(Smoke):
+        def run_smoke_test(self, binary, runs=100, **kw):
+            if str(binary).endswith("_covfb"):
+                return TARGET_CRASH
+            return super().run_smoke_test(binary, runs, **kw)
+    out, agent = run_cov(tmp_path, CovOracle(cov(11)), smoke=S(bad=0),
+                         coverage_feedback_min=0.9, crash_triage="record")
+    assert not out.coverage_feedback["accepted"] and out.final_harness_code == "v0"
+    assert out.success
+    assert [f.stage for f in out.candidate_findings] == ["COVERAGE_FEEDBACK"]
+
+
+def test_coverage_measure_error_is_skipped_not_fatal(tmp_path):
+    out, agent = run_cov(tmp_path, CovOracle(CoverageResult(ok=False, error="clang missing")),
+                         coverage_feedback_min=0.9)
+    assert out.success and agent.cov_calls == 0 and out.coverage_feedback["skipped_reason"] == "clang missing"

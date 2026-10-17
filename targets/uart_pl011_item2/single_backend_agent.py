@@ -66,5 +66,8 @@ class SingleBackendHarnessSynthesizerAgent:
     def repair_harness(self, **kwargs) -> SynthesisCandidate:
         return self._checked(self._agent.repair_harness(**kwargs), "repair_harness")
 
+    def improve_coverage(self, **kwargs) -> SynthesisCandidate:
+        return self._checked(self._agent.improve_coverage(**kwargs), "improve_coverage")
+
     def _apply_deterministic_fix(self, code: str, error_message: str) -> str:
         return self._agent._apply_deterministic_fix(code, error_message)

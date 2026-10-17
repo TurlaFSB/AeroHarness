@@ -501,6 +501,39 @@ class HarnessSynthesizerAgent:
         candidate.model_used = "deterministic-generator"
         return candidate
 
+    def improve_coverage(
+        self,
+        candidate: SynthesisCandidate,
+        target_source_marked: str,
+        uncovered: str,
+        covered: int,
+        total: int,
+    ) -> SynthesisCandidate:
+        """One coverage-feedback call. Returns a NEW candidate; the input is not modified, so a
+        rejected attempt leaves the verified harness untouched. There is no offline fallback:
+        without a usable backend the returned candidate carries the unchanged code."""
+        new = candidate.model_copy(deep=True)
+        new.iteration += 1
+        prompt = PromptFactory.build_coverage_prompt(
+            current_code=candidate.code, target_source_marked=target_source_marked,
+            uncovered=uncovered, covered=covered, total=total)
+        can_call_llm = (
+            self.client is not None
+            or bool(self.openrouter_api_key)
+            or (self.enable_opencode and (bool(self.opencode_api_key) or bool(self.opencode_bin)))
+        )
+        if can_call_llm:
+            response_text, model_used = self._generate_content(
+                prompt, PromptFactory.get_system_prompt(), temperature=0.1, context="coverage_feedback")
+            if response_text is not None:
+                new.code = self._extract_code(response_text)
+                new.model_used = model_used
+                new.history.append({"role": "user", "content": prompt})
+                new.history.append({"role": "assistant", "content": new.code})
+                return new
+        new.model_used = "deterministic-generator"
+        return new
+
     def _extract_code(self, response_text: str) -> str:
         """Extracts clean C++ code from markdown code fences."""
         pattern = re.compile(r'```(?:cpp|c|c\+\+)?\s*(.*?)\s*```', re.DOTALL)
