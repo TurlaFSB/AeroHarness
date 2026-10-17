@@ -82,15 +82,38 @@ def measure(target, item2_dir, out_root, repo, runs, keep):
 
     env = dict(os.environ, LLVM_PROFILE_FILE=prof_raw)
     corpus = os.path.join(tdir, "cov_corpus")
+    art = os.path.join(tdir, "cov_artifacts")
     os.makedirs(corpus, exist_ok=True)
+    os.makedirs(art, exist_ok=True)
+    crash = None
     try:
-        subprocess.run(["./cov_bin", corpus, f"-runs={runs}", "-timeout=5",
-                        "-max_len=512", "-print_final_stats=0"],
-                       cwd=tdir, capture_output=True, text=True, timeout=180, env=env)
+        fr = subprocess.run(["./cov_bin", corpus, f"-runs={runs}", "-timeout=5",
+                             "-max_len=512", "-print_final_stats=0",
+                             f"-artifact_prefix={art}/"],
+                            cwd=tdir, capture_output=True, text=True, timeout=180, env=env)
+        if fr.returncode != 0 or "ERROR: " in (fr.stderr or ""):
+            summ = [l for l in (fr.stderr or "").splitlines() if l.startswith("SUMMARY:")]
+            crash = {"exit_code": fr.returncode,
+                     "summary": (summ[0] if summ else (fr.stderr or "").strip()[-200:])}
     except subprocess.TimeoutExpired:
         pass  # a hang-prone target still leaves a profile from the runs it did
-    if not os.path.exists(prof_raw):
-        return {"target": target, "error": "no profile produced (binary may have crashed before writing)"}
+    if crash or not os.path.exists(prof_raw) or os.path.getsize(prof_raw) == 0:
+        # The fuzz run aborted (sanitizer/signal), so the process never wrote its
+        # profile and the file is missing or empty. Reporting that as "0% coverage"
+        # would be wrong. Replay the corpus saved before the crash (no mutation,
+        # crashing input excluded) to get a real profile of what ran, and flag it.
+        if os.path.exists(prof_raw):
+            os.remove(prof_raw)
+        try:
+            subprocess.run(["./cov_bin", corpus, "-runs=0", f"-artifact_prefix={art}/"],
+                           cwd=tdir, capture_output=True, text=True, timeout=120, env=env)
+        except subprocess.TimeoutExpired:
+            pass
+        if crash is None:
+            crash = {"exit_code": None, "summary": "no profile written by the fuzz run"}
+    if not os.path.exists(prof_raw) or os.path.getsize(prof_raw) == 0:
+        return {"target": target, "error": "no profile produced even after corpus replay",
+                "crash": crash}
 
     pm = subprocess.run(["llvm-profdata", "merge", "-sparse", prof_raw, "-o", prof_data],
                         cwd=tdir, capture_output=True, text=True)
@@ -102,6 +125,10 @@ def measure(target, item2_dir, out_root, repo, runs, keep):
                           f"-instr-profile={prof_data}", cfile, "-summary-only"],
                          cwd=tdir, capture_output=True, text=True)
     out = {"target": target}
+    if crash:
+        out["crash"] = crash
+        found = sorted(glob.glob(os.path.join(art, "crash-*")) + glob.glob(os.path.join(art, "timeout-*")))
+        out["crash_inputs"] = found
     try:
         data = json.loads(rep.stdout)
         tot = data["data"][0]["totals"]
@@ -122,6 +149,8 @@ def measure(target, item2_dir, out_root, repo, runs, keep):
             except OSError:
                 pass
         shutil.rmtree(corpus, ignore_errors=True)
+        if not crash:
+            shutil.rmtree(art, ignore_errors=True)  # keep crash inputs as evidence
     return out
 
 
@@ -170,7 +199,10 @@ def main():
             print(f"  {t:34s} ERROR: {res['error']}")
         else:
             rows.append(res)
-            print(f"  {t:34s} lines {res.get('lines','-'):18s} regions {res.get('regions','-'):18s} branches {res.get('branches','-')}")
+            note = ""
+            if res.get("crash"):
+                note = "   [FUZZ RUN CRASHED - coverage is from pre-crash corpus replay only]"
+            print(f"  {t:34s} lines {res.get('lines','-'):18s} regions {res.get('regions','-'):18s} branches {res.get('branches','-')}{note}")
 
     if rows:
         def pct(s):
@@ -181,6 +213,13 @@ def main():
         for r in rows_sorted:
             print(f"  {r['target']:34s} {r.get('lines','-')}")
         print(f"\nmeasured {len(rows)} ok, {len(errors)} errored")
+        crashed = [r for r in rows if r.get("crash")]
+        if crashed:
+            print("\n== targets whose fuzz run CRASHED (not a coverage result; a finding to triage) ==")
+            for r in crashed:
+                print(f"- {r['target']}: {r['crash']['summary']}")
+                for ci in r.get("crash_inputs", []):
+                    print(f"    crashing input kept at: {ci}")
     if errors:
         print("\n== errors (first stderr tail each) ==")
         for e in errors:
