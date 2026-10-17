@@ -479,3 +479,19 @@ By target in the headline configuration: `pl011_poll_in` 20/20 clean, `pl011_isr
 - The recorded crash is the *zero-baudrate* variant. The *overflow* variant (`baudrate` a multiple of 2^28) that crashed the earlier final harness at execution 64 was not triggered here: the final harness passed 100,000 runs / 60 s. Whether this harness would survive the 300,000-execution coverage run is not yet measured. The stability gate is a bounded check, not proof of absence.
 - The finding is a candidate: the harness generated baudrate = 0, and whether a real caller can pass 0 to the public API is not established. Disclosure status is unchanged (on hold).
 - Iteration counts (17/18 first-attempt here versus 14/18 earlier) come from different random samples of the same model and must not be read as an effect of the triage; no statistical comparison is made.
+
+### Coverage and 300,000-execution survival of the triage-run harnesses (Oct 17 2026)
+
+`coverage_item2.py --runs 300000` on the `..._convnote_triage-record_stab100000` folder (same 18 SUCCESS harnesses; coverage build is `-fsanitize=fuzzer,address -O1 -fno-inline`, i.e. without UBSan, unlike the pipeline's smoke build).
+
+| Measure | Value |
+|---|---|
+| Driver lines covered, all 18 targets | 152/163 (93.3%) |
+| Targets at 100% line coverage | 17 of 18 |
+| Low outlier | `pl011_irq_tx_enable`: 11/22 lines (50.0%), 8/27 regions, 3/12 branches |
+| Branch gap in a 100%-line target | `pl011_fifo_read` 3/4 branches |
+| Fuzz run crashed | `pl011_set_baudrate` (1 of 18) |
+
+**Stability gate was not sufficient.** The final `pl011_set_baudrate` harness passed the 100,000-run / 60 s stability gate in the pipeline, then crashed in the 300,000-execution coverage run with `AddressSanitizer: FPE ... pl011_set_baudrate.c:28:17`. The harness draws `baudrate` from `ConsumeIntegralInRange(1, 0xFFFFFFFF)`, so the zero-baudrate case that the repair removed is excluded, but the 32-bit overflow variant (`baudrate * 16U` wrapping to 0) remains reachable. The two runs differ in build flags and random seed, and the execution number of the crash was not recorded, so this shows that the gate missed a crash that a longer run found, not how much longer a gate must be. The `pl011_set_baudrate` coverage figure (14/14 lines) is from corpus replay before the crash, not from the full run.
+
+**Consequences.** (1) The target-side crash class is real in a second independent sample, and the overflow variant survived a first repair that fixed only the zero case; (2) "100,000 runs / 60 s" is not an adequate crash-free guarantee for rare-value arithmetic faults and should not be described as one; (3) 17 of 18 harnesses ran 300,000 executions without a crash, and one of them (`pl011_irq_tx_enable`) reaches only half of its target's lines, so "SUCCESS" does not imply that the target is exercised; its cause is not yet diagnosed. Pending: a read-only diagnosis of both items, then a detection-rate measurement over several seeds to set the gate length from data.
