@@ -432,3 +432,28 @@ By target in the headline configuration: `pl011_poll_in` 20/20 clean, `pl011_isr
 **Reading.** About nine in ten SUCCESS harnesses are clean under clang-tidy's default checks, and none of the findings inspected (both `StackAddressEscape` harnesses read in full, the `EnumCastOutOfRange` casts in 4 harnesses) changes whether a harness is valid. Together with Ablation E this gives a consistent picture: lint-class issues are rare in what the loop produces and almost never present in what the loop sees.
 
 **Limits.** (1) clang-tidy's default checks are a weak oracle; clean does not mean correct. (2) Only the generated harness text is analyzed, not the appended driver. (3) 14 passing Qwen2.5-coder 7B trials had no stored harness file and were not audited. (4) The counts above are warnings per harness file, not a severity ranking.
+
+## Work Plan Item 2: llvm-cov Line Coverage of the 18 Convention-Note Harnesses (Oct 17 2026)
+
+**Method.** `coverage_item2.py` rebuilds each harness plus the verbatim real driver `.c` with `-fprofile-instr-generate -fcoverage-mapping` and ASan, runs libFuzzer for 300,000 executions (`-max_len=512 -timeout=5`), and reports `llvm-cov` coverage restricted to the driver file. The script prints the run it measured: OpenRouter, `deepseek/deepseek-v4.1-flash-20260910`, CoreWeave, `convention_note`, report statuses `{'SUCCESS': 18}`. No API calls.
+
+**A wrong first pass, discarded.** The first coverage pass measured the older top-level (Gemini-era) run, which has 15 SUCCESS and 3 FAILED_TO_CONVERGE, because the script defaulted to that folder. Those numbers do not describe the 18/18 result and are not used. The script now takes `--out-root` and prints the run identity.
+
+**Result (17 targets that ran to completion).**
+
+| Scope | Lines | Regions | Branches |
+|---|---|---|---|
+| 17 targets, excluding `pl011_set_baudrate` | 136/149 (91.3%) | 172/192 (89.6%) | 68/80 (85.0%) |
+
+15 of the 17 reach 100% line coverage; many are 3-line register accessors, so a 100% there says little. The two partial targets are `pl011_is_readable` (8/10 lines, 80.0%) and `pl011_irq_tx_enable` (11/22 lines, 50.0%, 3/12 branches). Why those two stop short was not analyzed.
+
+**`pl011_set_baudrate`: a crash, not a coverage result.** The run reported 0/14 lines, but the harness did run the function. The fuzz run aborted with AddressSanitizer FPE at `pl011_set_baudrate.c:28` after 64 executions, before the process could write its profile (0-byte profile), so `llvm-cov` saw zero counters. Decoding the crashing input as `FuzzedDataProvider` consumes it gives `baudrate = 0x10000000` and `clk = 0x20`; `0x10000000 * 16` wraps to 0 in 32 bits, so this is the integer-overflow case of the candidate described in the vulnerability notes. The generated harness only guards `baudrate == 0`.
+
+**What the self-repair history shows.** Iteration 1 failed on a UBSan null pointer to `memcpy` in the harness (a genuine harness defect). Iteration 2 failed on UBSan division by zero at `pl011_set_baudrate.c:28`, a frame in the driver, not the harness. Iteration 3 passed after the model added `if (baudrate == 0) baudrate = 1;` and `if (clk == 0) clk = 1;` to the harness. The short smoke run did not reach the wraparound value, so the harness was recorded as SUCCESS; a 300,000-execution run found a crashing input in 64.
+
+**Consequences for the paper.**
+1. "SUCCESS" is a smoke-level oracle. The strongest honest statement is: 18/18 reached SUCCESS, and 17/18 completed a 300,000-execution ASan run without crashing; the 18th crashes on a real defect in upstream code.
+2. The repair loop treated a crash located in the target as a harness defect and removed it by constraining the input. Where the top stack frame lies (harness file vs. driver file) distinguishes the two cases. Proposed, not implemented: triage by crash location, and report target-side crashes as candidate findings instead of asking the model to repair them.
+3. The pipeline's own fuzzing reached the overflow family (not only the zero case), which supports the disclosure candidate. The candidate remains unreported externally and is not counted as a discovery.
+
+**Limits.** One model, one driver family, n=18. Short fuzz runs (300,000 executions). Coverage is of the driver function alone, with mocked hardware. `coverage_item2.py` was fixed after this run to report a crashed fuzz run as a crash (with pre-crash corpus coverage) instead of 0%; this result has not been re-run with the fixed script, and the 0/14 above is the old behavior.
