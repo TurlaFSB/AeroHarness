@@ -15,8 +15,14 @@ definition) — adding only the coverage flags.
 Layout assumed (relative to --item2-dir, default: this script's
 targets/uart_pl011_item2):
     <item2-dir>/<t>.c, <t>.h, common_stubs.h
-    <item2-dir>/output/<t>/fuzz_<t>.cpp
-    <item2-dir>/output/item2_report.json   (the run's report; --report to override)
+    <out-root>/<t>/fuzz_<t>.cpp
+    <out-root>/item2_report.json   (the run's report; --report to override)
+
+IMPORTANT: --out-root selects WHICH RUN is measured. The default,
+<item2-dir>/output, is the older top-level run (Gemini-era, 15/18). The OpenRouter
+DeepSeek runs write to <item2-dir>/output/openrouter_<model>_<provider>[_convnote]/.
+The "18/18 with convention note" result in RESULTS.md is the *_convnote folder. The
+script prints the run's backend/model/prompt variant so the measured run is explicit.
 
 Include paths mirror the harness build: the item2 dir (headers + common_stubs),
 the repo root, fake_zephyr (the mock <zephyr/*.h>), and zephyr-src/drivers/serial
@@ -53,8 +59,8 @@ def build_flags(item2_dir, repo):
     ]
 
 
-def measure(target, item2_dir, repo, runs, keep):
-    tdir = os.path.join(item2_dir, "output", target)
+def measure(target, item2_dir, out_root, repo, runs, keep):
+    tdir = os.path.join(out_root, target)
     harness = os.path.join(tdir, f"fuzz_{target}.cpp")
     cfile = os.path.join(item2_dir, f"{target}.c")
     if not os.path.exists(harness):
@@ -120,7 +126,10 @@ def main():
     ap = argparse.ArgumentParser()
     repo = repo_root()
     ap.add_argument("--item2-dir", default=os.path.join(repo, "targets", "uart_pl011_item2"))
-    ap.add_argument("--report", help="item2_report.json (default: <item2-dir>/output/item2_report.json)")
+    ap.add_argument("--out-root", help="run folder holding <t>/fuzz_<t>.cpp and item2_report.json "
+                    "(default: <item2-dir>/output, the OLD top-level run; for the DeepSeek 18/18 run pass "
+                    "<item2-dir>/output/openrouter_..._convnote)")
+    ap.add_argument("--report", help="item2_report.json (default: <out-root>/item2_report.json)")
     ap.add_argument("--only", help="measure just this one target (for a cheap smoke test)")
     ap.add_argument("--runs", type=int, default=300000, help="libFuzzer -runs per target")
     ap.add_argument("--keep", action="store_true", help="keep the cov binary/profile/corpus")
@@ -130,8 +139,16 @@ def main():
         if not shutil.which(tool):
             sys.exit(f"{tool} not found on PATH")
 
-    report = a.report or os.path.join(a.item2_dir, "output", "item2_report.json")
+    out_root = os.path.abspath(a.out_root or os.path.join(a.item2_dir, "output"))
+    report = a.report or os.path.join(out_root, "item2_report.json")
+    if not os.path.exists(report):
+        sys.exit(f"report not found: {report}\nPass --out-root <run folder> (e.g. targets/uart_pl011_item2/output/openrouter_..._convnote)")
     rec = json.load(open(report))
+    ident = {(r.get("backend", "gemini/offline"), r.get("model"), r.get("provider_pinned"),
+              r.get("prompt_variant")) for r in rec}
+    print(f"run identity (backend, model, provider, prompt variant): {sorted(ident, key=str)}")
+    from collections import Counter
+    print(f"report statuses: {dict(Counter(r.get('status') for r in rec))}")
     targets = [r["target"] for r in rec if r.get("status") == "SUCCESS" or r.get("success")]
     if a.only:
         if a.only not in targets:
@@ -139,12 +156,12 @@ def main():
         targets = [a.only]
 
     print(f"report: {report}")
-    print(f"item2 dir: {a.item2_dir}")
+    print(f"item2 dir: {a.item2_dir}\nout root: {out_root}")
     print(f"measuring {len(targets)} target(s), runs={a.runs}\n")
 
     rows, errors = [], []
     for t in targets:
-        res = measure(t, a.item2_dir, repo, a.runs, a.keep)
+        res = measure(t, a.item2_dir, out_root, repo, a.runs, a.keep)
         if "error" in res:
             errors.append(res)
             print(f"  {t:34s} ERROR: {res['error']}")
