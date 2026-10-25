@@ -38,6 +38,8 @@ cve_broad_*
 cve_isolated
 *_rebuild
 *_exact
+targets/crtp_trajectory_write/decode_crash
+targets/crtp_trajectory_write/test_fdp
 
 # Fuzzing corpora
 corpus_*
