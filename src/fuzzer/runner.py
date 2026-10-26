@@ -3,6 +3,7 @@ libFuzzer Campaign Runner for AeroHarness
 Manages corpus seeding, execution monitoring, timeout enforcement, and crash collection.
 """
 import time
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -102,12 +103,29 @@ class FuzzingCampaignRunner:
             ]
 
         try:
-            res = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout + 10
-            )
+            try:
+                res = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout + 10
+                )
+            except OSError:
+                # A Linux (ELF) binary cannot be launched directly on Windows. This happens
+                # when WSL detection missed (e.g. a slow first WSL start) but the harness
+                # was still built through the WSL fallback. Retry the campaign inside WSL.
+                if self.use_wsl or os.name != "nt":
+                    raise
+                wsl_bin = self._win_to_wsl_path(binary_path)
+                wsl_corp = self._win_to_wsl_path(corpus_dir)
+                wsl_art = self._win_to_wsl_path(artifact_dir)
+                wsl_cmd = f"{wsl_bin} {wsl_corp} -artifact_prefix={wsl_art}/ -max_total_time={timeout} -max_len={self.settings.fuzz_max_len}"
+                res = subprocess.run(
+                    ["wsl", "bash", "-c", wsl_cmd],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout + 10
+                )
             stderr_log = res.stderr
             crashed = (res.returncode != 0 and "AddressSanitizer" in res.stderr)
         except subprocess.TimeoutExpired:

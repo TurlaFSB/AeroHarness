@@ -5,15 +5,20 @@ import sys
 import time
 
 api_key = None
+openrouter_key = None
 try:
     with open(".env") as f:
         for line in f:
             if "GEMINI_API_KEY" in line and "=" in line:
                 api_key = line.split("=")[1].strip().strip('"').strip("'")
+            if "OPENROUTER_API_KEY" in line and "=" in line:
+                openrouter_key = line.split("=")[1].strip().strip('"').strip("'")
 except:
     pass
 if not api_key:
     api_key = os.environ.get("GEMINI_API_KEY")
+if not openrouter_key:
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
 
 with open("ast_kinetis.json", "r") as f:
     data = json.load(f)
@@ -81,6 +86,37 @@ def generate_gemini(prompt, api_key):
     res_text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
     return json.loads(res_text)
 
+def generate_openrouter(prompt, openrouter_key, model="deepseek/deepseek-chat"):
+    """Queries OpenRouter directly via standard REST API (DeepSeek V3 / V4 Flash). Zero local LLM needed."""
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {openrouter_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/TurlaFSB/AeroHarness",
+        "X-Title": "AeroHarness",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are an expert firmware vulnerability researcher building MMIO register models for Fuzzware. Respond ONLY with valid JSON having 'model' (one of: passthrough, bitextract, set, constant, identity) and 'reasoning' fields."
+            },
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 150
+    }
+    resp = httpx.post(url, headers=headers, json=payload, timeout=30)
+    if resp.status_code == 429:
+        raise Exception("429 OpenRouter Rate limited")
+    resp.raise_for_status()
+    res_text = resp.json()["choices"][0]["message"]["content"].strip()
+    if res_text.startswith("```json"): res_text = res_text[7:]
+    if res_text.startswith("```"): res_text = res_text[3:]
+    if res_text.endswith("```"): res_text = res_text[:-3]
+    return json.loads(res_text.strip())
+
 def generate_ollama(prompt):
     full_prompt = prompt + '\n\nPlease respond ONLY with a valid JSON object containing exactly two string fields: "model" (the lowercase name of the model you chose) and "reasoning" (your detailed reasoning). Do not include any other text or markdown formatting.'
     resp = httpx.post(
@@ -110,7 +146,6 @@ for func_key, f_data in data["functions"].items():
         
         prop_key = f"{func_key}::{reg}::{line}"
         if prop_key in proposals and proposals[prop_key].get("model") not in ["unknown", "failed_api_error"]:
-            # Count the existing gemini hits if restarting
             if proposals[prop_key].get("backend") == "gemini":
                 gemini_success_count += 1
             continue
@@ -137,27 +172,36 @@ for func_key, f_data in data["functions"].items():
         backend_used = "none"
         result = None
         
-        active_backend = "ollama"
-        if gemini_success_count < MAX_GEMINI_SPOT_CHECKS and api_key:
-            active_backend = "gemini"
-            
-        if active_backend == "gemini":
+        # Pure Cloud Routing Hierarchy (Gemini <-> OpenRouter DeepSeek, zero local LLM required)
+        if api_key and gemini_success_count < MAX_GEMINI_SPOT_CHECKS:
             try:
                 result = generate_gemini(prompt, api_key)
                 backend_used = "gemini"
                 gemini_success_count += 1
             except Exception as e:
-                if "429" in str(e) or "503" in str(e):
-                    print(f"[{count}/332] Gemini {e}. Failing over to Ollama.")
+                print(f"[{count}/332] Gemini error ({e}). Failing over to OpenRouter DeepSeek...")
+                if openrouter_key:
                     try:
-                        result = generate_ollama(prompt)
-                        backend_used = "ollama"
-                    except Exception as ollama_e:
-                        print(f"[{count}/332] Ollama fallback failed: {ollama_e}")
+                        result = generate_openrouter(prompt, openrouter_key)
+                        backend_used = "openrouter_deepseek"
+                    except Exception as or_e:
+                        print(f"[{count}/332] OpenRouter failover failed: {or_e}")
                 else:
-                    print(f"[{count}/332] Gemini Error: {e}")
-                    
-        if backend_used == "none":
+                    print(f"[{count}/332] OPENROUTER_API_KEY not configured for failover.")
+        elif openrouter_key:
+            try:
+                result = generate_openrouter(prompt, openrouter_key)
+                backend_used = "openrouter_deepseek"
+            except Exception as e:
+                print(f"[{count}/332] OpenRouter error ({e}).")
+                if api_key:
+                    try:
+                        result = generate_gemini(prompt, api_key)
+                        backend_used = "gemini"
+                    except Exception as gem_e:
+                        print(f"[{count}/332] Gemini secondary fallback failed: {gem_e}")
+        else:
+            # Fallback to local Ollama ONLY if neither cloud key is present
             try:
                 result = generate_ollama(prompt)
                 backend_used = "ollama"

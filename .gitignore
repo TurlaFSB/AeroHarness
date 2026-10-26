@@ -38,6 +38,8 @@ cve_broad_*
 cve_isolated
 *_rebuild
 *_exact
+targets/crtp_trajectory_write/decode_crash
+targets/crtp_trajectory_write/test_fdp
 
 # Fuzzing corpora
 corpus_*
@@ -83,3 +85,12 @@ item7_fuzzware/*.map
 item7_fuzzware/config/*.bin
 item7_fuzzware/config/run1/
 item7_fuzzware/config/run1_old/
+
+# Generated output and cache
+output/
+.cache/
+
+# Candidate-vulnerability PoC/fix material pending coordinated disclosure (not for the
+# public repo until the maintainers have responded and any embargo has ended/been lifted
+# with Col. Naha's approval — see RESULTS.md's vulnerability-candidate note).
+disclosure/

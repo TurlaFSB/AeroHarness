@@ -49,25 +49,31 @@ class CompilerOracle:
         harness_src_path: Path,
         target_c_files: List[Path],
         include_dirs: List[Path],
-        output_binary_path: Path
+        output_binary_path: Path,
+        extra_flags: Optional[List[str]] = None,
     ) -> CompilationResult:
-        """Compiles the candidate fuzz harness and target C files into an instrumented binary."""
+        """Compiles the candidate fuzz harness and target C files into an instrumented binary.
+
+        ``extra_flags`` (default none, so the standard build is unchanged) are appended to the
+        configured compiler flags, e.g. an additional sanitizer for a secondary probe build."""
         output_binary_path.parent.mkdir(parents=True, exist_ok=True)
+        extra = list(extra_flags or [])
 
         if self.use_wsl:
-            return self._compile_via_wsl(harness_src_path, target_c_files, include_dirs, output_binary_path)
+            return self._compile_via_wsl(harness_src_path, target_c_files, include_dirs, output_binary_path, extra)
         else:
-            return self._compile_native(harness_src_path, target_c_files, include_dirs, output_binary_path)
+            return self._compile_native(harness_src_path, target_c_files, include_dirs, output_binary_path, extra)
 
     def _compile_native(
         self,
         harness_path: Path,
         target_c_files: List[Path],
         include_dirs: List[Path],
-        out_bin: Path
+        out_bin: Path,
+        extra_flags: Optional[List[str]] = None,
     ) -> CompilationResult:
         """Invokes native Clang on Windows."""
-        cmd = ["clang++"] + self.settings.cxx_flags
+        cmd = ["clang++"] + self.settings.cxx_flags + list(extra_flags or [])
         for inc in include_dirs:
             cmd.append(f"-I{inc.resolve()}")
         cmd.append(str(harness_path.resolve()))
@@ -80,7 +86,7 @@ class CompilerOracle:
             return self._parse_compilation_output(res.returncode, res.stdout, res.stderr, out_bin)
         except FileNotFoundError:
             # Clang not found natively, try WSL fallback automatically
-            return self._compile_via_wsl(harness_path, target_c_files, include_dirs, out_bin)
+            return self._compile_via_wsl(harness_path, target_c_files, include_dirs, out_bin, extra_flags)
         except Exception as e:
             return CompilationResult(
                 success=False,
@@ -94,7 +100,8 @@ class CompilerOracle:
         harness_path: Path,
         target_c_files: List[Path],
         include_dirs: List[Path],
-        out_bin: Path
+        out_bin: Path,
+        extra_flags: Optional[List[str]] = None,
     ) -> CompilationResult:
         """Invokes Clang inside Ubuntu WSL2."""
         wsl_harness = self._win_to_wsl_path(harness_path)
@@ -102,7 +109,7 @@ class CompilerOracle:
         wsl_c_files = [self._win_to_wsl_path(p) for p in target_c_files]
         wsl_incs = [f"-I{self._win_to_wsl_path(p)}" for p in include_dirs]
 
-        cxx_flags_str = " ".join(self.settings.cxx_flags)
+        cxx_flags_str = " ".join(list(self.settings.cxx_flags) + list(extra_flags or []))
         inc_str = " ".join(wsl_incs)
         c_files_str = " ".join(wsl_c_files)
 

@@ -51,6 +51,7 @@ from src.synthesizer.agent import HarnessSynthesizerAgent  # noqa: E402
 from config.settings import get_settings  # noqa: E402
 from item2_target_bodies import TARGETS  # noqa: E402
 from rotating_agent import AllKeysExhaustedError, RotatingHarnessSynthesizerAgent  # noqa: E402
+from single_backend_agent import BackendFailedError, SingleBackendHarnessSynthesizerAgent  # noqa: E402
 
 ITEM2_DIR = Path(__file__).parent
 INCLUDE_ISOLATED_DIR = REPO_ROOT / "harnesses" / "include_isolated"
@@ -109,6 +110,28 @@ PL011_DATA_STRUCT = StructDefinition(
 )
 
 
+# Scaffold-convention note (added Oct 15 2026). The first real DeepSeek run (no note) failed
+# 11 of 14 non-converged targets with ASan SEGVs at tiny addresses (0x04..0x38 = offsets of
+# struct pl011_regs fields from NULL): the model is never shown common_stubs.h, so it cannot
+# know DEVICE_MMIO_GET(dev) is the global `mock_regs_ptr` and that it must be pointed at a
+# register block it owns. This note states ONLY that scaffold convention (facts about the
+# test environment, identical for all 18 targets); it says nothing about any target's logic.
+# Enabled with --convention-note and reported as a separate variant, never mixed with the
+# no-note run.
+ITEM2_CONVENTION_NOTE = (
+    "The target header includes common_stubs.h, which ALREADY provides (do NOT redefine any of "
+    "these): struct device {void *data; const void *config;}, struct uart_config, struct "
+    "k_spinlock, struct pl011_data, struct pl011_regs, get_uart(dev) and BIT(). "
+    "DEVICE_MMIO_GET(dev) expands to the global `mock_regs_ptr` (declared "
+    "`extern volatile void *mock_regs_ptr;` in common_stubs.h and DEFINED in the target's own .c "
+    "file -- do not define it). get_uart(dev) therefore returns whatever mock_regs_ptr points to, "
+    "and it is NULL until you set it. Before EVERY call to the target you must point it at a "
+    "struct pl011_regs that you own and fill from the fuzzer input, e.g. "
+    "`static struct pl011_regs regs; ... mock_regs_ptr = &regs;`. Build a struct device whose "
+    ".data points at a zero-initialised struct pl011_data you own (.config may be NULL)."
+)
+
+
 def build_header_context(h_path: Path, extractor: CASTExtractor, macros: dict) -> ExtractedHeaderContext:
     """Real function-signature extraction via the (bug-fixed) CASTExtractor, with
     hand-written struct/magic-constant context supplied on top -- see module docstring
@@ -157,10 +180,13 @@ def build_agent(offline: bool):
     )
 
 
-def run_one_target(t, agent, offline: bool) -> dict:
+def run_one_target(t, agent, offline: bool, out_root: Path = None, run_meta: dict = None,
+                   mmio_note: str = None, crash_triage: str = "off", stability_runs: int = 0,
+                   stability_time: int = 60, wrap_probe_runs: int = 0, coverage_feedback_min: float = 0.0, escalate_after: int = 0) -> dict:
     h_path = ITEM2_DIR / f"{t.name}.h"
     c_path = ITEM2_DIR / f"{t.name}.c"
-    out_dir = OUTPUT_DIR / t.name
+    out_dir = (out_root or OUTPUT_DIR) / t.name
+    calls_before = getattr(agent, "calls", None)
 
     extractor = CASTExtractor()
     ctx = build_header_context(h_path, extractor, t.macros)
@@ -170,13 +196,20 @@ def run_one_target(t, agent, offline: bool) -> dict:
     risk_scores = cg_builder.analyze_source_file(c_path, known_apis=[t.name])
     risk_score = risk_scores.get(t.name)
 
-    orchestrator = SelfRepairOrchestrator(agent=agent, max_iterations=5)
+    orchestrator = SelfRepairOrchestrator(agent=agent, max_iterations=5, crash_triage=crash_triage,
+                                          stability_runs=stability_runs,
+                                          stability_max_time_sec=stability_time,
+                                          wrap_probe_runs=wrap_probe_runs,
+                                          coverage_feedback_min=coverage_feedback_min,
+                                          escalate_after=escalate_after)
 
     record = {
         "target": t.name,
         "ccn": t.ccn,
         "offline_smoke_test": offline,
     }
+    if run_meta:
+        record.update(run_meta)
 
     try:
         outcome = orchestrator.run_synthesis_and_repair(
@@ -188,9 +221,11 @@ def run_one_target(t, agent, offline: bool) -> dict:
             include_dirs=[ITEM2_DIR, INCLUDE_ISOLATED_DIR],
             output_dir=out_dir,
             externally_linked=True,
+            mmio_convention_note=mmio_note,
         )
         record.update({
-            "status": "SUCCESS" if outcome.success else "FAILED_TO_CONVERGE",
+            "status": ("SUCCESS" if outcome.success else
+                       "CANDIDATE_FINDING" if outcome.halted_on_finding else "FAILED_TO_CONVERGE"),
             "success": outcome.success,
             "first_attempt_success": outcome.success and outcome.total_iterations == 1,
             "total_iterations": outcome.total_iterations,
@@ -198,6 +233,35 @@ def run_one_target(t, agent, offline: bool) -> dict:
             "binary_path": outcome.binary_path,
             "failure_reason": outcome.failure_reason,
             "history": [h.model_dump() for h in outcome.history],
+        })
+        # Stricter statistics (added Oct 15 2026). `first_attempt_success` above counts a
+        # harness whose iteration-1 compile failed but was then patched by the
+        # deterministic rule-fixer inside the same iteration; the strict fields separate
+        # "compiled untouched" from "needed a rule fix" and count real LLM repair calls.
+        hist = [h.model_dump() for h in outcome.history]
+        rule_fix_iters = sorted({
+            hist[i]["iteration"] for i in range(len(hist) - 1)
+            if hist[i]["stage"] == "COMPILATION_ORACLE" and not hist[i]["passed"]
+            and hist[i + 1]["iteration"] == hist[i]["iteration"]
+        })
+        if crash_triage != "off" or stability_runs or wrap_probe_runs or coverage_feedback_min:
+            record["crash_triage"] = crash_triage
+            record["stability_runs"] = stability_runs
+            record["wrap_probe_runs"] = wrap_probe_runs
+            record["coverage_feedback_min"] = coverage_feedback_min
+            record["coverage_feedback"] = outcome.coverage_feedback
+            record["candidate_findings"] = [f.model_dump(mode="json") for f in outcome.candidate_findings]
+        record["first_attempt_success_strict"] = bool(outcome.success and len(hist) == 1)
+        record["rule_fix_iterations"] = rule_fix_iters
+        if calls_before is not None:
+            record["llm_calls_this_target"] = agent.calls - calls_before
+    except BackendFailedError as e:
+        record.update({
+            "status": "BACKEND_FAILED",
+            "success": None,
+            "first_attempt_success": None,
+            "total_iterations": None,
+            "error": str(e),
         })
     except AllKeysExhaustedError as e:
         record.update({
@@ -220,7 +284,7 @@ def run_one_target(t, agent, offline: bool) -> dict:
 # ALL_KEYS_EXHAUSTED is deliberately NOT included here: it means the target never actually
 # got a real attempt (success/total_iterations are null), so it must be retried once quota
 # is available again, not treated as done.
-_TERMINAL_STATUSES = {"SUCCESS", "FAILED_TO_CONVERGE"}
+_TERMINAL_STATUSES = {"SUCCESS", "FAILED_TO_CONVERGE", "CANDIDATE_FINDING"}
 
 
 def _load_existing_report(report_path: Path) -> dict:
@@ -262,13 +326,96 @@ def main():
              "(SUCCESS/FAILED_TO_CONVERGE) record -- use only deliberately, never by default; "
              "each target is meant to get exactly one real attempt."
     )
+    parser.add_argument("--backend", default="gemini", choices=["gemini", "openrouter"],
+                        help="gemini (default, key rotation, unchanged) or openrouter (one model through "
+                             "OpenRouter; needs OPENROUTER_API_KEY in the environment).")
+    parser.add_argument("--model", default=None,
+                        help="openrouter only: OpenRouter model ID, e.g. deepseek/deepseek-v4.1-flash-20260910")
+    parser.add_argument("--provider", default=None,
+                        help="openrouter only: pin ONE upstream provider (no fallbacks), e.g. CoreWeave")
+    parser.add_argument("--budget-usd", type=float, default=1.0,
+                        help="openrouter only: hard spending ceiling for this process in USD (default 1.0); "
+                             "the run records BACKEND_FAILED and stops cleanly when it is reached")
+    parser.add_argument("--max-tokens", type=int, default=4096,
+                        help="openrouter only: max output tokens per call (default 4096)")
+    parser.add_argument("--convention-note", action="store_true",
+                        help="openrouter only: add the scaffold-convention note (mock_regs_ptr etc.) to the "
+                             "synthesis prompt. Results go to a separate '_convnote' folder.")
+    parser.add_argument("--crash-triage", choices=["off", "record", "halt"], default="off",
+                        help="where to attribute runtime crashes: off = original protocol (default); "
+                             "record = log crashes located in the code under test as candidate findings, "
+                             "loop unchanged; halt = stop at the first such crash. Results go to a "
+                             "separate '_triage-<policy>' folder.")
+    parser.add_argument("--stability-runs", type=int, default=0,
+                        help="if >0, a harness must also survive this many libFuzzer runs after the "
+                             "smoke test (separate '_stab<N>' folder)")
+    parser.add_argument("--stability-time", type=int, default=60,
+                        help="wall-clock cap in seconds for the stability campaign (default 60)")
+    parser.add_argument("--wrap-probe-runs", type=int, default=0,
+                        help="if >0, record-only probe on each final harness: rebuild with "
+                             "-fsanitize=unsigned-integer-overflow and run this many executions; wraps "
+                             "located in the driver are kept as candidate findings (separate '_wrap<N>' folder)")
+    parser.add_argument("--coverage-feedback-min", type=float, default=0.0,
+                        help="if >0 (e.g. 0.9): after a harness passes, measure line coverage of the driver; "
+                             "below this fraction, send the unreached lines back to the model for ONE round. "
+                             "The new harness is kept only if it passes all oracles and covers more "
+                             "(separate '_covfb<pct>' folder)")
+    parser.add_argument("--escalate-after", type=int, default=0,
+                        help="with --crash-triage record: halt as CANDIDATE_FINDING once this many "
+                             "driver-side crashes at the same source location have been recorded "
+                             "(repairing the harness is then treated as futile). 0 = off")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    offline = not any(os.getenv(f"GEMINI_API_KEY_{i}") for i in range(1, 5))
-    agent = build_agent(offline)
-
-    report_path = OUTPUT_DIR / "item2_report.json"
+    out_root = OUTPUT_DIR
+    run_meta = None
+    if args.backend == "openrouter":
+        if not args.model:
+            parser.error("--backend openrouter requires --model")
+        key = os.getenv("OPENROUTER_API_KEY")
+        if not key:
+            sys.exit("OPENROUTER_API_KEY is not set in this terminal. Set it and re-run.")
+        slug = args.model.replace(":", "_").replace("/", "_")
+        if args.provider:
+            slug += "_prov-" + "".join(c if c.isalnum() else "-" for c in args.provider)
+        # separate files/dirs: OpenRouter data must never mix with the Gemini-key data
+        if args.convention_note:
+            slug += "_convnote"
+        if args.crash_triage != "off":
+            slug += f"_triage-{args.crash_triage}"
+        if args.stability_runs:
+            slug += f"_stab{args.stability_runs}"
+        if args.wrap_probe_runs:
+            slug += f"_wrap{args.wrap_probe_runs}"
+        if args.escalate_after:
+            slug += f"_esc{args.escalate_after}"
+        if args.coverage_feedback_min:
+            slug += f"_covfb{int(round(args.coverage_feedback_min * 100))}"
+        out_root = OUTPUT_DIR / f"openrouter_{slug}"
+        out_root.mkdir(parents=True, exist_ok=True)
+        os.environ["OPENROUTER_BUDGET_USD"] = str(args.budget_usd)
+        os.environ["OPENROUTER_LEDGER"] = str(out_root / "openrouter_calls.jsonl")
+        os.environ.setdefault("OPENROUTER_REASONING", "off")
+        if args.provider:
+            os.environ["OPENROUTER_PROVIDER"] = args.provider
+        agent = SingleBackendHarnessSynthesizerAgent(
+            model_name=args.model, openrouter_api_key=key, max_output_tokens=args.max_tokens
+        )
+        offline = False
+        run_meta = {"backend": "openrouter", "model": args.model, "provider_pinned": args.provider,
+                    "reasoning": os.environ["OPENROUTER_REASONING"], "max_tokens": args.max_tokens,
+                    "prompt_variant": "convention_note" if args.convention_note else "no_note",
+                    "crash_triage": args.crash_triage, "stability_runs": args.stability_runs,
+                    "wrap_probe_runs": args.wrap_probe_runs,
+                    "coverage_feedback_min": args.coverage_feedback_min,
+                    "escalate_after": args.escalate_after}
+        print(f"OPENROUTER mode: model={args.model} provider={args.provider or 'unpinned'} "
+              f"budget=${args.budget_usd:.2f} ledger={os.environ['OPENROUTER_LEDGER']}", file=sys.stderr)
+        report_path = out_root / "item2_report.json"
+    else:
+        offline = not any(os.getenv(f"GEMINI_API_KEY_{i}") for i in range(1, 5))
+        agent = build_agent(offline)
+        report_path = OUTPUT_DIR / "item2_report.json"
     existing_by_name = _load_existing_report(report_path)
 
     targets = TARGETS
@@ -293,9 +440,20 @@ def main():
 
     for t in targets_to_run:
         print(f"\n=== {t.name} (CCN {t.ccn}) ===", file=sys.stderr)
-        record = run_one_target(t, agent, offline)
+        record = run_one_target(t, agent, offline, out_root=out_root, run_meta=run_meta,
+                                mmio_note=ITEM2_CONVENTION_NOTE if args.convention_note else None,
+                                crash_triage=args.crash_triage, stability_runs=args.stability_runs,
+                                stability_time=args.stability_time, wrap_probe_runs=args.wrap_probe_runs,
+                                coverage_feedback_min=args.coverage_feedback_min,
+                                escalate_after=args.escalate_after)
         print(json.dumps(record, indent=2, default=str), file=sys.stderr)
         existing_by_name[t.name] = record  # merge into the full picture, never overwrite it
+        if record["status"] == "BACKEND_FAILED":
+            print("Backend failed (HTTP error, empty reply or budget reached) -- stopping run here. "
+                  "Nothing was recorded for this target as a real attempt; re-running the same "
+                  "command resumes from it (targets with a terminal result are skipped).",
+                  file=sys.stderr)
+            break
         if record["status"] == "ALL_KEYS_EXHAUSTED":
             print("All keys exhausted -- stopping run here. Resume later with fresh "
                   "daily quota by re-running with --only <remaining targets> (or no --only "

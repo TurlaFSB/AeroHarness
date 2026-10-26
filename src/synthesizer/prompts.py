@@ -80,7 +80,14 @@ Strict Harness Engineering Rules:
 
         if header_context.magic_constants:
             prompt_lines.append("\n**Header Magic Constants:**")
-            for k, v in header_context.magic_constants.items():
+            raw_decl = target_api.raw_declaration or ""
+            target_parts = [p.lower() for p in target_api.name.split("_") if len(p) > 2]
+            relevant_constants = {
+                k: v for k, v in header_context.magic_constants.items()
+                if k in raw_decl or any(part in k.lower() for part in target_parts)
+            }
+            items_to_show = relevant_constants if relevant_constants else dict(list(header_context.magic_constants.items())[:15])
+            for k, v in items_to_show.items():
                 prompt_lines.append(f"- {k} = {v}")
 
         if risk_score and risk_score.memory_operations:
@@ -109,6 +116,44 @@ Strict Harness Engineering Rules:
             prompt_lines.append(f"6. MMIO convention override for this target: {mmio_convention_note}")
 
         return "\n".join(prompt_lines)
+
+    @staticmethod
+    def build_coverage_prompt(current_code: str, target_source_marked: str, uncovered: str,
+                              covered: int, total: int) -> str:
+        """Coverage-feedback request (added Oct 2026). The harness already compiles, links and
+        passes its smoke test; the point is that a measured fuzz campaign never reached part
+        of the code under test."""
+        return f"""### Harness Coverage Improvement Request
+
+The fuzz harness below compiles, links and passes its smoke test. However, a measured fuzz
+campaign with this harness executed only {covered} of {total} instrumented lines of the code
+under test. These lines were NEVER executed:
+
+{uncovered}
+
+**Code under test** (lines marked `>>NEVER<<` were never executed; do not modify this code):
+```c
+{target_source_marked}
+```
+
+**Current harness**:
+```cpp
+{current_code}
+```
+
+### Instructions
+1. Work out which input conditions or object state (for example optional pointers, callbacks
+   or configuration fields that the code tests before the unreached lines) prevent execution,
+   and change the harness so that fuzzer-controlled data can reach them.
+2. If you provide a callback or mock object, it must be safe and must let the code under test
+   terminate (for example, a callback that the code invokes inside a loop must change the state
+   the loop condition tests). Do not introduce unbounded loops or sleeps.
+3. Do not add guards, clamps or filters that merely stop the code under test from faulting. A
+   crash inside the code under test is a result to be reported, not something to avoid.
+4. Keep every existing convention of the harness (headers, mocks, `mock_regs_ptr` usage); do
+   not redefine symbols the includes already provide, and do not write your own definition of
+   the function under test.
+5. Output the complete, compilable C++ harness inside a single ```cpp ... ``` block."""
 
     @staticmethod
     def build_repair_prompt(

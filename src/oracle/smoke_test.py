@@ -33,11 +33,16 @@ class SmokeTestOracle:
         rest = str(abs_path.as_posix()).replace(f"{abs_path.drive}", "")
         return f"/mnt/{drive}{rest}"
 
-    def _wsl_cmd(self, binary_path: Path, runs: int) -> list:
+    def _wsl_cmd(self, binary_path: Path, runs: int, max_total_time: int = 3,
+                 artifact_prefix: Optional[Path] = None) -> list:
         wsl_bin = self._win_to_wsl_path(binary_path)
-        return ["wsl", "bash", "-c", f"{wsl_bin} -runs={runs} -max_total_time=3"]
+        extra = ""
+        if artifact_prefix is not None:
+            extra = f" -artifact_prefix={self._win_to_wsl_path(artifact_prefix)}/"
+        return ["wsl", "bash", "-c", f"{wsl_bin} -runs={runs} -max_total_time={max_total_time}{extra}"]
 
-    def _run_with_wsl_fallback(self, cmd, binary_path: Path, runs: int, timeout_sec: int):
+    def _run_with_wsl_fallback(self, cmd, binary_path: Path, runs: int, timeout_sec: int,
+                               max_total_time: int = 3, artifact_prefix: Optional[Path] = None):
         """
         NOTE (Oct 2 2026): added after a real item-2 run on Windows+WSL hit
         `WinError 193: %1 is not a valid Win32 application` on EVERY target's smoke test,
@@ -63,20 +68,33 @@ class SmokeTestOracle:
             is_exec_format_error = isinstance(e, FileNotFoundError) or getattr(e, "winerror", None) == 193
             if self.use_wsl or not is_exec_format_error:
                 raise
-            wsl_cmd = self._wsl_cmd(binary_path, runs)
+            wsl_cmd = self._wsl_cmd(binary_path, runs, max_total_time, artifact_prefix)
             return subprocess.run(wsl_cmd, capture_output=True, text=True, timeout=timeout_sec)
 
-    def run_smoke_test(self, binary_path: Path, runs: int = 100) -> SmokeTestResult:
-        """Executes the fuzzer binary for N runs with zero/empty inputs."""
-        timeout_sec = self.settings.smoke_test_timeout_sec
+    def run_smoke_test(self, binary_path: Path, runs: int = 100, *,
+                       max_total_time: int = 3, timeout_sec: Optional[int] = None,
+                       artifact_prefix: Optional[Path] = None) -> SmokeTestResult:
+        """Executes the fuzzer binary for N runs with zero/empty inputs.
+
+        The keyword-only arguments exist for the stability gate (longer campaign, own
+        wall-clock limits) and for keeping libFuzzer's crash reproducer
+        (``artifact_prefix`` = an existing directory). With defaults the behaviour is
+        identical to the original protocol: ``-max_total_time=3`` and the configured
+        ``smoke_test_timeout_sec``.
+        """
+        if timeout_sec is None:
+            timeout_sec = self.settings.smoke_test_timeout_sec
 
         if self.use_wsl:
-            cmd = self._wsl_cmd(binary_path, runs)
+            cmd = self._wsl_cmd(binary_path, runs, max_total_time, artifact_prefix)
         else:
-            cmd = [str(binary_path.resolve()), f"-runs={runs}", "-max_total_time=3"]
+            cmd = [str(binary_path.resolve()), f"-runs={runs}", f"-max_total_time={max_total_time}"]
+            if artifact_prefix is not None:
+                cmd.append(f"-artifact_prefix={Path(artifact_prefix).resolve().as_posix()}/")
 
         try:
-            res = self._run_with_wsl_fallback(cmd, binary_path, runs, timeout_sec)
+            res = self._run_with_wsl_fallback(cmd, binary_path, runs, timeout_sec,
+                                              max_total_time, artifact_prefix)
 
             # Check if AddressSanitizer or crash occurred
             is_asan_crash = "AddressSanitizer" in res.stderr or "SEGV" in res.stderr or res.returncode != 0

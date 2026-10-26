@@ -6,8 +6,11 @@ from src.analyzer.c_ast_extractor import CASTExtractor
 from src.analyzer.call_graph import CallGraphBuilder
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_header_extraction():
-    target_header = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.h")
+    target_header = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.h"
     extractor = CASTExtractor()
     context = extractor.extract_from_header(target_header)
 
@@ -31,8 +34,8 @@ def test_header_extraction():
 
 
 def test_call_graph_and_risk_scoring():
-    target_header = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.h")
-    target_c = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.c")
+    target_header = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.h"
+    target_c = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.c"
 
     extractor = CASTExtractor()
     context = extractor.extract_from_header(target_header)

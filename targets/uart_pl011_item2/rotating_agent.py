@@ -72,11 +72,20 @@ class RotatingHarnessSynthesizerAgent:
         self._current = (self._current + 1) % len(self._agents)
         return self._current != 0
 
+    def _apply_deterministic_fix(self, code: str, error_message: str) -> str:
+        # SelfRepairOrchestrator calls this directly on its agent (rule-based fix tried
+        # before spending an LLM call); without it this wrapper raised AttributeError on
+        # the first compile failure. It makes no API call, so any key's agent will do.
+        return self._agents[self._current]._apply_deterministic_fix(code, error_message)
+
     def synthesize_initial_harness(self, **kwargs) -> SynthesisCandidate:
         return self._call_with_rotation("synthesize_initial_harness", **kwargs)
 
     def repair_harness(self, **kwargs) -> SynthesisCandidate:
         return self._call_with_rotation("repair_harness", **kwargs)
+
+    def improve_coverage(self, **kwargs) -> SynthesisCandidate:
+        return self._call_with_rotation("improve_coverage", **kwargs)
 
     def _call_with_rotation(self, method_name: str, **kwargs) -> SynthesisCandidate:
         attempts = 0

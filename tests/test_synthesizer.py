@@ -8,8 +8,11 @@ from src.synthesizer.mmio_stubber import MMIOStubber
 from src.synthesizer.agent import HarnessSynthesizerAgent
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_prompt_generation():
-    target_header = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.h")
+    target_header = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.h"
     extractor = CASTExtractor()
     context = extractor.extract_from_header(target_header)
     target_func = context.functions[1]
@@ -27,7 +30,7 @@ def test_prompt_generation():
 
 
 def test_mmio_stub_generation():
-    target_header = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.h")
+    target_header = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.h"
     extractor = CASTExtractor()
     context = extractor.extract_from_header(target_header)
 
@@ -39,7 +42,7 @@ def test_mmio_stub_generation():
 
 
 def test_harness_synthesis_deterministic():
-    target_header = Path("D:/aeroharness/targets/toy_firmware/protocol_parser.h")
+    target_header = PROJECT_ROOT / "targets/toy_firmware/protocol_parser.h"
     extractor = CASTExtractor()
     context = extractor.extract_from_header(target_header)
     target_func = next(f for f in context.functions if f.name == "protocol_process_frame")

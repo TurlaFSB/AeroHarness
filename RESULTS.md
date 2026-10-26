@@ -333,6 +333,218 @@ Contrary to a naive expectation that "less domain knowledge → worse coverage,"
 * **Scripts/artifacts**: `item7_fuzzware/` (firmware source, build script, linker script, Fuzzware `config.yml`, seed corpus) committed. `item7_fuzzware/evidence/` committed as the curated raw evidence: the 3 surviving `fuzzer_stats` snapshots (`fuzzer_stats.run1_old.main001`, `fuzzer_stats.run1.main001`, `fuzzer_stats.run1.main002`), the basic-block-coverage-over-time CSV, and all 4 outer invocations' own captured `pipeline.log` output (`pipeline_chunk1.log`-`pipeline_chunk4.log`, each independently grep-verified for `Current number of crashes: 0`). The full generated Fuzzware project tree (`item7_fuzzware/config/run1*/`: AFL's `queue/`/`traces/`/`mmio_states/`, per-session backups, etc.) is gitignored — large, ephemeral working state with its own internal rotation bookkeeping (see `FAILURE_TAXONOMY.md`), carrying no information beyond what's already curated into `evidence/`. The native Fuzzware toolchain itself is not committed (it's a third-party tool installed to `/tmp`, not project output, same as AFL/libFuzzer binaries are not committed elsewhere in this repo).
 * **Verification Status**: VERIFIED — Fuzzware built and installed natively in this session (not assumed present), its functional correctness checked via `checkenv` and a bounded smoke-test emulation before any campaign claim, the firmware target's own mock-macro width bug caught and fixed before fuzzing (not discovered after and rationalized around), all four campaign chunks run as genuine synchronous foreground executions with exact timestamps, and the "zero crashes" claim confirmed from each chunk's own live log independently of the stats-file overwrite quirk that was found and reported rather than hidden.
 
+## Work Plan Item 2: Self-Repair Statistics on 18 PL011 Targets (Oct 15-16 2026)
+
+**Setup.** 18 PL011 driver functions (CCN 1-6) from `targets/uart_pl011_item2/`, synthesized with
+DeepSeek V4.1 Flash via OpenRouter (provider pinned to CoreWeave, reasoning off, max 4096 tokens) through the
+production `SelfRepairOrchestrator` (max 5 iterations; compiler, then ASan/UBSan smoke test). Two arms differing
+only in the prompt:
+
+| Arm | Final success | First-attempt (strict) success | Mean iterations | LLM calls | Cost |
+|---|---|---|---|---|---|
+| No scaffold note | 4/18 (22%, 95% Wilson CI 9-45%) | n/a | n/a | 78 | USD 0.084 |
+| With scaffold-convention note | 18/18 (100%, CI 82-100%) | 14/18 (78%, CI 55-91%) | 1.33 | 24 | USD 0.015 |
+
+The no-scaffold arm's failures were 11 SEGVs from the undocumented `mock_regs_ptr` convention (the test scaffold's
+global MMIO pointer, defined per target). Documenting that one convention is the entire difference between the arms,
+so the scaffold description, not the model or the loop, dominated the outcome.
+
+**The four targets that needed repair (convention-note arm).** Iteration-1 errors, from `item2_report.json`:
+
+| Target | CCN | Iterations | Errors before success |
+|---|---|---|---|
+| `clk_enable_arm_pl011` | 1 | 3 | `enum uart_config_parity` etc. used as forward references (ISO C++ forbids); then undeclared identifiers |
+| `pl011_enable` | 1 | 2 | same forward-reference-to-enum error |
+| `pl011_set_flow_control` | 3 | 2 | `mock_regs_ptr` redeclared with different language linkage (`extern "C"` mismatch) |
+| `pl011_set_baudrate` | 3 | 3 | UBSan: null pointer to `memcpy`; then UBSan: division by zero in `pl011_set_baudrate.c:28` |
+
+No rule-fix iterations were used. By CCN: CCN 1 6/8 strict, mean 1.38 iterations; CCN 3 3/5, 1.6; CCN 4-6 5/5, 1.0.
+With 18 targets and 4 repairs, no CCN trend is claimed.
+
+**What this does and does not show.** It supports a first-attempt success rate near 78% when the scaffold is
+documented, and a repair loop that fixes mechanical C++ errors within 1-2 further iterations. It is one model, one
+driver family and n=18, so the interval is wide. "SUCCESS" means the harness compiles and survives a short sanitizer
+smoke run; an audit of the 22 passing harnesses (convention-note arm plus the no-note arm's four) confirmed each calls
+its target once and none redefines it, with line coverage not yet measured by `llvm-cov`.
+The `pl011_set_baudrate` division by zero surfaced by this arm is the candidate described in the vulnerability notes;
+it is not counted as a discovery.
+
+## Work Plan Item 5: Static-Analysis (clang-tidy) Feedback in the Repair Loop (Ablation E) — Null Result
+
+**Question.** Does adding clang-tidy warnings to the retry prompt (Arm A) help beyond the compiler/linker error alone
+(Arm B)? Paired design: both arms branch from the same failed attempt 1; success criterion identical in both.
+Model `deepseek/deepseek-v4.1-flash-20260910`, OpenRouter, provider pinned to CoreWeave, temperature 0.7, up to 5
+attempts. clang-tidy 18.1.3, default check set; only warnings located in the harness file are fed back.
+
+| Run | Configuration | Trials | Failed attempt 1 | Arm A (lint) | Arm B (compiler only) | Lint reached the prompt | Cost |
+|---|---|---|---|---|---|---|---|
+| Smoke 1 | original mocks, error-only retries, `pl011_poll_in` | 6 | 6 | 5/6 | 4/6 | 0 of 6 trials | $0.010 |
+| Smoke 2 | `--mock-headers ext --repair-context code`, 5 targets | 15 | 10 | 15/15 | 15/15 | 0 of 10 feedback rounds | $0.018 |
+
+**Reading.**
+* Lint never reached a prompt: 0 of 6 trials in smoke 1 and 0 of 10 feedback rounds in smoke 2. The two arms therefore
+  received identical feedback, and the smoke 1 difference (5/6 vs 4/6, McNemar p = 1.0) is sampling noise between
+  independently drawn retries, not an effect of lint.
+* Smoke 1 explains itself: every attempt-1 failure was a compile error, and on code that does not compile clang-tidy
+  only repeats the compiler's errors, which the filter drops.
+* Smoke 2 reached a regime where the loop repairs every failure in 1-2 further attempts (15/15 in both arms), so there
+  is a ceiling effect: with no failing trial left, the experiment cannot show any benefit.
+* Caveat on the counters. `arm_a_rounds_tidy_parsed` counts rounds where clang-tidy ran without a fatal
+  tool error; it does not mean the harness compiled. The attempt-1 failure type "Compiler Error" also covers link
+  errors, because the harness is compiled and linked in a single `clang++ -fsanitize=fuzzer` call. Which of the 10
+  failures were link versus compile errors was not recorded and is not claimed here. For link errors such as a missing
+  `extern "C"` on `LLVMFuzzerTestOneInput`, clang-tidy's default checks have nothing to say.
+
+**Conclusion.** In this pipeline the failures a repair loop sees are compiler and linker diagnostics, a class that
+default clang-tidy checks do not cover; the loop already fixes them from the error text alone. We therefore report
+lint-in-the-loop as a null result with the lint-reached-prompt rate as the headline number, and we do not claim that
+static analysis cannot help in other settings (for example as a quality gate on harnesses that already pass).
+Limits: one model, 21 trials, two small smoke runs, no full-power ablation; the full 100-trial design was not run
+because the measured lint rate was 0 and the second run had no failures left to compare.
+
+Provider note: DeepSeek via CoreWeave occasionally leaked `<｜DSML｜` control tokens into the completion
+(3 of 76 calls across both runs); the script truncates at the marker, and no call finished abnormally.
+
+## Ablation G Follow-Up: clang-tidy Quality Gate over Passing Harnesses (Oct 17 2026)
+
+**Question.** "SUCCESS" in Ablation G means compile + link + a short sanitizer run. Do the harnesses that reached SUCCESS still carry defects clang-tidy's default checks can see? Ablation E asked whether lint helps *inside* the repair loop (null result); this asks whether lint flags anything in what the loop *produced*. Script: `lint_gate_ablation_g.py` (read-only, zero API calls, never `-fix`).
+
+**Method.** For every trial that passed, the final harness is re-read from the run's logs, cut at the `// === APPENDED TARGET FUNCTION ===` marker (so only the generated code is analyzed, not the driver under test), and run through clang-tidy 18.1.3 with its default check set and the same include paths the run compiled with. Only warnings located in the harness file count.
+
+**A measurement artifact found and removed.** The first full run reported 387/387 harnesses flagged. All 387 were one `clang-diagnostic-undefined-internal` warning each: cutting the driver body leaves the `static` target function declared but never defined. That is a property of how the gate slices the file, not of the generated code, so the check is excluded by default (commit `3892c54e0`; excluded counts are printed, and `--ignore ''` counts everything). The 387-flagged figure must not be cited.
+
+**Result (artifact excluded).**
+
+| Configuration | Passing harnesses audited | Lint-clean | Flagged | Warnings | Clean rate (Wilson 95% CI) |
+| :--- | :-: | :-: | :-: | :-: | :-: |
+| Extended mocks + code context (loop 100/100) | 100 | 91 | 9 | 14 | 91.0% (83.8–95.2) |
+| Extended mocks (loop 91/100) | 91 | 84 | 7 | 13 | 92.3% (85.0–96.2) |
+
+By target in the headline configuration: `pl011_poll_in` 20/20 clean, `pl011_isr` 19/20, `pl011_poll_out` 18/20, `pl011_runtime_configure_internal` 18/20, `pl011_init` 16/20. The two larger-scope functions carry most of the findings. Across all 20 results files (387 audits; configurations overlap, so these are not 387 independent harnesses) the totals are 351 clean / 36 flagged / 64 warnings, 0 unparsed, 0 timeouts.
+
+**What the warnings are** (64 across all files):
+- `DeadStores` (22): unused assignments. Style-level.
+- `EnumCastOutOfRange` (22): inspected samples are `cfg.parity = (enum uart_config_parity)0x7f;` in a `default:` branch. This is deliberate: the harness feeds an invalid enum value to exercise the driver's rejection path. Valid in the C driver; strictly unspecified in C++, which is why the analyzer flags it. Intentional, not a defect.
+- `reorder-init-list` (13): all in the Qwen2.5-coder 14B and 7B smoke runs (out-of-order C++ designated initializers). None in the DeepSeek runs.
+- `StackAddressEscape` (3 warnings in 2 harnesses: `pl011_poll_out` trial 12 in the headline configuration, `pl011_isr` trial 18 in the prompt-v3 run): inspected `pl011_poll_out` trial 12 in full. It declares `static struct device dev;` and sets `dev.data = &d; dev.config = &cfg;` where `d` and `cfg` are stack locals, so the static keeps dangling pointers after `LLVMFuzzerTestOneInput` returns. Both are reassigned at the top of every call, before the only use (the call to `pl011_poll_out`), and `d`/`cfg` are never read by the target. Harness hygiene (the static is unnecessary), not a use-after-return. The `pl011_isr` trial 18 instance was also read in full: `mock_dev` is zeroed (line 42) and `mock_dev.data = &drv_data` is reassigned (line 65) on every call before the only use (line 68), so the pointer left dangling after return is never read. Same conclusion: benign.
+- `macro-redefined` (3), `missing-declarations` (1): minor.
+
+**Reading.** About nine in ten SUCCESS harnesses are clean under clang-tidy's default checks, and none of the findings inspected (both `StackAddressEscape` harnesses read in full, the `EnumCastOutOfRange` casts in 4 harnesses) changes whether a harness is valid. Together with Ablation E this gives a consistent picture: lint-class issues are rare in what the loop produces and almost never present in what the loop sees.
+
+**Limits.** (1) clang-tidy's default checks are a weak oracle; clean does not mean correct. (2) Only the generated harness text is analyzed, not the appended driver. (3) 14 passing Qwen2.5-coder 7B trials had no stored harness file and were not audited. (4) The counts above are warnings per harness file, not a severity ranking.
+
+## Work Plan Item 2: llvm-cov Line Coverage of the 18 Convention-Note Harnesses (Oct 17 2026)
+
+**Method.** `coverage_item2.py` rebuilds each harness plus the verbatim real driver `.c` with `-fprofile-instr-generate -fcoverage-mapping` and ASan, runs libFuzzer for 300,000 executions (`-max_len=512 -timeout=5`), and reports `llvm-cov` coverage restricted to the driver file. The script prints the run it measured: OpenRouter, `deepseek/deepseek-v4.1-flash-20260910`, CoreWeave, `convention_note`, report statuses `{'SUCCESS': 18}`. No API calls.
+
+**A wrong first pass, discarded.** The first coverage pass measured the older top-level (Gemini-era) run, which has 15 SUCCESS and 3 FAILED_TO_CONVERGE, because the script defaulted to that folder. Those numbers do not describe the 18/18 result and are not used. The script now takes `--out-root` and prints the run identity.
+
+**Result (17 targets that ran to completion).**
+
+| Scope | Lines | Regions | Branches |
+|---|---|---|---|
+| 17 targets, excluding `pl011_set_baudrate` | 136/149 (91.3%) | 172/192 (89.6%) | 68/80 (85.0%) |
+
+15 of the 17 reach 100% line coverage; many are 3-line register accessors, so a 100% there says little. The two partial targets are `pl011_is_readable` (8/10 lines, 80.0%) and `pl011_irq_tx_enable` (11/22 lines, 50.0%, 3/12 branches). Why those two stop short was not analyzed.
+
+**`pl011_set_baudrate`: a crash, not a coverage result.** The run reported 0/14 lines, but the harness did run the function. The fuzz run aborted with AddressSanitizer FPE at `pl011_set_baudrate.c:28` after 64 executions, before the process could write its profile (0-byte profile), so `llvm-cov` saw zero counters. Decoding the crashing input as `FuzzedDataProvider` consumes it gives `baudrate = 0x10000000` and `clk = 0x20`; `0x10000000 * 16` wraps to 0 in 32 bits, so this is the integer-overflow case of the candidate described in the vulnerability notes. The generated harness only guards `baudrate == 0`.
+
+**What the self-repair history shows.** Iteration 1 failed on a UBSan null pointer to `memcpy` in the harness (a genuine harness defect). Iteration 2 failed on UBSan division by zero at `pl011_set_baudrate.c:28`, a frame in the driver, not the harness. Iteration 3 passed after the model added `if (baudrate == 0) baudrate = 1;` and `if (clk == 0) clk = 1;` to the harness. The short smoke run did not reach the wraparound value, so the harness was recorded as SUCCESS; a 300,000-execution run found a crashing input in 64.
+
+**Consequences for the paper.**
+1. "SUCCESS" is a smoke-level oracle. The strongest honest statement is: 18/18 reached SUCCESS, and 17/18 completed a 300,000-execution ASan run without crashing; the 18th crashes on a real defect in upstream code.
+2. The repair loop treated a crash located in the target as a harness defect and removed it by constraining the input. Where the top stack frame lies (harness file vs. driver file) distinguishes the two cases. Proposed, not implemented: triage by crash location, and report target-side crashes as candidate findings instead of asking the model to repair them.
+3. The pipeline's own fuzzing reached the overflow family (not only the zero case), which supports the disclosure candidate. The candidate was disclosed to the Zephyr Project security team by email in October 2026 (no vendor response as of this writing); it is reported as a candidate, not counted as a confirmed discovery in this ledger.
+
+**Limits.** One model, one driver family, n=18. Short fuzz runs (300,000 executions). Coverage is of the driver function alone, with mocked hardware. `coverage_item2.py` was fixed after this run to report a crashed fuzz run as a crash (with pre-crash corpus coverage) instead of 0%; this result has not been re-run with the fixed script, and the 0/14 above is the old behavior.
+
+## Work Plan Item 2: Crash-Location Triage Variant (Oct 17 2026)
+
+**What was changed.** `SelfRepairOrchestrator` gained two optional, default-off features (commit a98c2522c): a crash-location triage (`--crash-triage record|halt`), which classifies each runtime crash by the deciding source location in the sanitizer report (harness, code under test, scaffold, unknown), and a stability gate (`--stability-runs N`), a longer fuzz campaign a harness must also survive after the smoke test. Motivation: in the 18/18 convention-note run, `pl011_set_baudrate` was "repaired" by guarding `baudrate == 0` in the harness, which removed a driver-side division by zero from the result (see the coverage section above). The original protocol (`off`) and its reported numbers are unchanged.
+
+**Run.** Same 18 targets, model (DeepSeek v4.1 flash via CoreWeave), convention note, `--crash-triage record --stability-runs 100000 --stability-time 60`. Output folder `..._convnote_triage-record_stab100000`. This is a fresh sampling of the model, not a re-analysis of the earlier harnesses.
+
+| Measure | Value |
+|---|---|
+| Final status | 18/18 SUCCESS |
+| Targets needing more than one iteration | 1 (`pl011_set_baudrate`, 2 iterations) |
+| LLM calls (driver count) | 19 (ledger has 20 entries, USD 0.012751 total; the one-entry difference was not investigated) |
+| Candidate findings | 1, in `pl011_set_baudrate` |
+
+**The finding.** Stage SMOKE_TEST_ORACLE, iteration 1: `pl011_set_baudrate.c:28:17: runtime error: division by zero`, classified driver-side. The kept reproducer is `crash-da39a3ee5e6b4b0d3255bfef95601890afd80709`; that name is the SHA-1 of the empty input, i.e. the zero-length input (all fuzz-provider values read as 0, so baudrate = 0). The finding is marked `masked_by_repair = True`: iteration 2 produced a harness that passed both the smoke test and the 100,000-run stability gate, so under the original protocol this crash would have vanished from the result without a trace. The new loop kept it with its reproducer.
+
+**What this does and does not show.**
+- It shows the triage works on a real pipeline run: the one driver-side crash in 18 targets was captured, located and preserved, and no other target produced a finding.
+- It reproduces the masking mechanism on an independent sample, so the earlier case was not a one-off.
+- The recorded crash is the *zero-baudrate* variant. The *overflow* variant (`baudrate` a multiple of 2^28) that crashed the earlier final harness at execution 64 was not triggered here: the final harness passed 100,000 runs / 60 s. Whether this harness would survive the 300,000-execution coverage run is not yet measured. The stability gate is a bounded check, not proof of absence.
+- The finding is a candidate: the harness generated baudrate = 0, and whether a real caller can pass 0 to the public API is not established. Disclosure status: reported to the Zephyr Project security team by email in October 2026; no vendor response as of this writing.
+- Iteration counts (17/18 first-attempt here versus 14/18 earlier) come from different random samples of the same model and must not be read as an effect of the triage; no statistical comparison is made.
+
+### Coverage and 300,000-execution survival of the triage-run harnesses (Oct 17 2026)
+
+`coverage_item2.py --runs 300000` on the `..._convnote_triage-record_stab100000` folder (same 18 SUCCESS harnesses; coverage build is `-fsanitize=fuzzer,address -O1 -fno-inline`, i.e. without UBSan, unlike the pipeline's smoke build).
+
+| Measure | Value |
+|---|---|
+| Driver lines covered, all 18 targets | 152/163 (93.3%) |
+| Targets at 100% line coverage | 17 of 18 |
+| Low outlier | `pl011_irq_tx_enable`: 11/22 lines (50.0%), 8/27 regions, 3/12 branches |
+| Branch gap in a 100%-line target | `pl011_fifo_read` 3/4 branches |
+| Fuzz run crashed | `pl011_set_baudrate` (1 of 18) |
+
+**Stability gate was not sufficient.** The final `pl011_set_baudrate` harness passed the 100,000-run / 60 s stability gate in the pipeline, then crashed in the 300,000-execution coverage run with `AddressSanitizer: FPE ... pl011_set_baudrate.c:28:17`. The harness draws `baudrate` from `ConsumeIntegralInRange(1, 0xFFFFFFFF)`, so the zero-baudrate case that the repair removed is excluded, but the 32-bit overflow variant (`baudrate * 16U` wrapping to 0) remains reachable. The two runs differ in build flags and random seed, and the execution number of the crash was not recorded, so this shows that the gate missed a crash that a longer run found, not how much longer a gate must be. The `pl011_set_baudrate` coverage figure (14/14 lines) is from corpus replay before the crash, not from the full run.
+
+**Consequences.** (1) The target-side crash class is real in a second independent sample, and the overflow variant survived a first repair that fixed only the zero case; (2) "100,000 runs / 60 s" is not an adequate crash-free guarantee for rare-value arithmetic faults and should not be described as one; (3) 17 of 18 harnesses ran 300,000 executions without a crash, and one of them (`pl011_irq_tx_enable`) reaches only half of its target's lines, so "SUCCESS" does not imply that the target is exercised; its cause is not yet diagnosed. Pending: a read-only diagnosis of both items, then a detection-rate measurement over several seeds to set the gate length from data.
+
+### Diagnosis of the two triage-run anomalies (Oct 17 2026)
+
+**`pl011_irq_tx_enable` (11/22 lines).** The uncovered lines are the `while (uart->imsc & PL011_IMSC_TXIM)` loop body (CTS handling and the `K_SPINLOCK` callback invocation). The cause is in the harness: it assigns `dev_data.irq_cb = nullptr` unconditionally, so the early return `if (!data->irq_cb) return;` is taken on every run in which `sw_call_txdrdy` is set (50.3k of 300k executions reached that return; none went further). The harness compiled, linked and passed the smoke test, so the pipeline recorded SUCCESS for a harness that cannot reach half of its target. Exercising the loop needs a non-null callback that clears the TX interrupt-mask bit, otherwise the loop does not terminate; a model avoiding that hazard is plausible but unconfirmed. Consequence: the compile + smoke oracles do not measure whether the target is exercised; a coverage signal would.
+
+**`pl011_set_baudrate` crash input.** Decoded by hand using FuzzedDataProvider's from-the-end consumption order, the 102-byte reproducer yields `clk = 0x3f3f3f40` and `baudrate = 0x40000000` (2^30). The harness excludes only baudrate 0 (`ConsumeIntegralInRange(1, 0xFFFFFFFF)`), and `baudrate * 16U` is 0 in 32-bit arithmetic for 2^30, so the divisor is zero: the overflow variant, not the zero variant. The replay of the kept input reproduces `FPE ... pl011_set_baudrate.c:28:17`. Only 15 of 2^32 non-zero baudrate values (multiples of 2^28) produce a zero divisor, which is why a random campaign reaches it rarely and a 100,000-run gate can miss it.
+
+**Proposed detector (not yet evaluated).** Clang's `-fsanitize=unsigned-integer-overflow` reports the wrap in `baudrate * 16U` for every baudrate >= 2^28 (15/16 of random values), i.e. on the first executions, independent of whether the divisor becomes zero. Unsigned wrap is defined behaviour and sometimes intended, so reports would be candidates, and precision across the 18 targets is unknown. `ubsan_wrap_probe.py` measures that (target-side reports per harness, fixed seed, no API calls); on a two-line fixture it flagged the wrap in under 2,000 runs.
+
+### Unsigned-wrap probe result (Oct 17 2026)
+
+`ubsan_wrap_probe.py`, 20,000 executions per harness with `-fsanitize=unsigned-integer-overflow` (report-and-continue), no API calls. Three campaigns: the triage-run harnesses with seed 1 and seed 2, and the earlier convention-note (18/18) harnesses with seed 1.
+
+| Campaign | Targets with a driver-side report | Reports |
+|---|---|---|
+| Triage-run harnesses, seed 1 | 1 of 18 | `pl011_set_baudrate.c:28:29` unsigned overflow, then `:28:17` division by zero |
+| Triage-run harnesses, seed 2 | 1 of 18 | same two locations |
+| Earlier 18/18 harnesses, seed 1 | 1 of 18 | same two locations |
+
+- The other 17 targets produced no driver-side report in any campaign (0 false positives in this sample), and no build errors occurred.
+- In all three campaigns the wrap and the resulting division by zero appeared within 20,000 executions. The same triage-run `pl011_set_baudrate` harness had passed the pipeline's 100,000-run stability gate (plain sanitizer build) and crashed only in the 300,000-run coverage build. The wrap-checking build therefore found the defect much sooner. Why is not established; one untested explanation is that the added overflow checks give the fuzzer extra coverage feedback toward large inputs.
+- Limits: one driver family, 18 small functions; no code with intended unsigned wrap (hashes, checksums, counters) was in the sample, so the precision observed here may not transfer. 0 reports on the 17 other targets also reflects what their harnesses reach (for example `pl011_irq_tx_enable` is at 50% coverage).
+
+**Consequence.** The loop gained an optional record-only step, `--wrap-probe-runs N` (commit follows), which rebuilds a finally-passing harness with this check and keeps driver-side wraps as candidate findings (stage `WRAP_PROBE`). It never changes success and never triggers repair. It has not yet been run through the full pipeline.
+
+### Coverage-feedback round added to the loop (Oct 17 2026, not yet evaluated)
+
+Motivated by `pl011_irq_tx_enable` (SUCCESS at 50% driver-line coverage; its harness always nulled the interrupt callback). New optional step, `--coverage-feedback-min F` (default off): after a harness passes every oracle, line coverage of the target's own sources is measured with llvm-cov over a short campaign (20,000 executions, 30 s cap). If it is below `F`, the unreached lines (marked in the driver source) are sent to the model for exactly one round with instructions not to filter away faults in the code under test. The new harness replaces the verified one only if it compiles, passes the smoke test (and the stability gate and crash triage when enabled) and covers strictly more lines; otherwise the verified harness is kept. A crash in the driver that the round reaches is recorded as a candidate finding (stage `COVERAGE_FEEDBACK`). Offline tests cover accept, reject (not better, failed oracle, unchanged, measurement error) and the threshold; the coverage oracle was also run against real clang/llvm-cov on a small fixture. Combined with triage, the stability gate and the wrap probe, the next run is a labelled "full-loop" variant of the same 18 targets; its results are not available yet, and the original 18/18 protocol is unchanged.
+
+### Full-loop variant: triage + stability gate + wrap probe + coverage feedback (Oct 17 2026)
+
+Same 18 PL011 targets, same model (DeepSeek v4.1 flash, CoreWeave) and convention note, run with `--crash-triage record --stability-runs 100000 --wrap-probe-runs 20000 --coverage-feedback-min 0.9`. A fresh sampling of the model, so comparisons with earlier runs are between different samples. The run was delayed by an upstream rate limit and resumed automatically.
+
+| Measure | Value |
+|---|---|
+| Final status | 17 SUCCESS, 1 FAILED_TO_CONVERGE (`pl011_set_baudrate`) |
+| First-iteration success | 17 of 17 successful targets |
+| LLM calls (driver count) | 23; the ledger file has 59 lines (the extra lines are probably retried calls during the rate limit; not verified), cost not reported |
+| Coverage feedback triggered | 1 target (`pl011_irq_tx_enable`), accepted |
+| Wrap-probe findings | none for the 17 successful targets |
+
+**Coverage feedback worked on its one trigger.** `pl011_irq_tx_enable` was measured at 11/22 lines, sent back once, and the new harness was accepted at 20/22 in the loop's own short campaign. The independent 300,000-execution check agrees: 20/22 lines (90.9%), 26/27 regions, 11/12 branches, no crash. Across the 17 successful targets the independent check gives 147/149 driver lines (98.7%), 16 of 17 at 100%, and no fuzz-run crash. In the previous (triage-only) run the comparable figure for these 17 targets was 138/149 (92.6%), with the 9-line difference being `irq_tx_enable`. The other 16 targets were at 100% before and after. One model call and a few minutes of local time bought the 9 lines; this is a single target, so no rate of improvement can be claimed. The two lines still uncovered were not examined.
+
+**The stability gate removed the false SUCCESS for `pl011_set_baudrate`.** The loop recorded five driver-side findings at `pl011_set_baudrate.c:28:17` (one smoke-stage, four from the stability gate across iterations 2 to 5), none marked as masked, and ended FAILED_TO_CONVERGE: the model repeatedly changed the harness, the gate kept finding the division by zero, and five iterations were exhausted. In the earlier triage-run sample the gate passed the same function's final harness, so one harness out of two that were gated missed the defect and one caught it at every attempt; with this few samples no detection rate is claimed. The honest reading is not that the harness synthesis failed but that the code under test contains a reachable fault the repair cannot remove.
+
+**Consequence for the loop.** Spending all iterations on a driver defect is wasteful and its status misleading. Added `--escalate-after K` (with triage `record`): once K driver-side crashes at the same source location are recorded, the loop halts as a candidate finding instead of continuing to repair. With K = 2 this run would have stopped at iteration 2 as CANDIDATE_FINDING. Implemented with offline tests; not yet exercised on the real pipeline.
+
+### Escalation confirmed on the real pipeline (Oct 18 2026)
+
+`--crash-triage record --stability-runs 100000 --escalate-after 2`, single target `pl011_set_baudrate`, same model/provider/convention note. Status **CANDIDATE_FINDING** after 2 iterations and 2 LLM calls (the full-loop run without escalation used all 5 iterations and ended FAILED_TO_CONVERGE). History: iteration 1 smoke-stage crash at `pl011_set_baudrate.c:28:17` (division by zero), one repair, iteration 2 stability-gate crash at the same location, halt with "same location crashed 2 times despite repair". Both crashing inputs were kept: iteration 1 is a 1-byte input (all fuzz-provider values read as 0, i.e. the zero-baudrate case); iteration 2 is a 72-byte input from the 100,000-run gate (not decoded here). Neither finding is marked masked. The ledger file has 4 lines for 2 driver-counted calls; likely retried calls during an OpenRouter rate limit, not verified. This is one target, one sample; it shows the halt path works end to end, not how often a model would otherwise have removed the crash.
 ## Work Plan Item 4: Third RTOS/Target Pipeline Run — Crazyflie Drone Firmware (Oct 20-25 2026)
 
 * **Goal**: run Stage 6 (LLM harness synthesis + compiler-driven self-repair + libFuzzer/ASan fuzzing) end-to-end against `bitcraze/crazyflie-firmware`, a third RTOS/target pairing distinct from the Zephyr UART driver and the RIOT Kinetis ADC driver already covered — a different flight-controller codebase, built around a dual-MCU (STM32 + nRF51 radio coprocessor) `SyslinkPacket`/CRTP architecture rather than a single-MCU peripheral driver. Three target functions were run, pinned to commit `9912584c85db92dbbba14334ffed20ebabba463e`.
@@ -360,5 +572,11 @@ Contrary to a naive expectation that "less domain knowledge → worse coverage,"
 
 * **Verification performed, not just accepted from the synthesis reports**: every cited line number, struct definition, and calling convention (`radiolink.c`, `radiolink.h`, `uart_syslink.c`, `syslink.c`/`syslink.h`, `crtp_commander_high_level.c`, `crtp_mem.c`, `log.c`/`log.h`) was independently re-checked against a fresh clone of `bitcraze/crazyflie-firmware` pinned to the exact same commit, rather than trusted from the synthesis agent's own report text. The libFuzzer empty-corpus bootstrap explanation was independently confirmed by reading the exact cited lines of LLVM's `FuzzerLoop.cpp`. The nRF51 non-reachability claim for Target 1's second finding, the 32-bit/64-bit severity nuance for Target 2, and the index-arithmetic correction for Target 3 were all derived or checked independently during this review, not taken as-given from the pipeline's own output.
 
-* **Scripts/artifacts**: the three targets' synthesis agents, self-repair drivers, synthesized harness sources, seed corpora, and raw fuzzing logs currently exist only on the machine where Antigravity was run (not yet pushed to this repository) — this section records the verified results and methodology; the underlying `targets/crazyflie_radiolink/`, `targets/crtp_trajectory_write/`, and `targets/crazyflie_log_append/` directories are pending a push from that machine before they can be committed here, consistent with this project's practice of only recording a result as reproducible once its artifacts are actually in the repo.
-* **Verification Status**: PARTIALLY VERIFIED — every structural/source-level claim (line numbers, struct layouts, calling conventions, reachability, the libFuzzer bootstrap mechanism) was independently cross-checked against the pinned firmware source and, where relevant, LLVM source, by a reviewer with no access to the synthesis pipeline's own internal state. The fuzzing campaigns and compilations themselves were run by the synthesis pipeline's own tooling on a separate machine and are reported here as described in its logs, not re-executed independently in this session — full independent reproduction is blocked on the target code being pushed to this repository (see Scripts/artifacts above).
+* **Scripts/artifacts**: `targets/crazyflie_radiolink/`, `targets/crtp_trajectory_write/`, and `targets/crazyflie_log_append/` are committed — each target's synthesis agent, self-repair driver, synthesized harness source, and (for the latter two) seed/checksum/analysis scripts. Raw fuzzing logs and generated corpus/artifact directories from the Antigravity-run campaigns are not included (same convention as `item6_scale/`/`item7_fuzzware/`: large, ephemeral working state, not re-committed here), so the periodic coverage/corpus status lines and full diagnostic traces cited above are reported as they appear in Antigravity's own session reports, not re-derived from raw logs in this repository.
+* **Independent reproduction (Oct 26 2026)**: all three findings were re-fuzzed from scratch in a separate environment (Clang 18.1.3, libFuzzer + ASan/UBSan, `-O1 -fsanitize=fuzzer,address,undefined`), rebuilt only from the committed target sources under `targets/crazyflie_*/`, with each harness seeded exclusively with valid, non-crashing packets and then fuzzed **blind** (90 s fork-mode, `-ignore_crashes=1`). In every case the coverage-guided fuzzer rediscovered the defect on its own, with no hand-crafted triggering input:
+  * `radiolinkSyslinkDispatch`: 15 distinct F1 crashes (`type=0x0A`, `length>=63`) and 170 F2 crashes (`length<2`). A representative F1 reproducer `40 0a` (`length=64`, `type=0x0A`) replays to `AddressSanitizer: stack-buffer-overflow ... WRITE of size 61` at the P2P-branch `memcpy` — matching the 1-byte overflow of the 60-byte `P2PPacket.data` buffer.
+  * `crtpCommanderHighLevelWriteTrajectory`: 167 wraparound crashes. Representative reproducer decodes to `offset=0xFFFFFFFF, length=255`; `(offset+length) mod 2^32 = 254 <= 4096` passes the bounds check, then the `memcpy` writes at offset `0xFFFFFFFF` (far OOB) — the CWE-190 wraparound, confirmed by SEGV.
+  * `logAppendBlockV2`: 665 OOB-read crashes. Representative reproducer `3d 3a 60` (`logType=0x3D`, low nibble `0xD`=13) replays to `UndefinedBehaviorSanitizer: index 13 out of bounds for type 'const uint8_t[9]'` at the `typeLength[... & LOG_TYPE_MASK]` access, with ASan `global-buffer-overflow READ of size 1` — the CWE-125 mask/table mismatch.
+  This removes the pipeline-self-report dependency for the three findings; the results above no longer rest on Antigravity's own logs. Not re-committed: the regenerated corpora/artifacts are ephemeral (same convention as `item6_scale/`). Still host-level only — no physical STM32F405/nRF51 hardware confirmation.
+* **Responsible disclosure (Oct 2026)**: all three Crazyflie findings were disclosed in good faith to Bitcraze (maintainer of `bitcraze/crazyflie-firmware`) by email to the project's official security contact in October 2026, prior to any external publication. No vendor response has been received as of this writing. Only source-level mechanism and reachability are shared; no weaponized trigger or exploit code is released. (The related Zephyr `pl011_set_baudrate` candidate was disclosed to the Zephyr Project security team on the same basis — see the Work Plan Item 2 sections above.)
+* **Verification Status**: VERIFIED (host-level) — every structural/source-level claim (line numbers, struct layouts, calling conventions, reachability, the libFuzzer bootstrap mechanism) was independently cross-checked against the pinned firmware source and, where relevant, LLVM source, by a reviewer with no access to the synthesis pipeline's own internal state; and, as of Oct 26 2026 (above), all three defects were independently reproduced by rebuilding the committed harness sources and re-fuzzing them blind in a fresh environment. The one caveat that remains is hardware: these are host-mocked results, not confirmed on physical STM32F405/nRF51 silicon (the 32-bit/64-bit trajectory-write severity nuance in particular is a derived caveat, not a hardware measurement).

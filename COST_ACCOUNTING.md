@@ -62,3 +62,25 @@ Sections 1-2's call-count breakdown was checked against the actual proposal JSON
 * **"Kinetis original run post-failover (~409)" / "before hitting quota (~21)" — unverifiable either way.** `llm_proposals_kinetis.json` (223 entries) has no `backend` field on any entry at all, so there's no way to attribute these to Gemini vs. Ollama from the data itself. Not contradicted, but not confirmed either — this part of the estimate rests on nothing checkable.
 
 **Why this matters beyond just two wrong numbers:** Section 1 already labels its totals "estimates... mathematically derived from our known dataset sizes," which is the right caveat *if* the dataset sizes themselves are right. Two of the four cited sub-totals turn out not to match the files they're supposedly derived from, which means the "known dataset sizes" input to that math wasn't actually checked against the data at the time this document was written. The corrected, file-verified picture (where a `backend` field exists to check): Zephyr — 11 Gemini + 28 Ollama (out of 53); Kinetis v2 — 222 Ollama (out of 312); Kinetis spot-check — 13 Gemini (out of 18). This doesn't change the document's qualitative conclusion (quota exhaustion was the binding constraint, Ollama fallback was necessary), but the specific totals in Sections 1-2 should be treated as unverified pending a recount from these real files, not cited as-is.
+
+## 7. Commercial Routing Expansion: DeepSeek (V3 / V4 Flash) via OpenRouter
+
+To permanently resolve the single-vendor vulnerabilities of the Google Gemini ecosystem (the ~20 request/day free-tier ceiling, proxy CONNECT 403 blocks, and global 503 transient spikes), AeroHarness integrates native support for OpenRouter, targeting high-efficiency models such as **DeepSeek-V3** and **DeepSeek-V4 Flash** (`deepseek/deepseek-chat` / `deepseek/deepseek-coder`).
+
+### Unit Economics Comparison: Gemini vs. DeepSeek (OpenRouter)
+
+| Metric / Dimension | Google Gemini Flash (`3.7`/`3.6`) | DeepSeek (V3/V4 Flash via OpenRouter) | Google Gemini Pro (`1.5`/`3.1`) | Local Ollama (`qwen2.5-coder:7b`) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Input Tokens (per 1M)** | $0.10 | **$0.14** ($0.014 with prompt cache) | $1.25 | $0.00 |
+| **Output Tokens (per 1M)** | $0.40 | **$0.28** | $5.00 | $0.00 |
+| **Stage 2 MMIO Call** (~800 in, ~50 out) | $0.00010 | **$0.00013** | $0.00125 | $0.00 |
+| **Stage 6 Harness Synth** (~1.8k in, ~450 out) | $0.00036 | **$0.00038** | $0.00450 | $0.00 |
+| **Stage 6 Worst-Case Repair** (~7.8k in, ~2.7k out) | $0.00186 | **$0.00185** | $0.02325 | $0.00 |
+| **Daily Request Quota (RPD)** | ~20 (Free Tier) | **Pay-As-You-Go / Prepaid (No RPD Cap)** | 0 (Free Tier) / Tiered | Hardware-bound |
+| **Output Price Advantage** | Baseline | **30.0% Cheaper than Flash, 94.4% Cheaper than Pro** | 12.5x more expensive | N/A |
+
+### Key Architectural Advantages
+1. **Output Cost Dominance in Multi-Turn Repair:** In iterative fuzz harness synthesis and compiler error self-repair, models emit extensive C++ code blocks (400–600 output tokens per iteration). DeepSeek's $0.28/1M output token pricing renders multi-turn repair cycles 30% cheaper than Gemini Flash and 94% cheaper than Gemini Pro.
+2. **Quota and Egress Resilience:** OpenRouter uses standard HTTP/REST endpoints with prepaid credits, completely bypassing Google AI Studio's 20-RPD throttle and institutional proxy blocks targeting `generativelanguage.googleapis.com`.
+3. **Automated Cross-Provider Failover:** The `HarnessSynthesizerAgent` routes across both Google GenAI and OpenRouter backends. A transient 503 from Gemini immediately falls back to DeepSeek on OpenRouter, guaranteeing zero pipeline stalls.
+

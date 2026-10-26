@@ -218,7 +218,7 @@ def analyze_ast(filename):
     output = {
         "constants": constants,
         "functions": functions,
-        "ordering_edges": _compute_ordering_edges(functions),
+        "ordering_edges": _compute_ordering_edges(functions) + _compute_framework_edges(all_tokens, functions),
         "extraction_warnings": [d.spelling for d in tu.diagnostics if d.severity >= 3]
     }
 
@@ -278,6 +278,11 @@ def _compute_ordering_edges(functions):
       edges for a human (or a downstream consumer) to sanity-check, not a guaranteed-correct
       final ordering.
 
+    UPDATE (Oct 15 2026): the `pl011_init` -> poll_in/poll_out/isr edge that this function
+    cannot recover is now recovered by `_compute_framework_edges` below, from the Zephyr
+    device-model contract (init function in DEVICE_DT_INST_DEFINE, API table members), not from
+    register co-access and not from names. That rule is Zephyr-specific; this one stays generic.
+
     Net honest claim for the paper: this closes part of the naming-convention gap (some real,
     previously-unstated dependencies are now data-grounded) but does NOT fully replace the
     hand-coded `pl011_init`-first assumption in the dispatcher harness, which still rests on a
@@ -310,9 +315,149 @@ def _compute_ordering_edges(functions):
                 edges.setdefault((w, r), set()).add(reg)
 
     return [
-        {"before": w, "after": r, "via_registers": sorted(regs)}
+        {"before": w, "after": r, "via_registers": sorted(regs), "kind": "register_dataflow"}
         for (w, r), regs in sorted(edges.items())
     ]
+
+
+# --- Work Plan item 11, second mechanism (Oct 15 2026) ------------------------------------
+# Framework-contract ordering edges. The register co-access heuristic above provably cannot
+# recover "init must run before the driver API" (see its docstring): the dependency is not a
+# shared register, it is how the RTOS's device model works. In Zephyr a driver declares its
+# init function in DEVICE_DT_INST_DEFINE(n, init_fn, ...) / DEVICE_DT_DEFINE / DEVICE_DEFINE
+# and its API functions as designated initializers of a `DEVICE_API(uart, name) = {.poll_in =
+# fn, ...}` (or `struct <x>_driver_api`) table; the kernel runs init_fn at boot (PRE_KERNEL_1
+# etc.) before any code can call through that table. That is a documented framework contract
+# read straight from the source tokens, not a function-name guess. Scope: this rule is
+# Zephyr-device-model specific and returns [] for code without those macros (RIOT, FreeRTOS).
+_DEVICE_DEFINE_INIT_ARG = {"DEVICE_DT_INST_DEFINE": 1, "DEVICE_DT_DEFINE": 1, "DEVICE_DEFINE": 2}
+_IRQ_CONNECT_HANDLER_ARG = {"IRQ_CONNECT": 2, "IRQ_DIRECT_CONNECT": 2, "irq_connect_dynamic": 2}
+
+
+def _call_args(tokens, open_idx):
+    """tokens[open_idx] is '('. Returns (list of arg spelling-lists split on top-level commas,
+    index of the matching ')'), or (None, None) if unbalanced."""
+    depth, args, cur = 0, [], []
+    for j in range(open_idx, len(tokens)):
+        t = tokens[j].spelling
+        if t in ("(", "[", "{"):
+            depth += 1
+            if depth == 1:
+                continue
+        elif t in (")", "]", "}"):
+            depth -= 1
+            if depth == 0:
+                args.append(cur)
+                return args, j
+        if depth == 1 and t == ",":
+            args.append(cur)
+            cur = []
+        else:
+            cur.append(t)
+    return None, None
+
+
+def _function_body_spellings(tokens, name):
+    """Spellings of the tokens inside the definition body of function `name` (the occurrence
+    followed by '(' ... ')' '{', not a call), or [] if no definition is found."""
+    for i in range(len(tokens) - 1):
+        if tokens[i].spelling == name and tokens[i + 1].spelling == "(":
+            _, close = _call_args(tokens, i + 1)
+            if close is None or close + 1 >= len(tokens) or tokens[close + 1].spelling != "{":
+                continue
+            depth, body = 0, []
+            for j in range(close + 1, len(tokens)):
+                t = tokens[j].spelling
+                if t == "{":
+                    depth += 1
+                    if depth == 1:
+                        continue
+                elif t == "}":
+                    depth -= 1
+                    if depth == 0:
+                        return body
+                body.append(t)
+    return []
+
+
+def _compute_framework_edges(all_tokens, functions):
+    """Zephyr device-model ordering edges (see the block comment above). Returns edge dicts
+    {"before","after","via_registers":[],"kind","evidence"}:
+      framework_init_before_api -- init_fn (from DEVICE_*_DEFINE) before every function that
+                                   appears as a designated initializer of the driver API table;
+      framework_init_before_isr -- init_fn before a handler passed to IRQ_CONNECT, but ONLY when
+                                   init_fn's own body references an `irq_config*` hook, i.e.
+                                   the evidence that interrupts are wired up from init."""
+    tokens = all_tokens
+    n = len(tokens)
+
+    init_fns = {}
+    for i in range(n - 1):
+        name = tokens[i].spelling
+        if name in _DEVICE_DEFINE_INIT_ARG and tokens[i + 1].spelling == "(":
+            args, _ = _call_args(tokens, i + 1)
+            idx = _DEVICE_DEFINE_INIT_ARG[name]
+            if args and len(args) > idx and len(args[idx]) == 1 and args[idx][0] in functions:
+                init_fns[args[idx][0]] = name
+    if not init_fns:
+        return []
+
+    api_members = {}  # function -> table field name
+    for i in range(n - 1):
+        t = tokens[i].spelling
+        start = None
+        if t == "DEVICE_API" and tokens[i + 1].spelling == "(":
+            _, close = _call_args(tokens, i + 1)
+            if close is not None:
+                start = close + 1
+        elif t.endswith("_driver_api") and i > 0 and tokens[i - 1].spelling == "struct":
+            start = i + 1
+        if start is None:
+            continue
+        # expect: [name] '=' '{' ... '}'
+        j = start
+        while j < n and tokens[j].spelling not in ("=", ";", "{"):
+            j += 1
+        if j + 1 < n and tokens[j].spelling == "=" and tokens[j + 1].spelling == "{":
+            _, end = _call_args(tokens, j + 1)
+            if end is None:
+                continue
+            for k in range(j + 2, end - 3):
+                if (tokens[k].spelling == "." and tokens[k + 1].spelling.isidentifier()
+                        and tokens[k + 2].spelling == "=" and tokens[k + 3].spelling in functions):
+                    api_members[tokens[k + 3].spelling] = tokens[k + 1].spelling
+
+    isr_handlers = {}
+    for i in range(n - 1):
+        name = tokens[i].spelling
+        if name in _IRQ_CONNECT_HANDLER_ARG and tokens[i + 1].spelling == "(":
+            args, _ = _call_args(tokens, i + 1)
+            idx = _IRQ_CONNECT_HANDLER_ARG[name]
+            if args and len(args) > idx and len(args[idx]) == 1 and args[idx][0] in functions:
+                isr_handlers[args[idx][0]] = name
+
+    edges = []
+    seen = set()
+    for init_fn, defmacro in sorted(init_fns.items()):
+        irq_hook = any("irq_config" in t for t in _function_body_spellings(tokens, init_fn))
+        for fn, field in sorted(api_members.items()):
+            if fn != init_fn and (init_fn, fn, "api") not in seen:
+                seen.add((init_fn, fn, "api"))
+                edges.append({
+                    "before": init_fn, "after": fn, "via_registers": [],
+                    "kind": "framework_init_before_api",
+                    "evidence": f"{init_fn} is the init argument of {defmacro}(...); {fn} is the .{field} member of the driver API table",
+                })
+        if irq_hook:
+            for fn, how in sorted(isr_handlers.items()):
+                if fn != init_fn and (init_fn, fn, "isr") not in seen:
+                    seen.add((init_fn, fn, "isr"))
+                    edges.append({
+                        "before": init_fn, "after": fn, "via_registers": [],
+                        "kind": "framework_init_before_isr",
+                        "evidence": f"{fn} is the handler argument of {how}(...) and the body of {init_fn} calls an irq_config hook",
+                    })
+    return edges
 
 
 if __name__ == "__main__":

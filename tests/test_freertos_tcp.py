@@ -6,8 +6,11 @@ from src.analyzer.c_ast_extractor import CASTExtractor
 from src.analyzer.call_graph import CallGraphBuilder
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_freertos_ip_extraction():
-    ip_header = Path("D:/aeroharness/targets/freertos_tcp/include/FreeRTOS_IP.h")
+    ip_header = PROJECT_ROOT / "targets/freertos_tcp/include/FreeRTOS_IP.h"
     extractor = CASTExtractor()
     context = extractor.extract_from_header(ip_header)
 
@@ -22,8 +25,8 @@ def test_freertos_ip_extraction():
 
 
 def test_freertos_dns_extraction_and_risk():
-    dns_header = Path("D:/aeroharness/targets/freertos_tcp/include/FreeRTOS_DNS.h")
-    dns_source = Path("D:/aeroharness/targets/freertos_tcp/source/FreeRTOS_DNS.c")
+    dns_header = PROJECT_ROOT / "targets/freertos_tcp/include/FreeRTOS_DNS.h"
+    dns_source = PROJECT_ROOT / "targets/freertos_tcp/source/FreeRTOS_DNS.c"
 
     extractor = CASTExtractor()
     context = extractor.extract_from_header(dns_header)

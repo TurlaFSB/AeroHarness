@@ -260,6 +260,16 @@ _parser.add_argument("--trials", type=int, default=20, help="Trials per target (
 _parser.add_argument("--target", default=None, choices=list(TARGETS.keys()), help="Run only this one target instead of all 5 (for smoke-testing a scaffolding change cheaply)")
 _parser.add_argument("--prompt-version", default="v1", choices=["v1", "v2", "v3"], help="v1 = original prompts (frozen, reproduces the Oct 4-5 2026 runs). v2 = v1 plus a redefinition-collision fix (smoke-tested only, see PROMPT_V2_NOTE). v3 = v2 plus a mandatory include/definition contract (see PROMPT_V3_NOTE). Results and logs go to separate version-suffixed files so earlier data is never overwritten")
 _parser.add_argument("--analyze-only", action="store_true", help="Skip running trials; just (re)compute the McNemar analysis from the existing results file and print it")
+_parser.add_argument("--backend", default="ollama", choices=["ollama", "openrouter"], help="ollama (default, local model, unchanged) or openrouter (cloud model; needs OPENROUTER_API_KEY in the environment). With openrouter, --model is the OpenRouter model ID, e.g. deepseek/deepseek-v4.1-flash-20260910")
+_parser.add_argument("--provider", default=None, help="openrouter only: pin ONE upstream provider by name and disable fallbacks, so the serving host is fixed and recorded. Omit to let OpenRouter route.")
+_parser.add_argument("--budget-usd", type=float, default=1.0, help="openrouter only: hard spending ceiling for this run in USD; the run stops cleanly (progress saved, resumable) before a call that would start past it. Default 1.0")
+_parser.add_argument("--price-in", type=float, default=0.30, help="openrouter only: USD per 1M input tokens, used for the budget guard when the response carries no cost. Default 0.30 (DeepSeek V4.1 Flash peak price, a conservative upper bound)")
+_parser.add_argument("--price-out", type=float, default=1.20, help="openrouter only: USD per 1M output tokens (see --price-in). Default 1.20")
+_parser.add_argument("--max-tokens", type=int, default=4096, help="openrouter only: max output tokens per call (reasoning tokens count toward it). Default 4096")
+_parser.add_argument("--reasoning", default="off", choices=["off", "default"], help="openrouter only: 'off' (default) asks the provider to disable hidden reasoning so the whole token budget goes to the harness code, matching the non-thinking local baselines; 'default' leaves the model's own behaviour. Pilot of Oct 14 2026: with reasoning on and max_tokens 4096, all 25 replies were empty (budget spent on reasoning).")
+_parser.add_argument("--mock-headers", default="v1", choices=["v1", "ext"], help="v1 = the frozen mock Zephyr headers in harnesses/include (headline configuration). ext = harnesses/include_ext placed first on the include path: adds names real Zephyr provides (mm_reg_t, mem_addr_t, mmio_addr_t, ARG_UNUSED, uart_irq_callback_user_data_t, k_spinlock_init) and lets struct device.mmio_base take a pointer or an integer. A labeled variant: results go to separate _mockext files.")
+_parser.add_argument("--repair-context", default="error", choices=["error", "code"], help="error = the retry prompt carries only the latest compiler error (frozen original behavior). code = it also carries the previous attempt's code, like the production SelfRepairOrchestrator's repair prompt. A labeled variant: results go to separate _ctxcode files.")
+_parser.add_argument("--attempt1-only", action="store_true", help="Make only the first attempt per trial (no repair retries) and report the attempt-1 success rate. Results go to a separate _a1only file.")
 _args, _ = _parser.parse_known_args()
 
 OLLAMA_MODEL = _args.model
@@ -341,6 +351,16 @@ if _args.target:
     _MODEL_SLUG += f"_smoketest_{_args.target}"
 if _args.prompt_version != "v1":
     _MODEL_SLUG += "_prompt" + _args.prompt_version
+if _args.mock_headers != "v1":
+    _MODEL_SLUG += "_mock" + _args.mock_headers
+if _args.repair_context != "error":
+    _MODEL_SLUG += "_ctx" + _args.repair_context
+if _args.backend == "openrouter" and _args.provider:
+    # a provider-pinned run is a different condition: keep its results, ledger
+    # and logs apart from the unpinned run so neither is resumed or overwritten
+    _MODEL_SLUG += "_prov-" + "".join(c if c.isalnum() else "-" for c in _args.provider)
+if _args.attempt1_only:
+    _MODEL_SLUG += "_a1only"
 RESULTS_FILE = f"ablation_g_results_{_MODEL_SLUG}.json"
 
 CLANG = shutil.which("clang++")
@@ -367,6 +387,96 @@ def call_ollama(prompt, seed):
     except Exception as e:
         print(f"Ollama API Error: {e}")
     return None
+
+class BudgetExceeded(Exception):
+    pass
+
+_SPENT_USD = 0.0
+_CALLS_MADE = 0
+_API_FAILED = [0]  # calls that returned no usable code; NOT counted as model failures in the rates below
+
+def call_openrouter(prompt, seed):
+    """One chat-completion call through OpenRouter. The key is read from the
+    environment and never printed or written. Every call is appended to a
+    JSONL ledger (model, serving provider, tokens, cost) so a result can be
+    traced to the exact model and host that produced it."""
+    global _SPENT_USD, _CALLS_MADE
+    if _SPENT_USD >= _args.budget_usd:
+        raise BudgetExceeded(f"spent ${_SPENT_USD:.4f} of ${_args.budget_usd:.2f}")
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        sys.exit("OPENROUTER_API_KEY is not set in this terminal. Set it (export OPENROUTER_API_KEY=...) and re-run.")
+    body = {
+        "model": OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": "You are a firmware fuzzing expert. Return ONLY valid C++ code for a libFuzzer harness. No markdown formatting."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.7,
+        "seed": seed,
+        "max_tokens": _args.max_tokens,
+        "usage": {"include": True},
+    }
+    if _args.reasoning == "off":
+        body["reasoning"] = {"enabled": False}
+    if _args.provider:
+        body["provider"] = {"order": [_args.provider], "allow_fallbacks": False}
+    try:
+        import requests
+        resp = requests.post(os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1") + "/chat/completions",
+                             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                             json=body, timeout=180)
+        if resp.status_code != 200:
+            print(f"OpenRouter HTTP {resp.status_code}: {resp.text[:300]}")
+            return None
+        data = resp.json()
+        usage = data.get("usage") or {}
+        tin = usage.get("prompt_tokens") or 0
+        tout = usage.get("completion_tokens") or 0
+        cost = usage.get("cost")
+        if cost is None:
+            cost = tin * _args.price_in / 1e6 + tout * _args.price_out / 1e6
+        _SPENT_USD += float(cost)
+        _CALLS_MADE += 1
+        choice = data["choices"][0]
+        finish = choice.get("finish_reason")
+        rtoks = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
+        with open(f"ablation_g_calls_{_MODEL_SLUG}.jsonl", "a") as f:
+            f.write(json.dumps({
+                "time": datetime.now().isoformat(),
+                "requested_model": OLLAMA_MODEL,
+                "served_model": data.get("model"),
+                "provider": data.get("provider"),
+                "prompt_tokens": tin, "completion_tokens": tout,
+                "reasoning_tokens": rtoks, "finish_reason": finish,
+                "reasoning_mode": _args.reasoning,
+                "cost_usd": float(cost), "spent_total_usd": round(_SPENT_USD, 6),
+            }) + "\n")
+        text = choice["message"].get("content") or ""
+        text = text.replace('```cpp', '').replace('```', '').strip()
+        # Some providers leak DeepSeek tool-call control tokens (<｜DSML｜ ...>)
+        # after the code. They are transport noise, not model-written C++, and
+        # break the compile; cut the reply at the first one and say so.
+        _dsml = text.find("<｜DSML｜")
+        if _dsml == -1:
+            _dsml = text.find("</｜DSML｜")
+        if _dsml != -1:
+            print(f"    (provider leaked DSML control tokens at char {_dsml}; truncated)")
+            text = text[:_dsml].rstrip()
+        if not text:
+            print(f"    (empty reply from model; finish_reason={finish}, completion_tokens={tout}, reasoning_tokens={rtoks})")
+            return None
+        return text
+    except BudgetExceeded:
+        raise
+    except Exception as e:
+        print(f"OpenRouter API Error: {e}")
+        return None
+
+def call_model(prompt, seed):
+    if _args.backend == "openrouter":
+        return call_openrouter(prompt, seed)
+    return call_ollama(prompt, seed)
 
 def write_log(path, content):
     with open(path, 'w') as f:
@@ -430,8 +540,9 @@ def evaluate_harness(harness_code, dir_path, target_func, attempt=None):
     # dir_path (not dir_path-prefixed again) -- see the existing comment a few
     # lines down about the exact same double-prefixing bug in the run step.
     res_compile = subprocess.run(
-        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline",
-         "-I" + os.path.join(repo_root, "harnesses", "include"),
+        [CLANG, "-fsanitize=fuzzer,address", "-O1", "-fno-inline"]
+        + (["-I" + os.path.join(repo_root, "harnesses", "include_ext")] if _args.mock_headers == "ext" else [])
+        + ["-I" + os.path.join(repo_root, "harnesses", "include"),
          "-I" + repo_root,
          f"harness{suffix}.cpp", "-o", "fuzz_bin"],
         cwd=dir_path, capture_output=True, text=True
@@ -499,6 +610,17 @@ def evaluate_harness(harness_code, dir_path, target_func, attempt=None):
 
     return _finish(True, "Success", out_stderr)
 
+def _retry_prompt(prompt, err, prev_code):
+    """Retry prompt. Default (--repair-context error) is the frozen original: the latest
+    error only. With --repair-context code the previous attempt's code is included too, as in
+    the production SelfRepairOrchestrator's repair prompt."""
+    if _args.repair_context == "code":
+        return (prompt + f"\n\nYour previous code:\n```cpp\n{prev_code}\n```\n\n"
+                f"It failed with the following error:\n```\n{err}\n```\n"
+                "Fix it and output the complete corrected C++ only.")
+    return prompt + f"\n\nYour previous code failed with the following error:\n```\n{err}\n```\nPlease try again. Output ONLY C++."
+
+
 def run_experiment():
     print(f"=== Ablation G (Work Plan item 8): Compiler-Oracle-Presence ===")
     print(f"Model: {OLLAMA_MODEL}")
@@ -539,12 +661,26 @@ def run_experiment():
 
             # Attempt 1 -- this IS the "oracle absent" condition: generated
             # once, compiled/run only to RECORD the outcome, never fed back.
-            code = call_ollama(prompt, seed)
+            code = call_model(prompt, seed)
             if not code:
                 print("    API Failed.")
+                _API_FAILED[0] += 1
                 continue
 
             oracle_absent_success, fail_type, err_out = evaluate_harness(code, trial_dir, target, attempt=1)
+
+            if _args.attempt1_only:
+                print(f"    -> Attempt 1 {'Success' if oracle_absent_success else 'Failed (' + str(fail_type) + ')'} (attempt-1-only mode, no retries)")
+                results[target].append({
+                    "trial": trial,
+                    "oracle_absent_success": bool(oracle_absent_success),
+                    "oracle_present_success": None,
+                    "oracle_present_attempts": 1,
+                    "fail_type_attempt1": None if oracle_absent_success else fail_type
+                })
+                with open(RESULTS_FILE, "w") as f:
+                    json.dump(results, f, indent=2)
+                continue
 
             if oracle_absent_success:
                 # Oracle-present trivially agrees (attempt 1 is its first attempt
@@ -574,17 +710,17 @@ def run_experiment():
             # asking about feedback type, only whether a loop exists at all.
             oracle_present_success = False
             oracle_present_attempts = 1
-            cur_prompt = prompt + f"\n\nYour previous code failed with the following error:\n```\n{err_out}\n```\nPlease try again. Output ONLY C++."
+            cur_prompt = _retry_prompt(prompt, err_out, code)
 
             for retry in range(2, 6):
                 oracle_present_attempts = retry
-                retry_code = call_ollama(cur_prompt, seed + retry)
+                retry_code = call_model(cur_prompt, seed + retry)
                 if not retry_code: continue
                 s, ft, eo = evaluate_harness(retry_code, loop_dir, target, attempt=retry)
                 if s:
                     oracle_present_success = True
                     break
-                cur_prompt = prompt + f"\n\nYour previous code failed with the following error:\n```\n{eo}\n```\nPlease try again. Output ONLY C++."
+                cur_prompt = _retry_prompt(prompt, eo, retry_code)
 
             print(f"      Oracle-present (loop, real feedback): {'SUCCESS' if oracle_present_success else 'FAIL'} in {oracle_present_attempts} total attempts")
 
@@ -601,6 +737,9 @@ def run_experiment():
                 json.dump(results, f, indent=2)
 
     print("\nExperiment Complete.")
+    if _args.attempt1_only:
+        report_attempt1_only(results)
+        return
     analyze_results(results)
 
 
@@ -665,8 +804,48 @@ def analyze_results(results=None):
             print("  -> Not statistically significant at alpha=0.05.")
 
 
+def _wilson(k, n, z=1.96):
+    if n == 0:
+        return (0.0, 0.0)
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (max(0.0, c - h), min(1.0, c + h))
+
+def report_attempt1_only(results=None):
+    if results is None:
+        with open(RESULTS_FILE) as f:
+            results = json.load(f)
+    tot_k = tot_n = 0
+    print("\n=== Attempt-1 success (no retries) ===")
+    for target, rows in results.items():
+        k = sum(1 for r in rows if r["oracle_absent_success"])
+        n = len(rows)
+        tot_k += k
+        tot_n += n
+        print(f"  {target}: {k}/{n}")
+    lo, hi = _wilson(tot_k, tot_n)
+    rate = (tot_k / tot_n) if tot_n else 0.0
+    print(f"  OVERALL: {tot_k}/{tot_n} = {rate:.1%}  (Wilson 95% CI {lo:.1%}-{hi:.1%})")
+    print("  Reference: local qwen2.5-coder:7b scored 4% attempt-1 on the full v1 run (n=100).")
+    if _args.backend == "openrouter":
+        print(f"  Spend this session: ${_SPENT_USD:.4f} over {_CALLS_MADE} calls (budget ${_args.budget_usd:.2f})")
+        print(f"  Calls with no usable code (API/empty replies, excluded from the rate above): {_API_FAILED[0]}")
+        if tot_n == 0 and _API_FAILED[0]:
+            print("  WARNING: no harness was produced at all -- this run measured nothing about the model. Check finish_reason/reasoning_tokens above.")
+
+
 if __name__ == "__main__":
     if _args.analyze_only:
-        analyze_results()
+        if _args.attempt1_only:
+            report_attempt1_only()
+        else:
+            analyze_results()
         sys.exit(0)
-    run_experiment()
+    try:
+        run_experiment()
+    except BudgetExceeded as e:
+        print(f"\nSTOPPED: budget guard reached ({e}). Progress is saved; re-run the same command to resume with a higher --budget-usd if you want to continue.")
+        if _args.attempt1_only:
+            report_attempt1_only()

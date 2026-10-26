@@ -76,7 +76,7 @@ for k,h in R.items():
     code=h+"\n// === APPENDED TARGET FUNCTION ===\n"+re.search(r'```c\n(.*?)```',T[k],re.S).group(1)
     d=os.path.join(OUT,k); os.makedirs(d,exist_ok=True)
     open(d+'/harness.cpp','w').write(code)
-    c=subprocess.run(['clang++','-fsanitize=fuzzer,address','-O1','-fno-inline','-I'+os.path.join(REPO,'harnesses','include'),'-I'+REPO,'harness.cpp','-o','fuzz_bin'],cwd=d,capture_output=True,text=True)
+    c=subprocess.run(['clang++','-fsanitize=fuzzer,address','-O1','-fno-inline']+(['-I'+os.path.join(REPO,'harnesses','include_ext')] if os.environ.get('MOCK_HEADERS')=='ext' else [])+['-I'+os.path.join(REPO,'harnesses','include'),'-I'+REPO,'harness.cpp','-o','fuzz_bin'],cwd=d,capture_output=True,text=True)
     if c.returncode: print(k,'COMPILE FAIL\n',c.stderr[:1500]); continue
     try:
         r=subprocess.run(['./fuzz_bin','-max_total_time=1','-timeout=2'],cwd=d,capture_output=True,text=True,timeout=10)

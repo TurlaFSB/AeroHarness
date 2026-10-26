@@ -103,7 +103,7 @@ struct; `poll_out`'s loops over every input byte calling the target function). T
 `evaluate_harness()` being flaky as the source of the 10 discordant pairs. It does not show
 which compiler error each rescue fixed.
 
-## Results — `qwen2.5-coder:14b` (statistics verified Oct 5 2026; interpretation pending)
+## Results — `qwen2.5-coder:14b` (statistics verified Oct 5 2026; interpretation superseded by the DeepSeek cloud leg below, Oct 15-16 2026)
 
 Full 100-trial run completed on Antigravity's machine (backend: see the reproducibility note
 below), about 14 hours. Run at commit `54eef536c` (the provenance-fix version), so every trial has
@@ -187,9 +187,10 @@ because the failure mode appears to be at least partly a scaffold artifact:
 build already provides (`struct pl011_regs`, `get_uart`) and the models also ignore its explicit
 rule about `struct device`; the compiler rejects the result. Both legs' absolute success rates, the 7B rescue count, and the 14B-vs-7B contrast
 are therefore measurements of a scaffold with a known defect, not clean measurements of
-repair capability. The Fisher comparison above is a fact about this scaffold only. Pending: a
-decision on correcting the prompt and re-running both models (smoke test first), and keeping
-the retry prompt design as is unless changed deliberately and reported as a separate change.
+repair capability. The Fisher comparison above is a fact about this scaffold only. Resolved
+(Oct 15-16 2026): the scaffold was corrected and the experiment re-run on a cloud model; see
+"Cloud leg: DeepSeek V4.1 Flash via OpenRouter" below. The retry prompt design was kept as is and
+the code-in-retry-context variant was reported as a separate change.
 
 ## Provenance fix (Oct 4 2026)
 
@@ -220,7 +221,7 @@ as a separate experiment next to v1, not as a replacement for it.
 
 ### Prompt v2 smoke test (7B, 5 trials per target, Oct 5 2026) and prompt v3
 
-Reported by the executing agent, not yet independently re-derived; the agent's own analysis
+Reported by the executing agent, not independently re-derived (historical; the cloud leg below supersedes it); the agent's own analysis
 was labelled a "snapshot from the first 10 completed trials" while tabulating 25, so the
 numbers below should be treated as provisional until the v3 smoke test is analysed with
 explicit file counts. The agent also disclosed that code it pasted in an earlier report
@@ -288,3 +289,169 @@ out of scope. Reporting plan: v1 (7B, 14B) is the headline result; v2/v3 smoke t
 as a scaffold-sensitivity finding (Table 16 is hypersensitive to prompt scaffolding for small
 models, and both models sit near the floor under every prompt tried). The 14B was not re-run
 under v2/v3.
+
+## Cloud leg: DeepSeek V4.1 Flash via OpenRouter, provider pinned to CoreWeave (Oct 15 2026)
+
+Model `deepseek/deepseek-v4.1-flash-20260910`, hidden reasoning off, 5 targets x 20 trials, same
+scoring as the local legs. Every call in these runs was served by CoreWeave (ledger-checked).
+
+| Prompt | Attempt 1 (oracle absent) | Eventual, <=5 attempts (oracle present) |
+|---|---|---|
+| v1, unpinned (8 providers) | 0/100 | 42/100 |
+| v1, pinned CoreWeave | 0/100 | 42/100 |
+| v3, pinned CoreWeave | 0/100 | 16/100 |
+
+v1 per target (loop, pinned): `poll_in` 12/20, `poll_out` 11/20, `isr` 2/20, `runtime_configure_internal`
+6/20, `init` 11/20. v3 per target (loop): 0, 0, 0, 14, 2. v1 vs v3 loop totals: Fisher exact two-sided
+p = 8e-5. The unpinned run's provider changed in time blocks, which confounds provider with target
+there; the pinned run removes that, and both agree on 42/100.
+
+**Prompt v3 made a strong model worse.** v3 makes the model include the project's mock Zephyr
+headers, and those headers are missing names real Zephyr provides. All 100 attempt-1 failures under v3
+are scaffold gaps, not model mistakes: `mmio_addr_t` (61), `mm_reg_t` (18),
+`uart_irq_callback_user_data_t` (16), `mem_addr_t` (1), `ARG_UNUSED` (1), `irq_cb_t` (1), plus 2 linker
+errors. At attempt 5, 65 of the 84 remaining failures are the same family, led by 33 (+1) cases of
+`incompatible integer to pointer conversion assigning to 'void *' from 'uintptr_t'`: real Zephyr
+stores the MMIO address as an integer, models write `dev.mmio_base = (uintptr_t)&regs`, and the mock
+declares `void *mmio_base`. The exact error strings were reproduced with a small harness against the
+v1 mock (`harnesses/include`). Reading: the 0/100 one-shot rate is a property of an environment with
+undocumented requirements, which the compiler error reveals one at a time; it is not a pure measure of
+model ability. Item 2 (documented scaffold, see `FAILURE_TAXONOMY.md`) is the contrast: first-attempt
+success 14/18 once the scaffold facts were stated.
+
+**Two labeled variants (added Oct 15 2026; v1 mock and error-only retries remain the frozen default):**
+
+* `--mock-headers ext`: puts `harnesses/include_ext` first on the include path. It adds `mm_reg_t`,
+  `mem_addr_t`, `mmio_addr_t` (all `uintptr_t`), `ARG_UNUSED`, `uart_irq_callback_user_data_t`,
+  `k_spinlock_init`, and makes `struct device.mmio_base` accept a pointer or an integer (C++ only).
+  Nothing about register semantics or the target bodies changes. Checked: the five hand-written
+  reference harnesses (`verify_reference_harnesses.py`, `MOCK_HEADERS=ext`) still compile and run
+  with exit 0, and the harness that fails on v1 with the exact errors above compiles on ext.
+* `--repair-context code`: the retry prompt also carries the previous attempt's code, as the
+  production `SelfRepairOrchestrator` repair prompt does. The frozen retry prompt carries only the
+  latest error, so Ablation G's loop is a weaker loop than the pipeline's own.
+
+Results of these variants go to `_mockext` / `_ctxcode` suffixed files; they are scaffold-sensitivity
+arms, and v1 stays the headline.
+
+### First variant result: prompt v3 + `--mock-headers ext` (Oct 16 2026)
+
+Same model and provider pin (DeepSeek V4.1 Flash, CoreWeave), 100 trials, 285 calls, USD 0.086.
+One-shot 9/100, loop 86/100 (b=77, c=0, McNemar exact p < 1e-20). Per target (one-shot / loop):
+poll_in 0/18, poll_out 1/17, isr 2/11, runtime_configure_internal 3/20, init 3/20 (each out of 20).
+
+| Config | One-shot | Loop |
+|---|---|---|
+| v1, original mocks | 0/100 | 42/100 |
+| v3, original mocks | 0/100 | 16/100 |
+| v3, extended mocks | 9/100 | 86/100 |
+
+Caveats, stated so the table is not over-read:
+- The last row differs from the first in both prompt and headers; the v1 + ext run separates the two.
+- 74 of 91 attempt-1 failures are a missing `extern "C"` on `LLVMFuzzerTestOneInput` (linker error), which the
+  loop repairs on attempt 2. The loop's measured benefit here is largely mechanical-error repair.
+- "SUCCESS" is compile + a short sanitizer run. At least one passing `runtime_configure_internal` harness stubs
+  `pl011_set_baudrate` as a no-op, so it passes without exercising that callee. Success counts are therefore an
+  upper bound on useful harnesses, not a measure of them.
+- 5 of the 14 final failures are still `uart_irq_callback_user_data_t`; the extended headers define it only in
+  `zephyr/drivers/uart.h`, which these harnesses do not always include.
+
+`report_ablation_g.py` recomputes every table in this section from the result, ledger and per-attempt log files.
+
+### Second variant result: frozen prompt v1 + `--mock-headers ext` (Oct 16 2026)
+
+Same model and provider pin, 100 trials, 188 calls, USD 0.085. This isolates the header effect (compare with
+the v1 original-mock row) and the prompt effect (compare with the v3 + ext row). The run was completed in two
+sessions: 9 `pl011_poll_in` trials came from an earlier interrupted launch of the same configuration, and 4
+`pl011_init` trials were re-run after OpenRouter connection errors (SSL EOF / connection reset) skipped them.
+Seeds are time-based, so neither affects the comparison.
+
+| Config | One-shot | Loop |
+|---|---|---|
+| v1, original mocks (headline) | 0/100 | 42/100 |
+| v3, original mocks | 0/100 | 16/100 |
+| v3, extended mocks | 9/100 | 86/100 |
+| v1, extended mocks | 49/100 (95% CI 39-59%) | 91/100 (CI 84-95%) |
+
+Per target (one-shot -> loop, each of 20): poll_in 14 -> 20, poll_out 16 -> 20, isr 3 -> 11,
+runtime_configure_internal 0 -> 20, init 16 -> 20.
+
+Reading the table:
+- Changing only the headers moves the v1 loop from 42% to 91%; changing only the prompt (v3 vs v1, both with
+  extended headers) moves one-shot from 49% to 9% and the loop from 91% to 86%. The scaffold matters far more
+  than the prompt wording, and v3's mandatory include list did not help.
+- The loop rescued 42 of 51 attempt-1 failures (82%, CI 70-90%). Report this rate, not the McNemar p-value:
+  attempt 1 is the same call in both conditions, so c = 0 by construction and the exact test only restates that
+  at least a few failures were rescued.
+- Attempt-1 failures are mostly environment gaps, not model errors: `ENOTSUP` undeclared (20; the harness did
+  not include `<errno.h>`), missing `extern "C"` on `LLVMFuzzerTestOneInput` (10), `uart_irq_callback_user_data_t`
+  not included (8), and a "type specifier is required" error (8; identified as the undefined `DEVICE_MMIO_ROM`/`DEVICE_MMIO_RAM` macros from the attempt-5 error text of three `pl011_isr` trials, not checked in the other five).
+- All 9 trials the loop never fixed are `pl011_isr`. The attempt-5 errors show the cause: the model copies the real
+  driver's `struct pl011_config { DEVICE_MMIO_ROM; }` and `struct pl011_data { DEVICE_MMIO_RAM; ... }`, and the mock
+  headers define neither macro (8 trials), or it uses `uart_irq_callback_user_data_t` without including
+  `<zephyr/drivers/uart.h>` (1 trial). In this error-only loop the model saw the error four times and did not
+  define the macro itself. (The next section shows that this was a property of the error-only retry prompt, not a
+  limit of the model: with the previous code in the prompt all 20 `pl011_isr` trials were repaired.) These two names
+  are a remaining gap in `harnesses/include_ext`, left unchanged to keep these arms frozen.
+- Two calls ended with `finish_reason: length` at the 4096-token cap; both are counted as failed attempts.
+
+### Third variant result: v1 + `--mock-headers ext` + `--repair-context code` (Oct 16 2026)
+
+Same model, provider pin and headers as the previous section; the only change is that each retry prompt also
+contains the previous attempt's code (as the production `SelfRepairOrchestrator` does). 100 trials, 179 calls,
+207,706 prompt and 99,778 completion tokens, USD 0.076. Attempt 1 uses the identical prompt in both runs.
+
+| Config | One-shot | Loop |
+|---|---|---|
+| v1, extended mocks, error-only retry | 49/100 | 91/100 |
+| v1, extended mocks, **code + error retry** | 35/100 (CI 26-45%) | **100/100** (CI 96-100%) |
+
+Per target (one-shot -> loop, each of 20): poll_in 11 -> 20, poll_out 11 -> 20, isr 4 -> 20,
+runtime_configure_internal 0 -> 20, init 9 -> 20. The loop rescued all 65 attempt-1 failures (CI 94-100%); the
+successful trials took 1 attempt (35), 2 (51) or 3 (14).
+
+Reading the table:
+- **Showing the model its previous code removed every unrepaired trial.** `pl011_isr` went from 11/20 to 20/20
+  (Fisher exact p = 0.001). This also corrects the previous section's first reading, that the loop cannot supply
+  missing environment knowledge: given its own code the model defined the missing macros and fixed the other
+  errors. The error-only retry in Ablation G is a weaker loop than the pipeline's, as stated in the variants
+  section, and understates what the production loop does.
+- **Run-to-run variance in the one-shot column is large.** Attempt 1 is the same call in both runs, yet one-shot
+  success was 49/100 and 35/100 (Fisher p = 0.06; `pl011_init` alone 16/20 vs 9/20, p = 0.05). Sampling is
+  non-deterministic and seeds are time-based, so a single run's one-shot rate carries roughly +-10 points. The pooled
+  estimate over both runs is 84/200 = 42% (CI 35-49%). The loop-minus-one-shot gap is therefore well established; the
+  exact one-shot figure is not.
+- Attempt-1 failure patterns repeat the previous run: missing `extern "C"` (23), `ENOTSUP` without `<errno.h>`
+  (18), undefined `DEVICE_MMIO_ROM`/`DEVICE_MMIO_RAM` (11), `uart_irq_callback_user_data_t` (7).
+- **Still unaudited.** 100/100 means compile plus a short sanitizer run, as before. Whether each passing harness
+  calls its target and exercises it (rather than stubbing the callee) has not been checked for Ablation G.
+  Item 2's audit covered a different set of harnesses.
+
+### Harness validity audit (Oct 16 2026)
+
+`audit_ablation_g_harnesses.py` re-reads the final passing harness of every successful trial in the five DeepSeek
+result sets (335 harnesses in total) and checks four text-level properties. It is a static heuristic, not a proof.
+
+| Result set | Audited | Call the target | Redefine it | Use the fuzz input | Stub a callee |
+|---|---|---|---|---|---|
+| v1, original mocks | 42 | 42 | 0 | 42 | 17 |
+| v3, original mocks | 16 | 16 | 0 | 16 | 16 |
+| v3, extended mocks | 86 | 86 | 0 | 86 | 40 |
+| v1, extended mocks | 91 | 91 | 0 | 91 | 40 |
+| v1, extended mocks, code context | 100 | 100 | 0 | 100 | 40 |
+
+Findings:
+- Every passing harness calls its target, none redefines it, and every one reads the fuzz input in the body of
+  `LLVMFuzzerTestOneInput`. The "SUCCESS" counts above are therefore not inflated by harnesses that never invoke the
+  target (the main way a compile-and-run oracle can be fooled).
+- Stubbing is universal where it is possible: every passing `pl011_runtime_configure_internal` harness defines no-op
+  `pl011_set_baudrate` and `pl011_set_flow_control`, and every passing `pl011_init` harness defines a no-op
+  `pl011_set_baudrate`. This is forced by the task design, not a model shortcut: the prompt contains only the target
+  function's source, and the helpers are `static` functions defined elsewhere in the driver, so the harness must
+  provide a definition for the link to succeed. The consequence is that Ablation G harnesses for these two targets
+  cannot reach the helpers' code. The `pl011_set_baudrate` division by zero (see the item 2 results) is unreachable in
+  every one of them, and Ablation G measures whether a harness compiles and runs, not how deep it fuzzes.
+- Not measured here: line or branch coverage of the passing harnesses, and whether the fuzz input drives the target's
+  branches rather than being read and ignored. Item 2's harnesses link the real driver file and do not have the
+  stubbing limitation.
+
